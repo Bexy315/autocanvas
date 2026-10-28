@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+coverage/
+BenchmarkDotNet.Artifacts/
+
+# Node
+node_modules/
+dist/
+build/
+.docusaurus/
+
+# IDEs
+.idea/
+.vs/
+.vscode/*
+!.vscode/extensions.json
+
+# Local config and secrets
+appsettings.local.json
+*.local.json
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
