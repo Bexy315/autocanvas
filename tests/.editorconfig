@@ -1,0 +1,5 @@
+[*.cs]
+# Test names are sentences (Known_names_resolve_ignoring_case); underscores keep them readable.
+dotnet_diagnostic.CA1707.severity = none
+# xUnit requires test classes to be public (xUnit1000), so they cannot be made internal.
+dotnet_diagnostic.CA1515.severity = none

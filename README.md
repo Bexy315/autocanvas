@@ -10,3 +10,17 @@ first-class feature.
 ## License
 
 [MIT](LICENSE)
+
+## Development
+
+Requires the .NET 10 SDK.
+
+```sh
+dotnet tool restore
+dotnet format --verify-no-changes   # style and analyzers
+dotnet build -c Release             # warnings are errors
+dotnet test -c Release              # fails below 75 % line coverage per project
+```
+
+Coverage reports land in `artifacts/coverage/`. CI runs the same steps plus a secret scan, a
+dependency license check and a Conventional Commits check on the PR title.

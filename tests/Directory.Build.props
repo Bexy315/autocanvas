@@ -1,0 +1,27 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <!-- Test code is not public API. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- Coverage gate: each test project measures the source project it is named after. -->
+    <CoveredAssembly>$(MSBuildProjectName.Replace('.Tests', ''))</CoveredAssembly>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --results-directory "$(MSBuildThisFileDirectory)../artifacts/coverage" --coverlet --coverlet-output-format cobertura --coverlet-file-prefix $(CoveredAssembly) --coverlet-include "[$(CoveredAssembly)]*" --coverlet-threshold 75 --coverlet-threshold-type line --coverlet-threshold-stat total</TestingPlatformCommandLineArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.MTP" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Shouldly" />
+    <Using Include="Xunit" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/$(CoveredAssembly)/$(CoveredAssembly).csproj" />
+  </ItemGroup>
+</Project>
