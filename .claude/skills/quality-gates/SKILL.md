@@ -21,6 +21,12 @@ dotnet test -c Release --no-build
 dotnet nuget-license --input AutoCanvas.slnx --include-transitive --allowed-license-types build/allowed-licenses.json
 ```
 
+If anything under `docs/` or `docs-site/` changed, also run the docs gate from `docs-site/`:
+
+```sh
+npm ci && npm run typecheck && npm run build
+```
+
 Report the result per step. Do not claim the gates pass unless every command exited with 0.
 
 ## Reading failures
@@ -35,6 +41,7 @@ Report the result per step. Do not claim the gates pass unless every command exi
 | Test run exit code **14**, all tests passed | Line coverage of a project fell below 75 % | Add tests for the uncovered code (see below). Do not lower the threshold |
 | Test run exit code **2** | At least one test failed | Read the failing test output |
 | Test run exit code **8** | A test project found no tests | Add tests or remove the empty project |
+| Docs build: `MDX compilation failed` or `Broken link` | A relative link points to a missing page or anchor, or a link leaves `docs/` | Fix the link. Link only within `docs/`; mention repository files (e.g. `build/…`) as code, not links. `docs/plans/` is not published, so do not link to it from published docs |
 | License check lists a package as not allowed | Dependency license is not on the allow list | Pick another package, or write an ADR before extending `build/allowed-licenses.json` |
 
 ## Finding uncovered code
