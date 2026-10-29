@@ -33,6 +33,15 @@ regenerate:
 CI fails when committed generated output is stale. The generator commands will be listed here as
 they are introduced.
 
+## The docs site
+
+`docs-site/` renders `docs/user`, `docs/technical` and `docs/adr` with Docusaurus; each folder is
+one sidebar, ordered by `sidebar_position` front matter, then file name. `docs/plans/` is excluded.
+Files are CommonMark (`.md`), not MDX — write them for GitHub and they render the same on the site.
+Admonitions (`:::note`, `:::caution`) are the one site-specific syntax worth using.
+
+Build it locally before pushing (`cd docs-site && npm run build`) — broken links fail CI.
+
 ## Writing well
 
 - **User docs** are task-oriented: start with what the reader wants to achieve, show a working

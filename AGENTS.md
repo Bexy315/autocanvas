@@ -21,6 +21,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `docs/technical/` | Architecture, security model, operations, dependencies |
 | `docs/adr/` | Architecture decision records |
 | `docs/plans/` | Milestone plans; the active one says what to work on |
+| `docs-site/` | Docusaurus app that renders `docs/` (except `plans/`) to GitHub Pages |
 | `build/` | Build and CI support files |
 | `.claude/skills/` | Task playbooks — any agent can read them (see below) |
 
@@ -37,6 +38,15 @@ dotnet format --verify-no-changes   # style + analyzers; `dotnet format` fixes w
 dotnet build -c Release             # warnings are errors
 dotnet test -c Release              # ≥ 75 % line coverage per project, else exit code 14
 dotnet nuget-license --input AutoCanvas.slnx --include-transitive --allowed-license-types build/allowed-licenses.json
+```
+
+Documentation site (Node 24), from `docs-site/`:
+
+```sh
+npm ci
+npm run typecheck
+npm run build      # broken links, anchors and images fail the build
+npm run start      # local preview with hot reload
 ```
 
 Coverage reports are written to `artifacts/coverage/`. For a readable summary:

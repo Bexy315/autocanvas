@@ -24,3 +24,6 @@ dotnet test -c Release              # fails below 75 % line coverage per project
 
 Coverage reports land in `artifacts/coverage/`. CI runs the same steps plus a secret scan, a
 dependency license check and a Conventional Commits check on the PR title.
+
+Documentation: <https://bexy315.github.io/autocanvas/> — sources in `docs/`, site in `docs-site/`
+(`npm ci && npm run start` for a local preview).
