@@ -1,0 +1,6 @@
+version: 1
+jobs:
+  a:
+    on_cancel: true
+    steps:
+      - run: echo hi

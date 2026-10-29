@@ -1,0 +1,5 @@
+version: 1
+jobs:
+  route:
+    type: switch
+    expression: ${{ trigger.branch }}

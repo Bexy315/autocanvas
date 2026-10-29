@@ -1,0 +1,10 @@
+version: 1
+jobs:
+  a:
+    steps:
+      - run: echo hi
+  b:
+    finally: true
+    needs: [a]
+    steps:
+      - run: echo hi

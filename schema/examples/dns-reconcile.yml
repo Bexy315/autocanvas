@@ -1,0 +1,58 @@
+# A managed automation that checks every five minutes whether a DNS record matches the
+# current public IP, and only touches it when it does not. Runs never overlap, and runs
+# that changed nothing are collapsed in the history.
+version: 1
+name: DNS reconcile
+triggers:
+  manual: true
+  schedule:
+    - interval: 5m
+concurrency: single
+changed_when: ${{ jobs.check.outputs.changed }}
+
+jobs:
+  check:
+    runs_on: linux
+    steps:
+      - id: ip
+        type: http_request
+        with:
+          url: https://api.ipify.org
+      - id: compare
+        run: |
+          current=$(dig +short home.example.org)
+          if [ "$current" = "${{ steps.ip.outputs.body }}" ]; then echo "changed=false" >> "$AUTOCANVAS_OUTPUT"; else echo "changed=true" >> "$AUTOCANVAS_OUTPUT"; fi
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+      ip: ${{ steps.ip.outputs.body }}
+
+  route:
+    type: switch
+    needs: [check]
+    expression: ${{ jobs.check.outputs.changed }}
+    cases:
+      - name: update
+        when: 'true'
+      - name: nothing
+        default: true
+
+  update:
+    needs: [{ job: route, case: update }]
+    runs_on: linux
+    retry:
+      max_attempts: 3
+      delay_seconds: 30
+    steps:
+      - type: http_request
+        with:
+          method: PUT
+          url: https://dns.example.org/records/home
+          headers:
+            Authorization: Bearer ${{ secrets.DNS_TOKEN }}
+          body: '{ "content": "${{ jobs.check.outputs.ip }}" }'
+
+x-editor:
+  layout:
+    check: { x: 0, y: 0 }
+    route: { x: 240, y: 0 }
+    update: { x: 480, y: 0 }

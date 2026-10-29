@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bexy315.github.io/autocanvas/schema/automation.v1.json",
+  "title": "AutoCanvas automation",
+  "description": "An AutoCanvas automation definition, version 1. In a repository it lives at .autocanvas/automations/<name>.yml; managed automations use the same format.",
+  "type": "object",
+  "required": ["version", "jobs"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+      "description": "Extension data that AutoCanvas does not interpret, for example the canvas layout under x-editor. Preserved on round trips."
+    }
+  },
+  "properties": {
+    "version": {
+      "description": "Format version of this file.",
+      "const": 1
+    },
+    "name": {
+      "description": "Display name. Defaults to the file name without extension.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "description": {
+      "description": "What this automation does, shown in the UI.",
+      "type": "string",
+      "maxLength": 2000
+    },
+    "triggers": { "$ref": "#/$defs/triggers" },
+    "variables": {
+      "description": "Variables of this automation, readable as ${{ vars.NAME }}. They are added to, and override, variables inherited from the folder.",
+      "$ref": "#/$defs/stringMap"
+    },
+    "timeout_minutes": {
+      "description": "Default time limit for each job, unless the job sets its own.",
+      "$ref": "#/$defs/timeoutMinutes"
+    },
+    "concurrency": {
+      "description": "Whether runs of this automation may overlap. 'single' starts a new run only when no other run of it is active; use it for reconciliations that must not race.",
+      "enum": ["parallel", "single"],
+      "default": "parallel"
+    },
+    "changed_when": {
+      "description": "Expression deciding whether a successful run actually changed something, for example ${{ jobs.check.outputs.changed }}. Runs that changed nothing are collapsed in the history. Unset: every successful run counts as a change.",
+      "$ref": "#/$defs/expressionText"
+    },
+    "jobs": {
+      "description": "The jobs of this automation, keyed by job id. Jobs without needs start in parallel.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/identifier" },
+      "additionalProperties": { "$ref": "#/$defs/job" }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "description": "An id usable in expressions: lower-case letters, digits, '_' and '-', starting with a letter.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,62}$"
+    },
+    "expressionText": {
+      "description": "Text that may contain ${{ ... }} expressions.",
+      "type": "string"
+    },
+    "condition": {
+      "description": "An expression that decides whether to run, for example ${{ trigger.branch == 'main' }}. The surrounding ${{ }} is optional here.",
+      "type": "string",
+      "minLength": 1
+    },
+    "stringMap": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+      "additionalProperties": { "type": ["string", "number", "boolean"] }
+    },
+    "timeoutMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10080
+    },
+    "globList": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "triggers": {
+      "description": "What starts a run. Without triggers an automation only runs when started by hand or by another automation.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "manual": {
+          "description": "Can be started by hand from the UI or API.",
+          "type": "boolean"
+        },
+        "push": {
+          "description": "Runs on pushes to the repository this automation lives in (repository automations only).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "branches": { "description": "Branch name patterns; unset means all branches.", "$ref": "#/$defs/globList" },
+            "tags": { "description": "Tag name patterns; unset means tags do not trigger.", "$ref": "#/$defs/globList" },
+            "paths": { "description": "Only when a changed file matches one of these patterns.", "$ref": "#/$defs/globList" }
+          }
+        },
+        "schedule": {
+          "description": "Time-based triggers.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["cron"],
+                "properties": {
+                  "cron": { "description": "Five-field cron expression.", "type": "string", "minLength": 9 },
+                  "timezone": { "description": "IANA time zone for the cron expression; default UTC.", "type": "string" }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["interval"],
+                "properties": {
+                  "interval": {
+                    "description": "Fixed interval such as 30s, 5m, 2h or 1d (minimum 10s).",
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]*(s|m|h|d)$"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "webhook": {
+          "description": "Can be started by a signed HTTP call to the automation's webhook URL; the request body and headers are available as trigger.body and trigger.headers.",
+          "type": "boolean"
+        },
+        "automation_completed": {
+          "description": "Runs when another automation finishes.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["automation"],
+          "properties": {
+            "automation": { "description": "Name of the other automation in the same folder, or its path.", "type": "string", "minLength": 1 },
+            "on": { "enum": ["success", "failure", "always"], "default": "success" }
+          }
+        }
+      }
+    },
+    "need": {
+      "oneOf": [
+        { "$ref": "#/$defs/identifier", "description": "Job id; waits for it to succeed." },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["job"],
+          "properties": {
+            "job": { "$ref": "#/$defs/identifier" },
+            "on": {
+              "description": "Which outcome of the job lets this one start.",
+              "enum": ["success", "failure", "always"],
+              "default": "success"
+            },
+            "case": {
+              "description": "For a switch job: only when the switch picked the case with this name.",
+              "$ref": "#/$defs/identifier"
+            }
+          },
+          "not": { "required": ["on", "case"] }
+        }
+      ]
+    },
+    "jobCommon": {
+      "type": "object",
+      "properties": {
+        "name": { "description": "Display name; defaults to the job id.", "type": "string", "minLength": 1, "maxLength": 100 },
+        "needs": {
+          "description": "Jobs that must finish first.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/need" },
+          "minItems": 1
+        },
+        "if": { "$ref": "#/$defs/condition" }
+      }
+    },
+    "job": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Unset for a job that runs steps on a runner; 'switch' or 'join' for flow control on the canvas.",
+          "enum": ["switch", "join"]
+        }
+      },
+      "if": { "required": ["type"], "properties": { "type": { "const": "switch" } } },
+      "then": { "$ref": "#/$defs/switchJob" },
+      "else": {
+        "if": { "required": ["type"], "properties": { "type": { "const": "join" } } },
+        "then": { "$ref": "#/$defs/joinJob" },
+        "else": { "$ref": "#/$defs/stepJob" }
+      }
+    },
+    "stepJob": {
+      "description": "A job that runs steps on a runner.",
+      "allOf": [{ "$ref": "#/$defs/jobCommon" }],
+      "required": ["steps"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "runs_on": {
+          "description": "Runner labels; the job goes to a runner that has all of them.",
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1, "uniqueItems": true }
+          ]
+        },
+        "image": {
+          "description": "Container image the steps run in, for runners that run jobs in containers.",
+          "type": "string",
+          "minLength": 1
+        },
+        "checkout": {
+          "description": "Repositories to clone into the workspace before the steps. A repository automation checks out its own commit by default; false turns that off.",
+          "oneOf": [
+            { "const": false },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["repository"],
+                "properties": {
+                  "repository": { "description": "'self', the name of a connected repository, or an https URL.", "type": "string", "minLength": 1 },
+                  "ref": { "description": "Branch, tag or commit; default: the triggering commit for self, else the default branch.", "type": "string", "minLength": 1 },
+                  "path": { "description": "Directory in the workspace, relative; default: the workspace root.", "type": "string", "minLength": 1 },
+                  "depth": { "description": "History depth; 0 for the full history. Default 1.", "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          ]
+        },
+        "env": { "description": "Environment variables for all steps of the job.", "$ref": "#/$defs/stringMap" },
+        "services": {
+          "description": "Containers started next to the job (for example a database), reachable under their key as host name, removed when the job ends.",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/identifier" },
+          "additionalProperties": { "$ref": "#/$defs/service" }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "outputs": {
+          "description": "What the job publishes to later jobs, as name: ${{ steps.ID.outputs.NAME }}. Readable as ${{ jobs.JOB.outputs.NAME }}.",
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/identifier" },
+          "additionalProperties": { "$ref": "#/$defs/expressionText" }
+        },
+        "reports": {
+          "description": "Test and coverage reports collected from the workspace after the steps, even when a step failed.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["format", "path"],
+            "properties": {
+              "format": { "enum": ["junit", "trx", "cobertura"] },
+              "path": {
+                "description": "Glob pattern(s) relative to the workspace.",
+                "oneOf": [{ "type": "string", "minLength": 1 }, { "$ref": "#/$defs/globList" }]
+              },
+              "name": { "description": "Label for the report in the UI; default: the format.", "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "timeout_minutes": { "$ref": "#/$defs/timeoutMinutes" },
+        "retry": {
+          "description": "Run the job again when it fails.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_attempts"],
+          "properties": {
+            "max_attempts": { "description": "Attempts in total, including the first.", "type": "integer", "minimum": 2, "maximum": 10 },
+            "delay_seconds": { "type": "integer", "minimum": 0, "maximum": 3600, "default": 0 }
+          }
+        },
+        "finally": {
+          "description": "Runs once every other job of the run is done, whatever their outcome; ${{ run.status }} tells it how the run went. Cannot have needs.",
+          "type": "boolean"
+        },
+        "on_cancel": {
+          "description": "For a finally job: also run when the run is cancelled.",
+          "type": "boolean"
+        }
+      },
+      "dependentSchemas": {
+        "finally": { "not": { "required": ["needs"] } },
+        "on_cancel": { "required": ["finally"], "properties": { "finally": { "const": true } } }
+      }
+    },
+    "switchJob": {
+      "description": "Evaluates an expression and activates the first matching case; jobs that need the switch with that case run, the others are skipped.",
+      "allOf": [{ "$ref": "#/$defs/jobCommon" }],
+      "required": ["type", "expression", "cases"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "switch" },
+        "expression": { "$ref": "#/$defs/expressionText" },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "description": "Case name that dependent jobs refer to with needs[].case.", "$ref": "#/$defs/identifier" },
+              "when": { "description": "Value the expression must equal (compared as text).", "type": ["string", "number", "boolean"] },
+              "default": { "description": "Taken when no other case matches. At most one case is the default.", "const": true }
+            },
+            "oneOf": [{ "required": ["when"] }, { "required": ["default"] }]
+          }
+        }
+      }
+    },
+    "joinJob": {
+      "description": "Waits for its needs and passes through; groups branches on the canvas.",
+      "allOf": [{ "$ref": "#/$defs/jobCommon" }],
+      "required": ["type", "needs"],
+      "unevaluatedProperties": false,
+      "properties": {
+        "type": { "const": "join" }
+      }
+    },
+    "stepCommon": {
+      "type": "object",
+      "properties": {
+        "id": { "description": "Id for reading this step's outputs as ${{ steps.ID.outputs.NAME }}.", "$ref": "#/$defs/identifier" },
+        "name": { "description": "Display name.", "type": "string", "minLength": 1, "maxLength": 100 },
+        "if": { "$ref": "#/$defs/condition" },
+        "env": { "$ref": "#/$defs/stringMap" },
+        "continue_on_error": { "description": "A failure of this step does not fail the job.", "type": "boolean" },
+        "timeout_minutes": { "$ref": "#/$defs/timeoutMinutes" }
+      }
+    },
+    "step": {
+      "oneOf": [
+        {
+          "description": "A shell script.",
+          "allOf": [{ "$ref": "#/$defs/stepCommon" }],
+          "required": ["run"],
+          "unevaluatedProperties": false,
+          "properties": {
+            "run": { "description": "Script to run; may contain expressions.", "type": "string", "minLength": 1 },
+            "shell": { "description": "Shell to run it with; default: bash if available, else sh (pwsh on Windows runners).", "enum": ["bash", "sh", "pwsh", "cmd"] },
+            "working_directory": { "description": "Relative to the workspace.", "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "description": "A step of a built-in or plugin node type.",
+          "allOf": [{ "$ref": "#/$defs/stepCommon" }],
+          "required": ["type"],
+          "unevaluatedProperties": false,
+          "properties": {
+            "type": {
+              "description": "Node type, for example http_request or docker_build.",
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)?$"
+            },
+            "with": {
+              "description": "Inputs of the node type; which ones exist is defined by the node type.",
+              "type": "object"
+            },
+            "outputs": {
+              "description": "Extra outputs of this step, as name: expression.",
+              "type": "object",
+              "propertyNames": { "$ref": "#/$defs/identifier" },
+              "additionalProperties": { "$ref": "#/$defs/expressionText" }
+            }
+          }
+        }
+      ]
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "description": "A preset with a known image, environment and readiness check.",
+          "enum": ["postgres", "mysql", "redis"]
+        },
+        "version": { "description": "Version of the preset, for example 17.", "type": ["string", "number"] },
+        "image": { "description": "Container image, instead of a preset.", "type": "string", "minLength": 1 },
+        "env": { "$ref": "#/$defs/stringMap" },
+        "ready": { "description": "Command run inside the service until it succeeds before the steps start; default: the preset's check.", "type": "string", "minLength": 1 }
+      },
+      "oneOf": [
+        { "required": ["preset"], "not": { "required": ["image"] } },
+        { "required": ["image"], "not": { "anyOf": [{ "required": ["preset"] }, { "required": ["version"] }] } }
+      ]
+    }
+  }
+}
