@@ -1,7 +1,7 @@
 # 0003. Pipelines live in repositories or are managed, one source each
 
 - Status: Accepted
-- Date: 2026-10-29
+- Date: 2026-10-29 (location refined 2026-10-30, before any implementation)
 
 ## Context
 
@@ -23,8 +23,11 @@ The origin engine stored pipelines in its database and edited them on a canvas o
 
 Option 3. Both kinds use the same model and the same schema, so they run identically.
 
-- Repository pipelines are discovered at `.autocanvas/*.yml` (or `.yaml`) in the repository root,
-  one pipeline per file; the file name without extension is the default pipeline name.
+- Repository pipelines are discovered at `.autocanvas/automations/*.yml` (or `.yaml`) in the
+  repository root, one pipeline per file; the file name without extension is the default pipeline
+  name. The `.autocanvas/` folder itself is reserved for AutoCanvas: further kinds of files
+  (repository settings, reusable templates, shared scripts) get their own subfolders next to
+  `automations/` without ever being mistaken for pipelines.
 - The canvas shows repository pipelines read-only. Editing one on the canvas will later produce a
   commit or pull request through the forge integration, never a silent divergence.
 - Managed pipelines can be exported to YAML and moved into a repository, which turns them into
@@ -35,3 +38,5 @@ Option 3. Both kinds use the same model and the same schema, so they run identic
 - One parser, validator and schema serve both kinds.
 - The server needs a repository-discovery step on push events and on demand (S5).
 - A folder of pipeline files allows several pipelines per repository and keeps files small.
+- Discovery only reads `.autocanvas/automations/`; any other file under `.autocanvas/` is ignored
+  until a later ADR gives it a meaning.
