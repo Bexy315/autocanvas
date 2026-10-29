@@ -29,7 +29,8 @@ regenerate:
 - automation format: `schema/automation.v*.json` is published on the docs site as-is (copied by
   `docs-site/scripts/copy-schemas.mjs`); when the schema changes, update `docs/user/automations.md`
   and the examples in `schema/examples/` in the same PR
-- runner protocol reference ← `proto/runner/v*/` (from S0 step 5)
+- runner protocol: `docs/protocol/runner-v*.md` describes the behavior around
+  `proto/autocanvas/runner/v*/`; every `.proto` change updates it in the same PR
 - node reference ← node manifests (later)
 
 CI fails when committed generated output is stale. The generator commands will be listed here as

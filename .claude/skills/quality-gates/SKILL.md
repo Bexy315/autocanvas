@@ -21,6 +21,16 @@ dotnet test -c Release --no-build
 dotnet nuget-license --input AutoCanvas.slnx --include-transitive --allowed-license-types build/allowed-licenses.json
 ```
 
+If anything under `proto/` changed, run the protocol gate (`npx @bufbuild/buf@1.75.0 …` works
+without installing buf):
+
+```sh
+buf lint && buf format --diff --exit-code && buf breaking --against '.git#branch=main'
+```
+
+A `buf breaking` failure means the change is not wire- or JSON-compatible with v1. Make it
+additive instead (new field number, new message, new enum value); never reuse or renumber fields.
+
 If anything under `docs/` or `docs-site/` changed, also run the docs gate from `docs-site/`:
 
 ```sh

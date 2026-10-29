@@ -21,7 +21,7 @@ and dispatch latency as performance concerns.
 
 ## Decision
 
-Option 3, and the protocol is a **specification first**: the `.proto` files in `proto/runner/v1/`
+Option 3, and the protocol is a **specification first**: the `.proto` files in `proto/autocanvas/runner/v1/`
 plus a prose document are the contract; the .NET runner is a reference implementation of it.
 
 - Control traffic (registration, heartbeat, job offers, leases, cancellation, status events, log

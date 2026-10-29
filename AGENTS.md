@@ -17,9 +17,11 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `src/AutoCanvas.Core/` | Pipeline model, parsing, validation, expressions, DAG. Pure code, no I/O. |
 | `src/AutoCanvas.Reports/` | Test and coverage report parsers |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
+| `proto/` | Runner protocol (Protocol Buffers, `buf.yaml` at the root) |
 | `schema/` | JSON Schema of the automation format, with valid and invalid examples |
 | `docs/user/` | User documentation (how to use AutoCanvas) |
 | `docs/technical/` | Architecture, security model, operations, dependencies |
+| `docs/protocol/` | Runner protocol specification (prose around the `.proto` files) |
 | `docs/adr/` | Architecture decision records |
 | `docs/plans/` | Milestone plans; the active one says what to work on |
 | `docs-site/` | Docusaurus app that renders `docs/` (except `plans/`) to GitHub Pages |
@@ -39,6 +41,14 @@ dotnet format --verify-no-changes   # style + analyzers; `dotnet format` fixes w
 dotnet build -c Release             # warnings are errors
 dotnet test -c Release              # ≥ 75 % line coverage per project, else exit code 14
 dotnet nuget-license --input AutoCanvas.slnx --include-transitive --allowed-license-types build/allowed-licenses.json
+```
+
+Protocol (needs the `buf` CLI, e.g. `npx @bufbuild/buf`):
+
+```sh
+buf lint
+buf format --diff --exit-code     # `buf format -w` fixes it
+buf breaking --against '.git#branch=main'
 ```
 
 Documentation site (Node 24), from `docs-site/`:

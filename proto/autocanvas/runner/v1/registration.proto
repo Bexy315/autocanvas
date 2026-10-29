@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package autocanvas.runner.v1;
+
+import "autocanvas/runner/v1/capabilities.proto";
+
+// Turns a one-time registration token into a long-lived runner identity. This is the only call a
+// runner makes without a runner credential.
+service RegistrationService {
+  // Registers a runner. The registration token is consumed; calling again with the same token
+  // fails with ALREADY_EXISTS. The returned credential authenticates every RunnerService call.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+}
+
+// A runner asking to be registered.
+message RegisterRequest {
+  // One-time token created by an administrator in the UI.
+  string registration_token = 1;
+  // Display name, unique per server; for example the host name.
+  string name = 2;
+  // What the runner can do, as announced at registration. It is announced again on every connect.
+  Capabilities capabilities = 3;
+}
+
+// The identity of a newly registered runner.
+message RegisterResponse {
+  // Stable id of the runner on this server.
+  string runner_id = 1;
+  // Secret credential, sent as "authorization: Bearer <credential>" metadata on RunnerService
+  // calls. Shown only once; the runner stores it.
+  string credential = 2;
+}

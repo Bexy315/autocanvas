@@ -1,0 +1,11 @@
+# Protocol Buffers module for the runner protocol (ADR-0004). CI runs lint, format and breaking.
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+    - COMMENTS
+breaking:
+  use:
+    - WIRE_JSON

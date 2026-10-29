@@ -38,8 +38,8 @@ and runner depend on them, never the reverse.
 
 *Planned.* A trigger (manual, schedule, webhook) creates a run; Core decides which jobs are ready;
 the server enqueues them in its PostgreSQL job queue ([ADR-0005](../adr/0005-own-postgres-job-queue.md));
-a runner with matching labels leases a job over the runner protocol
-([ADR-0004](../adr/0004-runner-protocol-grpc-spec-first.md)), streams logs and reports back, and
+a runner with matching labels leases a job over the [runner protocol](../protocol/runner-v1.md),
+receives its steps one at a time, fully resolved ([ADR-0008](../adr/0008-server-resolves-steps.md)), streams logs and reports back, and
 completes it; Core decides what runs next until the run finishes.
 
 ## Deployment
