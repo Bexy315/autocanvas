@@ -11,6 +11,7 @@ BenchmarkDotNet.Artifacts/
 node_modules/
 dist/
 docs-site/build/
+docs-site/static/schema/
 .docusaurus/
 
 # IDEs

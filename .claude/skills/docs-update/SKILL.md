@@ -26,7 +26,9 @@ A change often touches several rows. Go through the whole table each time.
 Some reference pages are generated from source files; edit the source, not the output, then
 regenerate:
 
-- pipeline reference ← `schema/pipeline.v*.json` (from S0 step 5)
+- automation format: `schema/automation.v*.json` is published on the docs site as-is (copied by
+  `docs-site/scripts/copy-schemas.mjs`); when the schema changes, update `docs/user/automations.md`
+  and the examples in `schema/examples/` in the same PR
 - runner protocol reference ← `proto/runner/v*/` (from S0 step 5)
 - node reference ← node manifests (later)
 

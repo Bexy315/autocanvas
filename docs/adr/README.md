@@ -11,3 +11,4 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0004](0004-runner-protocol-grpc-spec-first.md) | Runner protocol: gRPC, specification first, versioned | Accepted |
 | [0005](0005-own-postgres-job-queue.md) | Dispatch jobs through an own PostgreSQL queue | Accepted |
 | [0006](0006-quality-gates.md) | Enforce quality gates in CI from the first commit | Accepted |
+| [0007](0007-automation-format-v1.md) | Automation format version 1 | Accepted |

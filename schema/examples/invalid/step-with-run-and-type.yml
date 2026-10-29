@@ -1,0 +1,6 @@
+version: 1
+jobs:
+  a:
+    steps:
+      - run: echo hi
+        type: http_request

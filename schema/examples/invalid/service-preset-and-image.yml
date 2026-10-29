@@ -1,0 +1,9 @@
+version: 1
+jobs:
+  a:
+    services:
+      db:
+        preset: postgres
+        image: postgres:17
+    steps:
+      - run: echo hi

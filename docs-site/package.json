@@ -5,7 +5,9 @@
   "description": "Documentation site for AutoCanvas, rendered from ../docs",
   "license": "MIT",
   "scripts": {
+    "prestart": "node scripts/copy-schemas.mjs",
     "start": "docusaurus start",
+    "prebuild": "node scripts/copy-schemas.mjs",
     "build": "docusaurus build",
     "serve": "docusaurus serve",
     "clear": "docusaurus clear",

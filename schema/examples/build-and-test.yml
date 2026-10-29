@@ -1,0 +1,59 @@
+# A .NET build that runs on every push to main and on pull requests' branches,
+# publishes test results and coverage, and builds an image when the tests pass.
+version: 1
+name: Build and test
+description: Builds the solution, runs the tests and publishes reports.
+
+triggers:
+  manual: true
+  push:
+    branches: [main, 'release/*']
+    paths: ['src/**', 'tests/**']
+
+variables:
+  CONFIGURATION: Release
+
+jobs:
+  test:
+    runs_on: [linux, docker]
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    services:
+      db:
+        preset: postgres
+        version: 17
+        env:
+          POSTGRES_PASSWORD: test
+    env:
+      ConnectionStrings__Default: Host=db;Username=postgres;Password=test
+    steps:
+      - run: dotnet build -c ${{ vars.CONFIGURATION }}
+      - name: Test
+        run: dotnet test -c ${{ vars.CONFIGURATION }} --no-build --report-trx --coverage
+    reports:
+      - format: trx
+        path: '**/TestResults/*.trx'
+      - format: cobertura
+        path: '**/coverage.cobertura.xml'
+
+  image:
+    needs: [test]
+    if: ${{ trigger.branch == 'main' }}
+    runs_on: linux
+    steps:
+      - id: build
+        type: docker_build
+        with:
+          image: my-app
+          tags: [latest, '${{ run.commit_short_sha }}']
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+
+  report:
+    finally: true
+    checkout: false
+    steps:
+      - type: http_request
+        with:
+          method: POST
+          url: ${{ vars.CHAT_WEBHOOK }}
+          body: 'Build ${{ run.status }}: ${{ run.automation_name }}'

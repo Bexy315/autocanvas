@@ -17,6 +17,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `src/AutoCanvas.Core/` | Pipeline model, parsing, validation, expressions, DAG. Pure code, no I/O. |
 | `src/AutoCanvas.Reports/` | Test and coverage report parsers |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
+| `schema/` | JSON Schema of the automation format, with valid and invalid examples |
 | `docs/user/` | User documentation (how to use AutoCanvas) |
 | `docs/technical/` | Architecture, security model, operations, dependencies |
 | `docs/adr/` | Architecture decision records |

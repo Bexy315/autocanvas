@@ -1,0 +1,7 @@
+version: 1
+trigger:
+  manual: true
+jobs:
+  a:
+    steps:
+      - run: echo hi
