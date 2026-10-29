@@ -62,6 +62,7 @@ const config: Config = {
       items: [
         { type: 'docSidebar', sidebarId: 'user', position: 'left', label: 'User guide' },
         { type: 'docSidebar', sidebarId: 'technical', position: 'left', label: 'Technical' },
+        { type: 'docSidebar', sidebarId: 'protocol', position: 'left', label: 'Protocol' },
         { type: 'docSidebar', sidebarId: 'adr', position: 'left', label: 'Decisions' },
       ],
     },

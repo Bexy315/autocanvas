@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package autocanvas.runner.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+
+// A job offered to a runner. Everything in it is fully resolved by the server: it contains no
+// expressions. Steps are not part of the offer; the server sends them one at a time (RunStep).
+message Job {
+  // Id of this job attempt; every later message about the job refers to it.
+  string job_id = 1;
+  // Id of the run the job belongs to.
+  string run_id = 2;
+  // Attempt number, starting at 1; higher when the job is retried.
+  uint32 attempt = 3;
+  // Name of the automation, for display and log context.
+  string automation_name = 4;
+  // Job id within the automation (the key under "jobs").
+  string job_key = 5;
+  // Display name of the job.
+  string display_name = 6;
+  // Time limit for the whole job, counted from JobAccepted. The server cancels the job when it is
+  // exceeded; the runner may enforce it too.
+  google.protobuf.Duration timeout = 7;
+  // Container image for the job. Empty: the runner's default, or the host for EXECUTOR_HOST.
+  string image = 8;
+  // Repositories to clone into the workspace, in order, before the first step.
+  repeated Checkout checkouts = 9;
+  // Containers to start next to the job before the first step.
+  repeated Service services = 10;
+  // Environment variables for all steps (no secrets; secrets come with the steps that use them).
+  map<string, string> env = 11;
+  // Reports to collect from the workspace when the job ends, whatever the steps' outcome.
+  repeated ReportSpec reports = 12;
+}
+
+// One repository to clone.
+message Checkout {
+  // Clone URL (https).
+  string url = 1;
+  // Branch, tag or commit SHA to check out.
+  string ref = 2;
+  // Directory relative to the workspace; empty for the workspace root.
+  string path = 3;
+  // History depth; 0 for the full history.
+  uint32 depth = 4;
+  // Credential for the clone, valid at least for the job's timeout. Empty for public repositories.
+  string username = 5;
+  // Password or token for the clone. Must be masked in logs.
+  string password = 6;
+}
+
+// A container started next to the job.
+message Service {
+  // Host name under which steps reach the service.
+  string name = 1;
+  // Container image.
+  string image = 2;
+  // Environment of the service container.
+  map<string, string> env = 3;
+  // Command run inside the service until it exits with 0 before the first step starts. Empty:
+  // ready as soon as the container runs.
+  string ready_command = 4;
+  // How long to wait for ready_command to succeed.
+  google.protobuf.Duration ready_timeout = 5;
+}
+
+// A report to collect when the job ends.
+message ReportSpec {
+  // Format of the files.
+  ReportFormat format = 1;
+  // Glob patterns relative to the workspace.
+  repeated string paths = 2;
+  // Label for the report in the UI.
+  string name = 3;
+}
+
+// File format of a report.
+enum ReportFormat {
+  // Not set; treated as an error.
+  REPORT_FORMAT_UNSPECIFIED = 0;
+  // JUnit XML test results.
+  REPORT_FORMAT_JUNIT = 1;
+  // Visual Studio TRX test results.
+  REPORT_FORMAT_TRX = 2;
+  // Cobertura XML coverage.
+  REPORT_FORMAT_COBERTURA = 3;
+}
+
+// One step to execute, fully resolved.
+message Step {
+  // Position of the step in the job, starting at 0. Skipped steps are never sent, so indexes of
+  // consecutive RunStep messages may have gaps.
+  uint32 index = 1;
+  // Step id from the automation, if it has one.
+  string id = 2;
+  // Display name.
+  string display_name = 3;
+  // Time limit for this step; unset means only the job's timeout applies.
+  google.protobuf.Duration timeout = 4;
+  // Environment variables for this step, on top of the job's env. May contain secrets.
+  map<string, string> env = 5;
+  // Values the runner must replace with "***" in everything it sends back (logs, outputs, error
+  // messages): the secrets this step can see. The server masks them again on receipt.
+  repeated string mask_values = 6;
+
+  // What the step does.
+  oneof action {
+    // Run a shell script.
+    ScriptAction script = 10;
+    // Execute a node type.
+    NodeAction node = 11;
+  }
+}
+
+// A shell script step.
+message ScriptAction {
+  // Shell to use: one of the runner's announced shells.
+  string shell = 1;
+  // Script text.
+  string script = 2;
+  // Directory relative to the workspace; empty for the workspace root.
+  string working_directory = 3;
+}
+
+// A node type step.
+message NodeAction {
+  // Node type, one of the runner's announced node types.
+  string type = 1;
+  // Inputs of the node type, as defined by its manifest.
+  google.protobuf.Struct inputs = 2;
+}

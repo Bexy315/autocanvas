@@ -1,0 +1,290 @@
+syntax = "proto3";
+
+package autocanvas.runner.v1;
+
+import "autocanvas/runner/v1/capabilities.proto";
+import "autocanvas/runner/v1/job.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// The connection between a registered runner and the server. Every call carries the runner
+// credential as "authorization: Bearer <credential>" metadata.
+service RunnerService {
+  // The control stream. The runner opens it, sends Hello first, and keeps it open; the server
+  // offers jobs, sends steps and cancellations over it, and the runner reports progress, logs and
+  // results. When the stream breaks, the runner reconnects with backoff and lists its active jobs
+  // in Hello so that they can continue.
+  rpc Connect(stream ConnectRequest) returns (stream ConnectResponse);
+
+  // Uploads one report file of a job. The first message carries the header, the following ones
+  // the content. Reports are uploaded before the runner sends JobFinished.
+  rpc UploadReport(stream UploadReportRequest) returns (UploadReportResponse);
+}
+
+// A message from the runner on the control stream.
+message ConnectRequest {
+  // The message.
+  oneof message {
+    // First message on every stream.
+    Hello hello = 1;
+    // Periodic sign of life; renews the leases of the listed jobs.
+    Heartbeat heartbeat = 2;
+    // The runner takes an offered job.
+    JobAccepted job_accepted = 3;
+    // The runner declines an offered job; the server offers it elsewhere.
+    JobRejected job_rejected = 4;
+    // Workspace, checkouts, image and services are ready (or failed to get ready).
+    JobPrepared job_prepared = 5;
+    // A step started executing.
+    StepStarted step_started = 6;
+    // Log output of a step or of job preparation.
+    LogChunk log_chunk = 7;
+    // A step ended.
+    StepCompleted step_completed = 8;
+    // Reports are uploaded and the workspace is cleaned up; the job is over for the runner.
+    JobFinished job_finished = 9;
+    // The runner stops taking new jobs, for example before shutting down.
+    Draining draining = 10;
+  }
+}
+
+// A message from the server on the control stream.
+message ConnectResponse {
+  // The message.
+  oneof message {
+    // Reply to Hello.
+    Welcome welcome = 1;
+    // A job the runner may take.
+    JobOffer job_offer = 2;
+    // The next step to execute.
+    RunStep run_step = 3;
+    // No more steps: collect reports, clean up, then send JobFinished.
+    CompleteJob complete_job = 4;
+    // Stop the job now.
+    CancelJob cancel_job = 5;
+    // The server closes the stream on purpose; the runner must not reconnect if told so.
+    Goodbye goodbye = 6;
+  }
+}
+
+// First message of the runner on every stream.
+message Hello {
+  // Highest protocol version the runner speaks, as "1.<minor>".
+  string protocol_version = 1;
+  // Current capabilities; replace the ones from registration.
+  Capabilities capabilities = 2;
+  // Jobs the runner is still working on after a reconnect. The server answers each with either
+  // nothing (continue) or CancelJob (the job was given up while the runner was away).
+  repeated string active_job_ids = 3;
+}
+
+// The server's reply to Hello.
+message Welcome {
+  // Protocol version the server uses on this stream, as "1.<minor>".
+  string protocol_version = 1;
+  // How often the runner sends Heartbeat.
+  google.protobuf.Duration heartbeat_interval = 2;
+  // How long a job's lease lasts without a heartbeat naming it. After that the server treats the
+  // job as lost and fails or retries it.
+  google.protobuf.Duration lease_duration = 3;
+  // Id of the runner, as the server knows it.
+  string runner_id = 4;
+}
+
+// Periodic sign of life.
+message Heartbeat {
+  // Jobs the runner is working on; their leases are renewed.
+  repeated string active_job_ids = 1;
+}
+
+// A job the server offers. The runner answers with JobAccepted or JobRejected within the
+// lease duration; no answer counts as a rejection.
+message JobOffer {
+  // The job, fully resolved.
+  Job job = 1;
+}
+
+// The runner takes the job and starts preparing it.
+message JobAccepted {
+  // The offered job.
+  string job_id = 1;
+}
+
+// The runner declines the job.
+message JobRejected {
+  // The offered job.
+  string job_id = 1;
+  // Why, for the server's logs; for example "at capacity" or "image not allowed".
+  string reason = 2;
+}
+
+// Preparation of a job ended.
+message JobPrepared {
+  // The job.
+  string job_id = 1;
+  // Empty when the workspace is ready; otherwise what went wrong. A failed preparation is
+  // followed by CompleteJob from the server.
+  string error = 2;
+}
+
+// The next step of a job. The runner executes it and answers with StepStarted and StepCompleted.
+message RunStep {
+  // The job.
+  string job_id = 1;
+  // The step, fully resolved.
+  Step step = 2;
+}
+
+// A step started.
+message StepStarted {
+  // The job.
+  string job_id = 1;
+  // Index of the step.
+  uint32 step_index = 2;
+  // When it started, by the runner's clock.
+  google.protobuf.Timestamp started_at = 3;
+}
+
+// A batch of log lines.
+message LogChunk {
+  // The job.
+  string job_id = 1;
+  // What the lines belong to.
+  oneof source {
+    // Index of the step that wrote them.
+    uint32 step_index = 2;
+    // Job preparation or cleanup (checkouts, image pull, services, reports).
+    bool job_setup = 3;
+  }
+  // Position of this chunk in the job's log, starting at 0 and increasing by 1 per chunk. Lets the
+  // server drop duplicates after a reconnect and detect gaps.
+  uint64 sequence = 4;
+  // The lines, in order.
+  repeated LogLine lines = 5;
+}
+
+// One line of output.
+message LogLine {
+  // When the line was written, by the runner's clock.
+  google.protobuf.Timestamp time = 1;
+  // Which output stream it came from.
+  LogStream stream = 2;
+  // The text, without the trailing newline, already masked.
+  string text = 3;
+}
+
+// Output stream of a log line.
+enum LogStream {
+  // Not set.
+  LOG_STREAM_UNSPECIFIED = 0;
+  // Standard output.
+  LOG_STREAM_STDOUT = 1;
+  // Standard error.
+  LOG_STREAM_STDERR = 2;
+  // Written by the runner itself (for example "Pulling image").
+  LOG_STREAM_SYSTEM = 3;
+}
+
+// A step ended.
+message StepCompleted {
+  // The job.
+  string job_id = 1;
+  // Index of the step.
+  uint32 step_index = 2;
+  // How it ended.
+  StepOutcome outcome = 3;
+  // Exit code of a script step, if it exited.
+  optional int32 exit_code = 4;
+  // Outputs of the step: from $AUTOCANVAS_OUTPUT for scripts, from the node type for nodes.
+  // Already masked.
+  map<string, string> outputs = 5;
+  // When it ended, by the runner's clock.
+  google.protobuf.Timestamp finished_at = 6;
+  // Human-readable reason when the outcome is not STEP_OUTCOME_SUCCEEDED.
+  string error = 7;
+}
+
+// How a step ended.
+enum StepOutcome {
+  // Not set; treated as an error.
+  STEP_OUTCOME_UNSPECIFIED = 0;
+  // Completed successfully (exit code 0 for scripts).
+  STEP_OUTCOME_SUCCEEDED = 1;
+  // The step itself failed (non-zero exit code, node reported failure).
+  STEP_OUTCOME_FAILED = 2;
+  // Stopped because of CancelJob.
+  STEP_OUTCOME_CANCELLED = 3;
+  // Exceeded its timeout.
+  STEP_OUTCOME_TIMED_OUT = 4;
+  // The runner could not execute it (for example the shell is missing). Not the step's fault.
+  STEP_OUTCOME_ERRORED = 5;
+}
+
+// No more steps for this job.
+message CompleteJob {
+  // The job.
+  string job_id = 1;
+}
+
+// Stop a job. The runner stops the running step (reporting STEP_OUTCOME_CANCELLED), then behaves
+// as on CompleteJob: collect reports, clean up, send JobFinished.
+message CancelJob {
+  // The job.
+  string job_id = 1;
+  // Why, shown in the log; for example "cancelled by a user" or "job timeout".
+  string reason = 2;
+}
+
+// The job is over for the runner.
+message JobFinished {
+  // The job.
+  string job_id = 1;
+  // Problems during report collection or cleanup; empty if there were none. They do not change
+  // the job's result but are shown on the run.
+  repeated string warnings = 2;
+}
+
+// The runner stops taking new jobs; running jobs continue.
+message Draining {}
+
+// The server closes the stream.
+message Goodbye {
+  // Why, for the runner's log.
+  string reason = 1;
+  // When false, the runner must not reconnect (for example because it was deleted). When true, it
+  // reconnects after at least this delay.
+  bool reconnect = 2;
+  // Minimum delay before reconnecting.
+  google.protobuf.Duration reconnect_after = 3;
+}
+
+// One message of a report upload.
+message UploadReportRequest {
+  // Header first, then content.
+  oneof part {
+    // First message: what is uploaded.
+    ReportHeader header = 1;
+    // Following messages: the file content, in order, each at most 1 MiB.
+    bytes content = 2;
+  }
+}
+
+// Describes an uploaded report file.
+message ReportHeader {
+  // The job the report belongs to.
+  string job_id = 1;
+  // Format of the file.
+  ReportFormat format = 2;
+  // Report label from the job's ReportSpec.
+  string name = 3;
+  // Path of the file relative to the workspace.
+  string path = 4;
+  // Size in bytes, for progress and limits.
+  uint64 size = 5;
+}
+
+// Result of a report upload.
+message UploadReportResponse {
+  // Id of the stored report.
+  string report_id = 1;
+}

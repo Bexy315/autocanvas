@@ -12,3 +12,4 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0005](0005-own-postgres-job-queue.md) | Dispatch jobs through an own PostgreSQL queue | Accepted |
 | [0006](0006-quality-gates.md) | Enforce quality gates in CI from the first commit | Accepted |
 | [0007](0007-automation-format-v1.md) | Automation format version 1 | Accepted |
+| [0008](0008-server-resolves-steps.md) | The server resolves steps, runners execute them | Accepted |
