@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AutoCanvas.Core/AutoCanvas.Core.csproj" />
+    <Project Path="src/AutoCanvas.Reports/AutoCanvas.Reports.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AutoCanvas.Core.Tests/AutoCanvas.Core.Tests.csproj" />
+    <Project Path="tests/AutoCanvas.Reports.Tests/AutoCanvas.Reports.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -4,12 +4,13 @@ obj/
 *.user
 TestResults/
 coverage/
+artifacts/
 BenchmarkDotNet.Artifacts/
 
 # Node
 node_modules/
 dist/
-build/
+docs-site/build/
 .docusaurus/
 
 # IDEs
