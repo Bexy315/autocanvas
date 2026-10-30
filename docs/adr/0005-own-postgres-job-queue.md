@@ -1,6 +1,6 @@
 # 0005. Dispatch jobs through an own PostgreSQL queue
 
-- Status: Accepted
+- Status: Superseded by [0010](0010-database-providers.md)
 - Date: 2026-10-29
 
 ## Context
