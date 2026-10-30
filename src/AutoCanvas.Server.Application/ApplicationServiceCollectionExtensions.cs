@@ -30,6 +30,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<SessionService>();
         services.AddScoped<AccountService>();
         services.AddScoped<SignInService>();
+        services.AddScoped<TokenService>();
         return services;
     }
 }

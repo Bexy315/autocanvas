@@ -236,6 +236,107 @@
         }
       }
     },
+    "/api/v1/me/tokens": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "List my API tokens",
+        "description": "Newest first, without the secrets. Needs a session: a token cannot manage tokens.",
+        "operationId": "ListMyTokens",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TokenView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Create an API token",
+        "description": "The answer contains the secret once; store it right away. Send it as 'Authorization: Bearer acp_…'. Needs a session.",
+        "operationId": "CreateMyToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/tokens/{id}": {
+      "delete": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Delete one of my API tokens",
+        "description": "Requests with the token fail from now on. Needs a session.",
+        "operationId": "DeleteMyToken",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -538,6 +639,97 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/tokens": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List a user's API tokens",
+        "description": "Newest first, without the secrets.",
+        "operationId": "ListUserTokens",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TokenView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/tokens/{tokenId}": {
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete a user's API token",
+        "description": "For example when a token has leaked. Requests with it fail from now on.",
+        "operationId": "DeleteUserToken",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "404": {
             "description": "Not Found",
@@ -909,6 +1101,24 @@
         },
         "description": "A new password for the signed-in user."
       },
+      "CreatedToken": {
+        "required": [
+          "token",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The secret to send as `Authorization: Bearer …`."
+          },
+          "details": {
+            "description": "The token as it will be listed.",
+            "$ref": "#/components/schemas/TokenView"
+          }
+        },
+        "description": "A new API token. string CreatedToken.Token is shown this once and cannot be retrieved again."
+      },
       "CreateGroupRequest": {
         "required": [
           "name"
@@ -928,6 +1138,27 @@
           }
         },
         "description": "A group to create."
+      },
+      "CreateTokenRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the token is for, e.g. the script or machine using it."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the token stops working; never if omitted.",
+            "format": "date-time"
+          }
+        },
+        "description": "An API token to create for the signed-in user."
       },
       "CreateUserRequest": {
         "required": [
@@ -1343,6 +1574,59 @@
           }
         },
         "description": "A successful sign-in. The session itself travels in an HttpOnly cookie, never in the body."
+      },
+      "TokenView": {
+        "required": [
+          "id",
+          "name",
+          "hint",
+          "createdAt",
+          "expiresAt",
+          "lastUsedAt",
+          "isExpired"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The token's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the token is used for."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The start and last characters, to recognize the token."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the token was created.",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the token stops working; never if empty.",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last request made with it (to the minute).",
+            "format": "date-time"
+          },
+          "isExpired": {
+            "type": "boolean",
+            "description": "Whether the token no longer works because it expired."
+          }
+        },
+        "description": "An API token as listed: everything except the secret, which is shown only once."
       },
       "UpdateGroupRequest": {
         "type": "object",

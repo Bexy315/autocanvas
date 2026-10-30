@@ -53,8 +53,14 @@ Users can list their sessions and end any of them.
 Requests that change something must send `X-AutoCanvas-Request: 1` unless they carry an API token:
 a foreign page cannot set that header without a CORS preflight, and the server allows no
 cross-origin requests, so a signed-in browser cannot be made to act by another website (this
-includes signing it in to an attacker's account). *Planned, S1 step 4c:* API tokens are shown
-once, stored as hashes, and can expire.
+includes signing it in to an attacker's account).
+
+API tokens are `acp_` followed by 32 random bytes, shown once at creation and stored only as a
+SHA-256 hash with a short hint for recognition. They can expire, act with the owner's current
+permissions (a disabled owner disables them), and are subject to the same password-change rule as
+sessions. A token cannot create or list tokens, list sessions or change the password, so a leaked
+token cannot lock its owner out or create more tokens. Admins can list and delete any user's tokens.
+The `acp_` prefix lets secret scanners recognize leaked tokens.
 
 ## Authorization
 
