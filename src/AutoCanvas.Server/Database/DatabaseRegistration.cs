@@ -33,7 +33,6 @@ internal static class DatabaseRegistration
             services.AddAutoCanvasSqlite(connectionString);
         }
 
-        services.AddScoped<DatabaseMigrator>();
         services.AddHostedService<DatabaseMigrationService>();
         services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database", tags: [HealthEndpoints.ReadyTag]);
         return builder;

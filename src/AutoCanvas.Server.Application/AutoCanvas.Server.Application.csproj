@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../AutoCanvas.Persistence/AutoCanvas.Persistence.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoCanvas.Server.Application.Tests" />
+  </ItemGroup>
+</Project>

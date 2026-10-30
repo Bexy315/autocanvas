@@ -703,8 +703,15 @@
         "dependencies": {
           "AutoCanvas.Persistence.Postgres": "[1.0.0, )",
           "AutoCanvas.Persistence.Sqlite": "[1.0.0, )",
+          "AutoCanvas.Server.Application": "[1.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.14, )",
           "System.CommandLine": "[2.0.14, )"
+        }
+      },
+      "autocanvas.server.application": {
+        "type": "Project",
+        "dependencies": {
+          "AutoCanvas.Persistence": "[1.0.0, )"
         }
       },
       "autocanvas.testsupport": {

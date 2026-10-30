@@ -1,5 +1,6 @@
 using System.CommandLine;
 using AutoCanvas.Persistence;
+using AutoCanvas.Server.Application.Database;
 using Microsoft.Extensions.Options;
 
 namespace AutoCanvas.Server.Hosting;
@@ -71,7 +72,7 @@ internal static class ServerCommandLine
                 {
                     // Reading the options validates them, as starting the server would.
                     _ = scope.ServiceProvider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
-                    var applied = await scope.ServiceProvider.GetRequiredService<DatabaseMigrator>()
+                    var applied = await scope.ServiceProvider.GetRequiredService<DatabaseMaintenance>()
                         .MigrateAsync(cancellationToken).ConfigureAwait(false);
 
                     await output.WriteLineAsync(applied.Count == 0

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using AutoCanvas.Server.Api;
+using AutoCanvas.Server.Application;
 using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Database;
 using AutoCanvas.Server.Health;
@@ -31,6 +32,7 @@ internal static class ServerBuilderExtensions
         services.AddAutoCanvasOpenApi();
         services.AddHealthChecks();
         builder.AddAutoCanvasDatabase();
+        services.AddAutoCanvasApplication();
 
         return builder;
     }

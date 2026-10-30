@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Hosting;
+using Microsoft.EntityFrameworkCore;
 using AutoCanvas.TestSupport;
 
 namespace AutoCanvas.Server.Tests;
@@ -20,6 +21,7 @@ public abstract class DatabaseTests(DatabaseProvider provider) : DatabaseTest(pr
         await using (context)
         {
             (await new DatabaseMigrator(context).GetPendingAsync(Cancel)).ShouldBeEmpty();
+            (await context.AuditEvents.SingleAsync(Cancel)).Action.ShouldBe("database.migrated");
         }
     }
 
@@ -48,6 +50,14 @@ public abstract class DatabaseTests(DatabaseProvider provider) : DatabaseTest(pr
         firstOutput.ShouldContain("_Initial");
         second.ShouldBe(0);
         secondOutput.ShouldStartWith("The database is up to date.");
+
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            var migrated = await context.AuditEvents.SingleAsync(Cancel);
+            migrated.Action.ShouldBe("database.migrated");
+            migrated.ActorName.ShouldBe("system");
+        }
     }
 
     internal static async Task<(int ExitCode, string Output, string Error)> RunAsync(string[] args)
