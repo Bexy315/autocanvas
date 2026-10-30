@@ -28,8 +28,17 @@ This page describes what AutoCanvas protects and how. It grows with the server; 
 
 ## Authentication
 
-*Planned, S1.* Local accounts with salted, slow password hashes; login attempts are rate-limited,
-and failures take the same time whether or not the account exists. Sessions are opaque random
+Local accounts ([ADR-0011](../adr/0011-local-identity.md)). Passwords are hashed with
+PBKDF2-HMAC-SHA256, 600,000 iterations and a random 16-byte salt per password, and compared in
+constant time. The stored hash names its algorithm and cost, so the cost can rise later and old
+hashes are replaced at the next sign-in. Passwords have 12 to 256 characters and must not equal the
+user name. A password set by someone else (an admin, the command line, the bootstrap settings) must
+be changed at the next sign-in, and resetting a password ends the user's sessions. At least one
+enabled admin always exists. The command line can reset a password for recovery; it needs the
+server's database settings, so only operators can use it.
+
+*Planned, S1 step 4b/4c:* login attempts are rate-limited, and failures take the same time whether
+or not the account exists. Sessions are opaque random
 tokens in `HttpOnly`, `Secure`, `SameSite=Strict` cookies, stored only as hashes, with sliding and
 absolute expiry, and revocable. Cookie-authenticated state changes need an antiforgery header. API
 tokens are shown once, stored as hashes, and can expire.

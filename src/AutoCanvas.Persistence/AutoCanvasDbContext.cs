@@ -1,4 +1,5 @@
 using AutoCanvas.Persistence.Audit;
+using AutoCanvas.Persistence.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -21,6 +22,21 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>The append-only audit log.</summary>
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
 
+    /// <summary>Local accounts.</summary>
+    public DbSet<User> Users => Set<User>();
+
+    /// <summary>Groups of users.</summary>
+    public DbSet<Group> Groups => Set<Group>();
+
+    /// <summary>Which user is in which group.</summary>
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+
+    /// <summary>Signed-in browsers.</summary>
+    public DbSet<Session> Sessions => Set<Session>();
+
+    /// <summary>Personal API tokens.</summary>
+    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -39,5 +55,10 @@ public abstract class AutoCanvasDbContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
         modelBuilder.ApplyConfiguration(new AuditEventConfiguration());
+        modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new GroupConfiguration());
+        modelBuilder.ApplyConfiguration(new GroupMemberConfiguration());
+        modelBuilder.ApplyConfiguration(new SessionConfiguration());
+        modelBuilder.ApplyConfiguration(new ApiTokenConfiguration());
     }
 }

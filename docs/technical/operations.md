@@ -25,6 +25,8 @@ A few frequently used settings also have a short name. If both forms are set, th
 | Short name | Setting | Meaning |
 |---|---|---|
 | `AUTOCANVAS_URLS` | `urls` | Addresses the server listens on, e.g. `http://+:8080` |
+| `AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME` | `Bootstrap:AdminUserName` | First admin, created on start while there is no account |
+| `AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD` | `Bootstrap:AdminPassword` | That admin's initial password; must be changed at the first sign-in |
 
 Settings are checked when the server starts. An invalid value stops it with a message that names the
 setting and what is expected, instead of failing later on first use.
@@ -36,6 +38,7 @@ setting and what is expected, instead of failing later on first use.
 | `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
 | `Database:ConnectionString` | SQLite file `autocanvas.db` in the data directory | Required for PostgreSQL |
 | `Database:MigrateOnStart` | `true` | Bring the database schema up to date when the server starts |
+| `Bootstrap:AdminUserName`, `Bootstrap:AdminPassword` | none | Create this admin on start while there is no account at all; set both or neither (see [Users and groups](../user/accounts.md#the-first-admin)) |
 
 ## Database
 
@@ -79,6 +82,20 @@ are missing, `/health/ready` answers `503`.
 - **SQLite**: the database runs in write-ahead-log mode, so copying `autocanvas.db` alone while the
   server runs is not safe. Stop the server and copy `autocanvas.db` with its `-wal` and `-shm`
   files, or use `sqlite3 autocanvas.db ".backup backup.db"` while it runs.
+
+## Commands
+
+The server executable also runs maintenance commands. They use the same settings as the server and
+exit with `0` on success and `1` with a message on standard error otherwise.
+
+| Command | Does |
+|---|---|
+| *(none)* | Runs the server |
+| `migrate` | Applies pending schema migrations ([Schema updates](#schema-updates)) |
+| `admin create <user-name> [--display-name <name>] [--password-stdin]` | Creates an admin; prints a one-time password unless one is read from standard input |
+| `admin reset-password <user-name>` | Gives a user a new one-time password and ends their sessions |
+
+`admin` commands apply pending migrations first, unless `Database:MigrateOnStart` is `false`.
 
 ## Health endpoints
 

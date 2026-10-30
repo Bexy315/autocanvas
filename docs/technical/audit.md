@@ -33,3 +33,12 @@ feature that records them is built.
 | Action | Actor | Target | Details |
 |---|---|---|---|
 | `database.migrated` | System | — | `migrations`: names of the schema migrations applied, in order |
+| `user.created` | admin, System | user | `userName`, `isAdmin` |
+| `user.updated` | admin | user | `changed` (field names), `isAdmin`, `isDisabled` |
+| `user.deleted` | admin | user | `userName` |
+| `user.password_reset` | admin, System | user | — |
+| `group.created` | admin | group | `name` |
+| `group.updated` | admin | group | `changed` (field names), `name` |
+| `group.deleted` | admin | group | `name` |
+| `group.member_added` | admin | group | `userId`, `userName` |
+| `group.member_removed` | admin | group | `userId`, `userName` |

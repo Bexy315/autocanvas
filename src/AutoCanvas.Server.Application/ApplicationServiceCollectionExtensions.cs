@@ -1,6 +1,7 @@
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Database;
+using AutoCanvas.Server.Application.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -20,6 +21,10 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAuditLog, AuditLog>();
         services.AddScoped<DatabaseMigrator>();
         services.AddScoped<DatabaseMaintenance>();
+        services.TryAddSingleton(new PasswordHashingOptions());
+        services.AddSingleton<PasswordHasher>();
+        services.AddScoped<UserService>();
+        services.AddScoped<GroupService>();
         return services;
     }
 }
