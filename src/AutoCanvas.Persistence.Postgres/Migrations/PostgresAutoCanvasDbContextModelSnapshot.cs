@@ -100,6 +100,123 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                     b.ToTable("audit_events", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Folders.Folder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsRestricted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_restricted");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<Guid>("ParentKey")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_key");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(593)
+                        .HasColumnType("character varying(593)")
+                        .HasColumnName("path");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_folders");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_folders_parent_id");
+
+                    b.HasIndex("Path")
+                        .HasDatabaseName("ix_folders_path");
+
+                    b.HasIndex("ParentKey", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_folders_parent_key_normalized_name");
+
+                    b.ToTable("folders", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Folders.FolderGrant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("FolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("folder_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("role");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_folder_grants");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_folder_grants_group_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_folder_grants_user_id");
+
+                    b.HasIndex("FolderId", "GroupId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_folder_grants_folder_id_group_id");
+
+                    b.HasIndex("FolderId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_folder_grants_folder_id_user_id");
+
+                    b.ToTable("folder_grants", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_folder_grants_one_subject", "(user_id IS NULL) <> (group_id IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Identity.ApiToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -329,6 +446,45 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasDatabaseName("ix_users_normalized_user_name");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Folders.Folder", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Parent")
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_folders_folders_parent_id");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Folders.FolderGrant", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Folder")
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_folder_grants_folders_folder_id");
+
+                    b.HasOne("AutoCanvas.Persistence.Identity.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_folder_grants_groups_group_id");
+
+                    b.HasOne("AutoCanvas.Persistence.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_folder_grants_users_user_id");
+
+                    b.Navigation("Folder");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Identity.ApiToken", b =>

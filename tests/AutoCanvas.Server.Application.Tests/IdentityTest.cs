@@ -3,6 +3,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Identity;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
 using AutoCanvas.TestSupport;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,30 @@ public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(pro
             return await action(new GroupService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
         }
     }
+
+    /// <summary>Runs a folder use case on a fresh context.</summary>
+    protected async Task<T> FoldersAsync<T>(Func<FolderService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new FolderService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+        }
+    }
+
+    /// <summary>Runs a grant use case on a fresh context.</summary>
+    protected async Task<T> FolderGrantsAsync<T>(Func<FolderGrantService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new FolderGrantService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+        }
+    }
+
+    /// <summary>A new non-admin user as folder actor.</summary>
+    protected async Task<Actor> ActorAsync(string userName, bool isAdmin = false) =>
+        new((await CreateUserAsync(userName, isAdmin)).Id, isAdmin);
 
     /// <summary>Reads from a fresh context.</summary>
     protected async Task<T> ReadAsync<T>(Func<AutoCanvasDbContext, Task<T>> query)

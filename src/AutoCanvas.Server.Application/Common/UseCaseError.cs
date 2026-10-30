@@ -12,6 +12,13 @@ public sealed record UseCaseError(UseCaseErrorKind Kind, string Message, string?
     /// <summary>The object does not exist.</summary>
     public static UseCaseError NotFound(string message) => new(UseCaseErrorKind.NotFound, message);
 
+    /// <summary>The caller may not do this.</summary>
+    public static UseCaseError Forbidden(string message) => new(UseCaseErrorKind.Forbidden, message);
+
+    /// <summary>The object changed since the caller read it.</summary>
+    public static UseCaseError Stale() =>
+        new(UseCaseErrorKind.PreconditionFailed, "Someone else changed this in the meantime. Read it again and repeat your change.");
+
     /// <summary>The request clashes with the current state.</summary>
     public static UseCaseError Conflict(string message, string? field = null) => new(UseCaseErrorKind.Conflict, message, field);
 }

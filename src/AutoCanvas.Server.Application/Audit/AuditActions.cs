@@ -59,4 +59,25 @@ public static class AuditActions
 
     /// <summary>An API token was deleted; details: <c>tokenId</c>, <c>name</c>.</summary>
     public const string TokenDeleted = "token.deleted";
+
+    /// <summary>A folder was created; details: <c>name</c>, <c>parentId</c>.</summary>
+    public const string FolderCreated = "folder.created";
+
+    /// <summary>A folder was renamed or described; details: <c>changed</c>, <c>name</c>.</summary>
+    public const string FolderUpdated = "folder.updated";
+
+    /// <summary>A folder moved; details: <c>fromParentId</c>, <c>toParentId</c>.</summary>
+    public const string FolderMoved = "folder.moved";
+
+    /// <summary>A folder was marked restricted or unmarked; details: <c>isRestricted</c>.</summary>
+    public const string FolderRestrictionChanged = "folder.restriction_changed";
+
+    /// <summary>A folder was deleted; details: <c>name</c>, <c>parentId</c>.</summary>
+    public const string FolderDeleted = "folder.deleted";
+
+    /// <summary>A role was granted or changed; details: <c>subjectType</c>, <c>subjectId</c>, <c>subjectName</c>, <c>role</c>, <c>previousRole</c>.</summary>
+    public const string FolderGrantSet = "folder.grant_set";
+
+    /// <summary>A grant was removed; details: <c>subjectType</c>, <c>subjectId</c>, <c>subjectName</c>, <c>role</c>.</summary>
+    public const string FolderGrantRemoved = "folder.grant_removed";
 }
