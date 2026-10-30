@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/AutoCanvas.Core.Benchmarks/AutoCanvas.Core.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/AutoCanvas.Core/AutoCanvas.Core.csproj" />
     <Project Path="src/AutoCanvas.Reports/AutoCanvas.Reports.csproj" />

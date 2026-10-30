@@ -24,7 +24,7 @@ machines where work runs.
 
 | Block | Responsibility | Status |
 |---|---|---|
-| `AutoCanvas.Core` | Automation model, parsing, validation, expressions, orchestration decisions — pure code | model, parser, validator, expressions |
+| `AutoCanvas.Core` | Automation model, parsing, validation, expressions, orchestration decisions — pure code | model, parser, validator, expressions, orchestration decisions |
 | `AutoCanvas.Reports` | Parsing test and coverage reports into a normalized model | skeleton |
 | `AutoCanvas.Server` | HTTP API, auth, folders and permissions, persistence, scheduling, job queue | planned (S1/S2) |
 | `AutoCanvas.Runner` | Reference runner implementing the runner protocol | planned (S2) |
@@ -36,11 +36,14 @@ and runner depend on them, never the reverse.
 
 ## Runtime: a pipeline run
 
-*Planned.* A trigger (manual, schedule, webhook) creates a run; Core decides which jobs are ready;
+*Planned in the server; the decisions exist in Core.* A trigger (manual, schedule, webhook)
+creates a run; Core decides which jobs are ready (`RunPlanner`);
 the server enqueues them in its PostgreSQL job queue ([ADR-0005](../adr/0005-own-postgres-job-queue.md));
 a runner with matching labels leases a job over the [runner protocol](../protocol/runner-v1.md),
 receives its steps one at a time, fully resolved ([ADR-0008](../adr/0008-server-resolves-steps.md)), streams logs and reports back, and
-completes it; Core decides what runs next until the run finishes.
+completes it; Core decides what runs next (`StepPlanner` within a job, `RunPlanner` between jobs)
+until the run finishes (`RunOutcome`). Core's decisions are pure functions of the run state: the
+server stores the state, carries out the returned actions and asks again when something changes.
 
 ## Deployment
 

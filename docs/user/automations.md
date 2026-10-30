@@ -177,6 +177,29 @@ Node steps have the outputs their node type defines; `outputs` on a node step ad
 from expressions. Steps' outputs are readable by later steps of the same job as
 `${{ steps.ID.outputs.NAME }}`.
 
+### When steps fail
+
+Steps run one after another. A step whose `if` is false is skipped and the job goes on. When a step
+fails or times out, the remaining steps are skipped and the job fails — unless the step has
+`continue_on_error: true`, in which case the job goes on as if it had succeeded. If the runner
+itself cannot execute a step (for example, the requested shell is missing), the job fails even with
+`continue_on_error`, because that says nothing about the step.
+
+Work that must happen whatever the outcome, such as reporting or cleaning up, belongs in a job with
+`finally: true`.
+
+## How a run proceeds
+
+- Jobs without `needs` start right away; the others start when all their needs have finished and
+  each need is satisfied (`on: success` by default). A job whose need is not satisfied, or whose
+  `if` is false, is **skipped** — and jobs that need it with `on: success` are skipped in turn.
+- A failed job with `retry` runs again after `delay_seconds`, until `max_attempts` is reached.
+- `finally` jobs start once every other job has finished, whatever their outcome.
+- The run **succeeds** when no job failed (skipped jobs do not count as failures), **fails** when a
+  job failed — a failing `finally` job fails the run too — and is **cancelled** when someone cancels
+  it. Cancelling stops all running jobs; `finally` jobs run afterwards only if they have
+  `on_cancel: true`.
+
 ## Flow control on the canvas
 
 Two job types do not run on a runner and are resolved by AutoCanvas itself:
@@ -205,7 +228,8 @@ done:
 ```
 
 A **switch** evaluates its expression and activates the first case whose `when` equals the result
-(compared as text), or the `default` case. Jobs that need the switch with a `case` run only when
+(compared as text, case-sensitively), or the `default` case; without a match and without a default,
+no case is activated. Jobs that need the switch with a `case` run only when
 that case was activated; the others are skipped. A **join** waits for its needs and passes through,
 which keeps branches tidy on the canvas.
 
