@@ -20,4 +20,7 @@ public enum UseCaseErrorKind
 
     /// <summary>Too many attempts; the caller has to wait.</summary>
     TooManyRequests,
+
+    /// <summary>The object changed since the caller read it; re-read and try again.</summary>
+    PreconditionFailed,
 }

@@ -44,6 +44,16 @@ feature that records them is built.
 | `auth.sessions_ended` | the user | user | `count` (sign out everywhere) |
 | `token.created` | the user | user (owner) | `tokenId`, `name`, `expiresAt` — never the token |
 | `token.deleted` | the owner or an admin | user (owner) | `tokenId`, `name` |
+| `folder.created` | the creator | folder | `name`, `parentId` |
+| `folder.updated` | an editor | folder | `changed` (field names), `name` |
+| `folder.moved` | an editor | folder | `fromParentId`, `toParentId` (empty for the top level) |
+| `folder.restriction_changed` | an owner | folder | `isRestricted` |
+| `folder.deleted` | an owner | folder | `name`, `parentId` |
+| `folder.grant_set` | an owner, or the system for an actor keeping access | folder | `subjectType` (`user`/`group`), `subjectId`, `subjectName`, `role`, `previousRole` |
+| `folder.grant_removed` | an owner | folder | `subjectType`, `subjectId`, `subjectName`, `role` |
+
+Every folder action carries the folder in the *folder* field, so a folder's owners can read its
+part of the log.
 | `group.created` | admin | group | `name` |
 | `group.updated` | admin | group | `changed` (field names), `name` |
 | `group.deleted` | admin | group | `name` |

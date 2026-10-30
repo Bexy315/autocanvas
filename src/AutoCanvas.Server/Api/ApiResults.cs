@@ -23,6 +23,7 @@ internal static class ApiResults
             UseCaseErrorKind.Forbidden => (StatusCodes.Status403Forbidden, ProblemTypes.Forbidden, "Forbidden"),
             UseCaseErrorKind.Unauthorized => (StatusCodes.Status401Unauthorized, ProblemTypes.Unauthorized, "Unauthorized"),
             UseCaseErrorKind.TooManyRequests => (StatusCodes.Status429TooManyRequests, ProblemTypes.TooManyRequests, "Too many requests"),
+            UseCaseErrorKind.PreconditionFailed => (StatusCodes.Status412PreconditionFailed, ProblemTypes.PreconditionFailed, "Precondition failed"),
             _ => throw new ArgumentOutOfRangeException(nameof(error), error.Kind, "Unknown error kind."),
         };
 

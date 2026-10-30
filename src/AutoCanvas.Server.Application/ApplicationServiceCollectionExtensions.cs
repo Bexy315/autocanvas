@@ -1,6 +1,7 @@
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Database;
+using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,6 +32,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AccountService>();
         services.AddScoped<SignInService>();
         services.AddScoped<TokenService>();
+        services.AddScoped<FolderService>();
+        services.AddScoped<FolderGrantService>();
         return services;
     }
 }
