@@ -18,13 +18,13 @@ internal static class HealthEndpoints
         {
             Predicate = _ => false,
             ResponseWriter = WriteAsync,
-        });
+        }).AllowAnonymous();
 
         endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains(ReadyTag),
             ResponseWriter = WriteAsync,
-        });
+        }).AllowAnonymous();
 
         return endpoints;
     }

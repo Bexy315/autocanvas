@@ -1,3 +1,4 @@
+using AutoCanvas.Server.Api.Identity;
 using Microsoft.OpenApi;
 
 namespace AutoCanvas.Server.Api;
@@ -33,6 +34,11 @@ internal static class ApiEndpoints
             .WithDescription("Product name and version. Needs no authentication, so clients can check that they talk to an AutoCanvas server.")
             .WithTags("Server")
             .AllowAnonymous();
+
+        api.MapAuthEndpoints();
+        api.MapMeEndpoints();
+        api.MapUserEndpoints();
+        api.MapGroupEndpoints();
 
         return endpoints;
     }

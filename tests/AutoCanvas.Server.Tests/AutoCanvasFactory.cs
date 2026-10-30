@@ -1,3 +1,4 @@
+using AutoCanvas.Server.Application.Identity;
 using AutoCanvas.TestSupport;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -23,7 +24,11 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
 
     public AutoCanvasFactory() => UseDatabaseSettings(ownDatabase);
 
-    public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+    /// <summary>
+    /// Starts at the real time: the test client's cookie jar checks cookie expiry against the real
+    /// clock, so a session cookie issued "in the past" would be dropped.
+    /// </summary>
+    public FakeTimeProvider Clock { get; } = new(DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
 
     public AutoCanvasFactory With(string key, string? value)
     {
@@ -66,6 +71,9 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<TimeProvider>(Clock);
+
+            // Real cost is 600,000 iterations; tests sign in often.
+            services.AddSingleton(new PasswordHashingOptions { Iterations = 1_000 });
             foreach (var configure in serviceOverrides)
             {
                 configure(services);

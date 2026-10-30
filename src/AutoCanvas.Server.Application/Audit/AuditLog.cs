@@ -17,13 +17,14 @@ internal sealed partial class AuditLog(AutoCanvasDbContext database, IAuditConte
         }
 
         var now = time.GetUtcNow();
+        var actor = entry.Actor ?? context.Actor;
         database.AuditEvents.Add(new AuditEvent
         {
             Id = Guid.CreateVersion7(now),
             OccurredAt = now,
-            ActorKind = context.Actor.Kind,
-            ActorId = context.Actor.Id,
-            ActorName = Cut(context.Actor.Name, AuditEvent.MaxActorNameLength)!,
+            ActorKind = actor.Kind,
+            ActorId = actor.Id,
+            ActorName = Cut(actor.Name, AuditEvent.MaxActorNameLength)!,
             Action = entry.Action,
             TargetType = entry.TargetType,
             TargetId = entry.TargetId,

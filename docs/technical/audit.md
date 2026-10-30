@@ -13,7 +13,7 @@ every action. The rules behind it are in the [Security model](security.md#audit)
 | Field | Meaning |
 |---|---|
 | `occurredAt` | When the change was committed, in UTC |
-| actor | `System` (the server, a command-line tool or a background job), `User` (signed in) or `Token` (a user's API token); for users also their id and their name at the time |
+| actor | `System` (the server, a command-line tool or a background job), `User` (signed in), `Token` (a user's API token) or `Anonymous` (a client that is not signed in); for users also their id and their name at the time |
 | `action` | What happened, from the catalogue below |
 | target | Kind and id of the object changed, if any |
 | folder | The folder the object lives in; folder owners can read the entries of their folders |
@@ -37,6 +37,11 @@ feature that records them is built.
 | `user.updated` | admin | user | `changed` (field names), `isAdmin`, `isDisabled` |
 | `user.deleted` | admin | user | `userName` |
 | `user.password_reset` | admin, System | user | — |
+| `user.password_changed` | the user | user | — |
+| `auth.signed_in` | the user | user | `sessionId` |
+| `auth.sign_in_failed` | Anonymous | — | `userName` as typed, `reason` (`unknown user`, `wrong password`, `disabled`, `locked`) |
+| `auth.signed_out` | the user | user | `sessionId` |
+| `auth.sessions_ended` | the user | user | `count` (sign out everywhere) |
 | `group.created` | admin | group | `name` |
 | `group.updated` | admin | group | `changed` (field names), `name` |
 | `group.deleted` | admin | group | `name` |

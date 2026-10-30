@@ -18,9 +18,26 @@ that breaks clients gets a new version prefix.
 Health probes (`/health/live`, `/health/ready`) and the OpenAPI document are outside the versioned
 API; see [Operations](operations.md#health-endpoints).
 
+## Authentication
+
+Browsers sign in with `POST /api/v1/auth/sign-in` (user name and password). The answer sets the
+session cookie `autocanvas_session` (`HttpOnly`, `SameSite=Strict`, `Secure` behind HTTPS); the
+session token never appears in a response body. Scripts and tools use API tokens instead (*S1
+step 4c*). Without a valid session, protected endpoints answer [401](#unauthorized).
+
+**Every request that changes something** (`POST`, `PUT`, `PATCH`, `DELETE` under `/api`) must send
+the header `X-AutoCanvas-Request: 1`, unless it carries an API token. Browsers do not let other
+websites set this header, so a foreign page cannot make a signed-in browser change anything (cross-
+site request forgery). Sign-in needs it too. Without it, the server answers [403](#forbidden).
+
+A user whose password was set by someone else can only read `GET /api/v1/me`, change the password
+with `PUT /api/v1/me/password` and sign out until the password is changed; everything else answers
+[403 password change required](#password-change-required).
+
 ## Requests and responses
 
 - JSON with camelCase names; enumerations are strings (`"succeeded"`, not `2`).
+- A required property that is missing or `null` makes the request [invalid](#validation).
 - Timestamps are ISO 8601 in UTC (`2026-10-30T19:59:54.783Z`).
 - Identifiers are opaque strings; do not parse them.
 
@@ -44,16 +61,36 @@ as exception messages never appear in a response.
 
 ### Validation
 
-Status 400 or 422. The request is malformed or breaks a rule. Problems about automation files
-carry the same diagnostics as the command line: code, message, line and column.
+Status 400. The request is malformed or breaks a rule. `detail` says what is wrong and how to fix
+it; `field` names the request property at fault, when there is one:
+
+```json
+{
+  "type": "https://bexy315.github.io/autocanvas/technical/api#validation",
+  "title": "Invalid request",
+  "status": 400,
+  "detail": "The password must have at least 12 characters.",
+  "field": "password"
+}
+```
+
+Problems about automation files will carry the same diagnostics as the command line: code, message,
+line and column.
 
 ### Unauthorized
 
-Status 401. The request has no valid session or API token.
+Status 401. The request has no valid session or API token, or a sign-in failed. A failed sign-in
+gives the same answer whether the user name is unknown, the password wrong or the account disabled.
 
 ### Forbidden
 
-Status 403. The caller is known but lacks the role this action needs.
+Status 403. The caller is known but lacks the role this action needs, or a request that changes
+something lacks the `X-AutoCanvas-Request` header (see [Authentication](#authentication)).
+
+### Password change required
+
+Status 403. The user's password was set by someone else and must be changed first, with
+`PUT /api/v1/me/password`.
 
 ### Not found
 
@@ -75,9 +112,15 @@ its `ETag` (see [Concurrency](#concurrency)).
 
 Status 500 and above. Something went wrong on the server; the `traceId` identifies it in the log.
 
+### Too many requests
+
+Status 429. Too many sign-in attempts: either from one network address (10 per minute; the
+`Retry-After` header says how many seconds to wait), or for one user name (5 failures within 15
+minutes lock it for 15 minutes).
+
 ## Paging
 
-*From S1 step 4.* Lists return at most `limit` items (default 50, maximum 200) and a `next` cursor
+Lists return at most `limit` items (default 50, maximum 200) and a `next` cursor
 when more exist. Pass it back as `cursor` to get the next page. Cursors are opaque and stay valid
 while the list changes, so items are neither skipped nor repeated.
 

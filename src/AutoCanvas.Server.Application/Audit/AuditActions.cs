@@ -38,4 +38,19 @@ public static class AuditActions
 
     /// <summary>A user left a group; details: <c>userId</c>, <c>userName</c>.</summary>
     public const string GroupMemberRemoved = "group.member_removed";
+
+    /// <summary>A user signed in; details: <c>sessionId</c>.</summary>
+    public const string SignedIn = "auth.signed_in";
+
+    /// <summary>
+    /// A sign-in failed (unknown name, wrong password, disabled user or too many attempts);
+    /// details: <c>userName</c> as typed, <c>reason</c>.
+    /// </summary>
+    public const string SignInFailed = "auth.sign_in_failed";
+
+    /// <summary>A session ended on request; details: <c>sessionId</c>.</summary>
+    public const string SignedOut = "auth.signed_out";
+
+    /// <summary>A user ended all their sessions; details: <c>count</c>.</summary>
+    public const string SessionsEnded = "auth.sessions_ended";
 }

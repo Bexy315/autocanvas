@@ -6,8 +6,12 @@ persistence wiring and CLI subcommands. Business rules belong in application ser
 - **Endpoints are thin**: bind the request, call one service, map the result. No queries or rules
   inside a route handler.
 - **Every `/api/` endpoint declares** a name (`WithName`), a summary (`WithSummary`), who may call
-  it (`AllowAnonymous()` or an authorization requirement) and the problems it can return.
-  `ApiContractTests` enforces the first three.
+  it and the problems it can return. `ApiContractTests` enforces the first three. Who may call it:
+  `RequireAuthorization()` (signed in, password changed), a policy from `AutoCanvasPolicies`, or
+  `AllowAnonymous()` — there is deliberately no fallback policy. Endpoints returning `IResult` also
+  declare their success type with `Produces<T>()` so the OpenAPI document shows it.
+- **Use case results** become HTTP results through `ApiResults` (`Ok`, `Created`, `NoContent`,
+  `Problem`); never map `UseCaseError` by hand.
 - **Errors are problem details only**, with a type from `Api/ProblemTypes.cs`. A new type needs a
   section with that anchor in `docs/technical/api.md`. Never put exception messages, connection
   strings or secret values into a response — health check descriptions included.

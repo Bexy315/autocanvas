@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using AutoCanvas.Server.Api;
 using AutoCanvas.Server.Application;
+using AutoCanvas.Server.Authentication;
 using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Database;
 using AutoCanvas.Server.Health;
@@ -27,12 +28,19 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IValidateOptions<ServerOptions>, ServerOptionsValidator>();
 
         services.ConfigureHttpJsonOptions(options =>
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        {
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
+            // A missing or null value for a non-nullable property is a bad request, not a null.
+            options.SerializerOptions.RespectNullableAnnotations = true;
+            options.SerializerOptions.RespectRequiredConstructorParameters = true;
+        });
 
         services.AddAutoCanvasProblemDetails();
         services.AddAutoCanvasOpenApi();
         services.AddHealthChecks();
         builder.AddAutoCanvasDatabase();
+        services.AddAutoCanvasAuthentication();
         services.AddAutoCanvasApplication();
 
         services.AddOptions<BootstrapOptions>()
@@ -48,8 +56,9 @@ internal static class ServerBuilderExtensions
     {
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+        app.UseAutoCanvasAuthentication();
 
-        app.MapOpenApi();
+        app.MapOpenApi().AllowAnonymous();
         app.MapAutoCanvasHealth();
         app.MapAutoCanvasApi();
 
