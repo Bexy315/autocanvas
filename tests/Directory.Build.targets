@@ -1,0 +1,8 @@
+<Project>
+  <!-- In a targets file so that a project can set CoverageInclude before it is used. Generated
+       EF Core migrations are not counted (ADR-0014). -->
+  <PropertyGroup Condition="'$(AutoCanvasTestProject)' == 'true'">
+    <CoverageInclude Condition="'$(CoverageInclude)' == ''">[$(CoveredAssembly)]*</CoverageInclude>
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --results-directory "$(MSBuildThisFileDirectory)../artifacts/coverage" --coverlet --coverlet-output-format cobertura --coverlet-file-prefix $(CoveredAssembly) --coverlet-include "$(CoverageInclude)" --coverlet-exclude-by-file "**/Migrations/*.cs" --coverlet-threshold 75 --coverlet-threshold-type line --coverlet-threshold-stat total</TestingPlatformCommandLineArguments>
+  </PropertyGroup>
+</Project>

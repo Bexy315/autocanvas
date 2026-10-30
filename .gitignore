@@ -20,6 +20,12 @@ docs-site/static/schema/
 .vscode/*
 !.vscode/extensions.json
 
+# Server data written by local runs (default SQLite database)
+src/AutoCanvas.Server/data/
+*.db
+*.db-wal
+*.db-shm
+
 # Local config and secrets
 appsettings.local.json
 *.local.json

@@ -10,3 +10,5 @@ dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
 # Theory data for URL validation is text on purpose: the server reads URLs from configuration as text.
 dotnet_diagnostic.CA1054.severity = none
+# Database tests keep their per-provider classes (…OnSqlite, …OnPostgres) next to the tests they run.
+dotnet_diagnostic.MA0048.severity = none

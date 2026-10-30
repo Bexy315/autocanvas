@@ -4,8 +4,8 @@ sidebar_position: 4
 
 # Operations
 
-How to configure and observe the AutoCanvas server. This page grows with the server; database,
-master key and backups are added in later S1 steps.
+How to configure and observe the AutoCanvas server. This page grows with the server; the master
+key and further settings are added in later S1 steps.
 
 ## Configuration
 
@@ -32,13 +32,60 @@ setting and what is expected, instead of failing later on first use.
 | Setting | Default | Meaning |
 |---|---|---|
 | `Server:PublicUrl` | none | Absolute `http`/`https` URL users reach the server at, if it differs from what the server sees behind a reverse proxy |
+| `Server:DataDirectory` | `data` | Where the server keeps its files, such as the default SQLite database; relative to the server's directory |
+| `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
+| `Database:ConnectionString` | SQLite file `autocanvas.db` in the data directory | Required for PostgreSQL |
+| `Database:MigrateOnStart` | `true` | Bring the database schema up to date when the server starts |
+
+## Database
+
+AutoCanvas stores its data in SQLite or PostgreSQL ([ADR-0010](../adr/0010-database-providers.md)).
+
+| | SQLite | PostgreSQL |
+|---|---|---|
+| Setup | nothing: a file in the data directory | a PostgreSQL server (tested with version 17) and a database |
+| Server instances | exactly one | one or more |
+| Use it for | trying AutoCanvas, small single-server installations | production, teams, high availability |
+
+Without any database settings the server uses SQLite and says so in its log. For PostgreSQL, create
+an empty database and a user that owns it, then set:
+
+```sh
+AUTOCANVAS_Database__Provider=Postgres
+AUTOCANVAS_Database__ConnectionString="Host=db;Database=autocanvas;Username=autocanvas;Password=…"
+```
+
+The connection string accepts every [Npgsql option](https://www.npgsql.org/doc/connection-string-parameters.html)
+(SSL, timeouts, pooling). For SQLite it is a
+[Microsoft.Data.Sqlite connection string](https://learn.microsoft.com/dotnet/standard/data/sqlite/connection-strings),
+for example `Data Source=/var/lib/autocanvas/autocanvas.db`.
+
+### Schema updates
+
+By default the server applies pending schema migrations when it starts; with several PostgreSQL
+instances starting at once, one applies them while the others wait. To control updates yourself,
+set `Database:MigrateOnStart=false` and run the migrations before starting the new version:
+
+```sh
+dotnet AutoCanvas.Server.dll migrate     # same settings as the server, e.g. AUTOCANVAS_Database__…
+```
+
+It prints what it applied and exits with `0`, or `1` if the settings are invalid. While migrations
+are missing, `/health/ready` answers `503`.
+
+### Backups
+
+- **PostgreSQL**: `pg_dump` while the server runs.
+- **SQLite**: the database runs in write-ahead-log mode, so copying `autocanvas.db` alone while the
+  server runs is not safe. Stop the server and copy `autocanvas.db` with its `-wal` and `-shm`
+  files, or use `sqlite3 autocanvas.db ".backup backup.db"` while it runs.
 
 ## Health endpoints
 
 | Endpoint | Answers `200` when | Use it for |
 |---|---|---|
 | `/health/live` | the process runs | container liveness probe; restart when it fails |
-| `/health/ready` | every readiness check passes (database from S1 step 3) | load balancer / readiness probe; `503` while not ready |
+| `/health/ready` | the database is reachable and has every migration applied | load balancer / readiness probe; `503` while not ready |
 
 Both return a short JSON document with the overall status and the status of each check, never
 error details: those are in the log.
