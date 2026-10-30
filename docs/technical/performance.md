@@ -22,7 +22,7 @@ numbers. Results land in `BenchmarkDotNet.Artifacts/` (or the folder given with 
 | `LoadBenchmarks` | Reading automation files: parsing, validation, both. The sample has 10 or 100 jobs with 10 steps each, services, needs, conditions and expressions throughout (`SampleAutomation`). |
 | `ExpressionBenchmarks` | Parsing a condition, evaluating a parsed one, rendering a parsed template, parsing and rendering in one go. |
 | `PlannerBenchmarks` | `RunPlanner.Plan` on a run with half of its jobs done — what the server does every time a job finishes. |
-| `ReportBenchmarks` | Reading a test report of 10,000 tests, one in ten failing with a 20-line stack trace and output, as JUnit and as TRX. |
+| `ReportBenchmarks` | Reading a test report of 10,000 tests, one in ten failing with a 20-line stack trace and output, as JUnit and as TRX; and a Cobertura report of 2,000 classes with 50 lines each. |
 
 ## Baseline
 
@@ -43,6 +43,11 @@ Measured on 2026-10-30 with `--job short` on an Intel Core i5-13400F, Windows 11
 | Plan a half-done run | 100 jobs | 8.6 µs | 26 KB |
 | Read JUnit report | 10,000 tests | 20 ms | 23 MB |
 | Read TRX report | 10,000 tests | 45 ms | 30 MB |
+| Read Cobertura report | 2,000 classes, 100,000 lines | 70–90 ms¹ | 49 MB |
+
+¹ Measured on 2026-10-30 in two runs while the machine was busy (JUnit and TRX, unchanged since
+the baseline, measured 30–35 ms and 75–80 ms in the same runs). Re-measure on a quiet machine
+before comparing.
 
 ## Observations
 
@@ -59,5 +64,8 @@ Measured on 2026-10-30 with `--job short` on an Intel Core i5-13400F, Windows 11
   number of tests (about 2–3 KB each with failure details), not the file. TRX costs about twice as
   much as JUnit because its results come before the definitions that name their classes and have to
   be kept until the end of the file.
+- **Coverage allocates the most per input.** Each class is materialized with all of its lines,
+  and every line goes into a dictionary to merge generated classes; about 0.5 KB per line. Fine
+  for typical projects; a candidate if very large monorepo reports become common.
 - **Planning is cheap.** Deciding the next actions of a 100-job run takes microseconds, far below
   the database work around it.

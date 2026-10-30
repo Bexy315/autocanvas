@@ -4,14 +4,17 @@ using System.Xml.Linq;
 namespace AutoCanvas.Reports.Xml;
 
 /// <summary>
-/// Reading untrusted report XML: no DTDs (so no external entities and no entity expansion), no
-/// resolver, and element names matched by local name because writers differ in namespaces.
+/// Reading untrusted report XML: DTDs are skipped, never processed, and nothing is resolved — so
+/// there are no external entities and no entity expansion — and element names are matched by local
+/// name because writers differ in namespaces.
 /// </summary>
 internal static class SafeXml
 {
     private static readonly XmlReaderSettings Settings = new()
     {
-        DtdProcessing = DtdProcessing.Prohibit,
+        // Ignore rather than Prohibit: istanbul and other Cobertura writers emit a DOCTYPE pointing to
+        // the Cobertura DTD. Ignored DTDs define no entities, so "&name;" references stay errors.
+        DtdProcessing = DtdProcessing.Ignore,
         XmlResolver = null,
         IgnoreComments = true,
         IgnoreProcessingInstructions = true,

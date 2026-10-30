@@ -1,8 +1,9 @@
 namespace AutoCanvas.Reports;
 
 /// <summary>
-/// Bounds that keep a single report from using unbounded memory: a list of cases is cut after
-/// <see cref="MaxCases"/>, long texts after the lengths below (with an ellipsis).
+/// Bounds that keep a single report from using unbounded memory: lists are cut after
+/// <see cref="MaxCases"/> test cases or <see cref="MaxClasses"/> coverage classes, long texts after
+/// the lengths below (with an ellipsis).
 /// </summary>
 public static class ReportLimits
 {
@@ -20,4 +21,7 @@ public static class ReportLimits
 
     /// <summary>Longest test output kept.</summary>
     public const int MaxOutput = 4000;
+
+    /// <summary>Most coverage classes kept in detail per file. Totals still include every class.</summary>
+    public const int MaxClasses = 50_000;
 }
