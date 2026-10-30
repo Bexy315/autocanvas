@@ -48,9 +48,11 @@ and name; write-only through the API; redacted from logs; master key rotation by
 
 ## Audit
 
-*Planned, S1.* Every change to accounts, groups, grants, folders, automations, variables and
-secrets writes an audit event in the same transaction: who, what, which object, when and from
-where. Events never contain secret values.
+Every change writes an audit event in the same transaction as the change: who, what, which object,
+when and from where. Events never contain secret values, and AutoCanvas offers no way to change or
+delete them. Today the log records schema migrations; accounts, groups, grants, folders,
+automations, variables and secrets follow with their S1 steps. Fields and the list of actions are
+in [Audit log](audit.md).
 
 ## Reporting a vulnerability
 

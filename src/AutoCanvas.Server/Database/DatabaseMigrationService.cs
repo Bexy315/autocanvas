@@ -1,4 +1,5 @@
 using AutoCanvas.Persistence;
+using AutoCanvas.Server.Application.Database;
 using Microsoft.Extensions.Options;
 
 namespace AutoCanvas.Server.Database;
@@ -27,7 +28,7 @@ internal sealed partial class DatabaseMigrationService(
         var scope = scopes.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
         {
-            var applied = await scope.ServiceProvider.GetRequiredService<DatabaseMigrator>()
+            var applied = await scope.ServiceProvider.GetRequiredService<DatabaseMaintenance>()
                 .MigrateAsync(cancellationToken).ConfigureAwait(false);
             if (applied.Count > 0)
             {

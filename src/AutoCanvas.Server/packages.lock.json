@@ -123,6 +123,12 @@
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.14, )"
         }
       },
+      "autocanvas.server.application": {
+        "type": "Project",
+        "dependencies": {
+          "AutoCanvas.Persistence": "[1.0.0, )"
+        }
+      },
       "EFCore.NamingConventions": {
         "type": "CentralTransitive",
         "requested": "[10.0.1, )",

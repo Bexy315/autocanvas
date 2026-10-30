@@ -9,11 +9,13 @@
     <Project Path="src/AutoCanvas.Persistence.Sqlite/AutoCanvas.Persistence.Sqlite.csproj" />
     <Project Path="src/AutoCanvas.Reports/AutoCanvas.Reports.csproj" />
     <Project Path="src/AutoCanvas.Server/AutoCanvas.Server.csproj" />
+    <Project Path="src/AutoCanvas.Server.Application/AutoCanvas.Server.Application.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AutoCanvas.Core.Tests/AutoCanvas.Core.Tests.csproj" />
     <Project Path="tests/AutoCanvas.Persistence.Tests/AutoCanvas.Persistence.Tests.csproj" />
     <Project Path="tests/AutoCanvas.Reports.Tests/AutoCanvas.Reports.Tests.csproj" />
+    <Project Path="tests/AutoCanvas.Server.Application.Tests/AutoCanvas.Server.Application.Tests.csproj" />
     <Project Path="tests/AutoCanvas.Server.Tests/AutoCanvas.Server.Tests.csproj" />
     <Project Path="tests/AutoCanvas.TestSupport/AutoCanvas.TestSupport.csproj" />
   </Folder>

@@ -6,6 +6,24 @@ namespace AutoCanvas.Persistence.Audit;
 /// </summary>
 public sealed class AuditEvent
 {
+    /// <summary>Column size of <see cref="ActorName"/>.</summary>
+    public const int MaxActorNameLength = 200;
+
+    /// <summary>Column size of <see cref="Action"/>.</summary>
+    public const int MaxActionLength = 100;
+
+    /// <summary>Column size of <see cref="TargetType"/>.</summary>
+    public const int MaxTargetTypeLength = 50;
+
+    /// <summary>Column size of <see cref="TargetId"/>.</summary>
+    public const int MaxTargetIdLength = 100;
+
+    /// <summary>Column size of <see cref="ClientAddress"/>; fits any IPv6 address.</summary>
+    public const int MaxClientAddressLength = 64;
+
+    /// <summary>Column size of <see cref="UserAgent"/>; longer values are cut.</summary>
+    public const int MaxUserAgentLength = 500;
+
     /// <summary>Time-ordered identifier (UUID version 7).</summary>
     public required Guid Id { get; init; }
 
