@@ -10,6 +10,8 @@ public sealed class SupportTests
     [InlineData("needs", "need", 1)]
     [InlineData("kitten", "sitting", 3)]
     [InlineData("abc", "", 3)]
+    [InlineData("biuld", "build", 1)]
+    [InlineData("ca", "abc", 3)]
     public void Distance_counts_single_character_edits(string a, string b, int expected)
     {
         Suggestions.Distance(a, b).ShouldBe(expected);

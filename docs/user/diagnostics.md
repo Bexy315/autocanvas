@@ -37,5 +37,25 @@ All problems in a file are reported at once, not only the first.
 | `AC0105` | Keys that exclude each other are used together, or none of several alternatives is given — for example a step with both `run` and `type`. | Keep exactly one of the alternatives. |
 | `AC0106` | The `version` is not one this AutoCanvas can read. | Use `version: 1`. |
 
+## How the parts fit together
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `AC0201` | A job needs a job that does not exist. | Fix the job id; the message suggests a close match. |
+| `AC0202` | A job lists the same job twice in `needs`. | Keep one entry. |
+| `AC0203` | Jobs need each other in a cycle, so none of them can start. The message lists the cycle. | Remove one of the needs in the cycle. |
+| `AC0204` | A job needs a `finally` job, which runs after every other job. | Remove the need, or make the needed job a normal job. |
+| `AC0205` | A need names a `case` of a job that is not a switch, or a case the switch does not have. | Use a case name listed in the message. |
+| `AC0206` | A switch has two cases with the same name, or more than one `default` case. | Rename the case, or keep one default. |
+| `AC0207` | Two steps of a job have the same `id`. | Give each step its own id. |
+
+## Expressions
+
+| Code | Meaning | What to do |
+|---|---|---|
+| `AC0301` | An expression is not valid syntax, for example an unclosed `${{`, a missing value after `==`, or a condition that mixes `${{ }}` with plain text. The message gives the character position. | Fix the expression; see [Expressions](expressions.md). |
+| `AC0302` | An expression reads something that does not exist (`run.pipeline_name`, an output a job does not publish), or something that cannot be read at this place (`steps` outside a job's steps, `vars` in variables). | Use one of the values listed in the message. |
+| `AC0303` | An expression reads a job or step whose values are not available yet: a job that is not among this job's needs, or a step that comes later. | Add the job to `needs`, or move the step. |
+
 Values are read by YAML 1.2 rules: `on`, `yes` and `no` are text, only `true` and `false` are
 booleans.
