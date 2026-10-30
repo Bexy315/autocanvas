@@ -64,7 +64,7 @@ npm run start      # local preview with hot reload
 Benchmarks (not part of CI; run before and after performance work, see `docs/technical/performance.md`):
 
 ```sh
-dotnet run -c Release --project benchmarks/AutoCanvas.Core.Benchmarks -- --filter '*' --job short
+dotnet run -c Release --project benchmarks/AutoCanvas.Benchmarks -- --filter '*' --job short
 ```
 
 Coverage reports are written to `artifacts/coverage/`. For a readable summary:

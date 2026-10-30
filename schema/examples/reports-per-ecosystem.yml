@@ -1,0 +1,62 @@
+# Publishing test reports from different ecosystems; the same snippets appear in the user guide
+# (docs/user/reports.md), so this file keeps them valid.
+version: 1
+name: Reports per ecosystem
+
+triggers:
+  manual: true
+
+jobs:
+  dotnet:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    steps:
+      - run: dotnet test -c Release --report-trx --results-directory TestResults
+    reports:
+      - format: trx
+        path: 'TestResults/*.trx'
+
+  python:
+    image: python:3.13
+    steps:
+      - run: pip install -r requirements.txt pytest
+      - run: pytest --junitxml=reports/junit.xml
+    reports:
+      - format: junit
+        path: reports/junit.xml
+
+  node:
+    image: node:24
+    steps:
+      - run: npm ci
+      - run: npx jest --reporters=default --reporters=jest-junit
+        env:
+          JEST_JUNIT_OUTPUT_DIR: reports
+    reports:
+      - format: junit
+        path: reports/junit.xml
+
+  java-maven:
+    image: maven:3-eclipse-temurin-21
+    steps:
+      - run: mvn -B verify
+    reports:
+      - format: junit
+        path: '**/target/surefire-reports/TEST-*.xml'
+        name: Unit tests
+
+  java-gradle:
+    image: gradle:8-jdk21
+    steps:
+      - run: gradle test
+    reports:
+      - format: junit
+        path: '**/build/test-results/test/TEST-*.xml'
+
+  go:
+    image: golang:1.26
+    steps:
+      - run: go install github.com/jstemmer/go-junit-report/v2@latest
+      - run: go test -v ./... 2>&1 | go-junit-report -set-exit-code -out report.xml
+    reports:
+      - format: junit
+        path: report.xml

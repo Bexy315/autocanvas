@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="6" failures="1" skipped="1">
+	<testsuite name="example.org/sample" tests="6" failures="1" errors="0" id="0" hostname="ci-host" skipped="1" time="0.545" timestamp="2026-10-30T16:44:26+01:00">
+		<testcase name="TestMax" classname="example.org/sample" time="0.000"></testcase>
+		<testcase name="TestMaxWrongOnPurpose" classname="example.org/sample" time="0.000">
+			<failure message="Failed"><![CDATA[    mathx_test.go:12: comparing 3 and 3
+    mathx_test.go:14: expected 4, got 3]]></failure>
+		</testcase>
+		<testcase name="TestSkipped" classname="example.org/sample" time="0.000">
+			<skipped message="Skipped"><![CDATA[    mathx_test.go:19: needs network]]></skipped>
+		</testcase>
+		<testcase name="TestTable" classname="example.org/sample" time="0.000"></testcase>
+		<testcase name="TestTable/left" classname="example.org/sample" time="0.000"></testcase>
+		<testcase name="TestTable/right" classname="example.org/sample" time="0.000"></testcase>
+	</testsuite>
+</testsuites>

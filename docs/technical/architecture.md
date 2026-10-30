@@ -25,7 +25,7 @@ machines where work runs.
 | Block | Responsibility | Status |
 |---|---|---|
 | `AutoCanvas.Core` | Automation model, parsing, validation, expressions, orchestration decisions — pure code | model, parser, validator, expressions, orchestration decisions |
-| `AutoCanvas.Reports` | Parsing test and coverage reports into a normalized model | skeleton |
+| `AutoCanvas.Reports` | Reading test and coverage reports into a normalized model | test results (TRX, JUnit) |
 | `AutoCanvas.Server` | HTTP API, auth, folders and permissions, persistence, scheduling, job queue | planned (S1/S2) |
 | `AutoCanvas.Runner` | Reference runner implementing the runner protocol | planned (S2) |
 | Web UI | Canvas editor, runs, logs, reports, administration | planned (S3) |

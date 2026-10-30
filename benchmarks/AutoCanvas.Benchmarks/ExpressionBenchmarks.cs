@@ -1,7 +1,7 @@
 using AutoCanvas.Core.Expressions;
 using BenchmarkDotNet.Attributes;
 
-namespace AutoCanvas.Core.Benchmarks;
+namespace AutoCanvas.Benchmarks;
 
 /// <summary>The expression language on its hot paths: parsing, conditions and template rendering.</summary>
 [MemoryDiagnoser]

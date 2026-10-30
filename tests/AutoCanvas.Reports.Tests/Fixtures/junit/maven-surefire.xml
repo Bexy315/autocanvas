@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.example.CartTest" time="1,234.5" tests="6" errors="1" skipped="1" failures="1">
+  <properties>
+    <property name="java.version" value="21.0.7"/>
+    <property name="os.name" value="Linux"/>
+  </properties>
+  <testcase name="sumsPrices" classname="com.example.CartTest" time="0.012"/>
+  <testcase name="labelIsWrongOnPurpose" classname="com.example.CartTest" time="0.003">
+    <failure message="expected: &lt;2 items&gt; but was: &lt;two items&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: <2 items> but was: <two items>
+	at com.example.CartTest.labelIsWrongOnPurpose(CartTest.java:21)]]></failure>
+    <system-out><![CDATA[label=2
+]]></system-out>
+  </testcase>
+  <testcase name="loadsFromDatabase" classname="com.example.CartTest" time="0.104">
+    <error message="Connection refused" type="java.net.ConnectException"><![CDATA[java.net.ConnectException: Connection refused
+	at com.example.CartRepository.open(CartRepository.java:40)]]></error>
+  </testcase>
+  <testcase name="appliesVouchers" classname="com.example.CartTest" time="0">
+    <skipped message="not implemented yet"/>
+  </testcase>
+  <testcase name="talksToPaymentService" classname="com.example.CartTest" time="1,203.250">
+    <flakyFailure message="Read timed out" type="java.net.SocketTimeoutException">
+      <stackTrace><![CDATA[java.net.SocketTimeoutException: Read timed out]]></stackTrace>
+      <system-out><![CDATA[retrying]]></system-out>
+    </flakyFailure>
+    <flakyFailure message="Read timed out" type="java.net.SocketTimeoutException">
+      <stackTrace><![CDATA[java.net.SocketTimeoutException: Read timed out]]></stackTrace>
+    </flakyFailure>
+  </testcase>
+  <testcase name="refundsAlwaysFail" classname="com.example.CartTest" time="0.020">
+    <failure message="refund rejected" type="java.lang.IllegalStateException"><![CDATA[java.lang.IllegalStateException: refund rejected]]></failure>
+    <rerunFailure message="refund rejected" type="java.lang.IllegalStateException">
+      <stackTrace><![CDATA[java.lang.IllegalStateException: refund rejected]]></stackTrace>
+    </rerunFailure>
+  </testcase>
+</testsuite>

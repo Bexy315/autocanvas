@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="1" skipped="1" tests="7" time="0.114" timestamp="2026-10-30T16:43:32.721734+01:00" hostname="ci-host"><testcase classname="tests.test_shop" name="test_total" time="0.001" /><testcase classname="tests.test_shop" name="test_total_with_discount" time="0.000" /><testcase classname="tests.test_shop" name="test_tier_is_wrong_on_purpose" time="0.003"><failure message="AssertionError: assert 'silver' == 'gold'&#10;  &#10;  - gold&#10;  + silver">def test_tier_is_wrong_on_purpose():
+        print("checking the silver tier")
+&gt;       assert shop.tier(60) == "gold"
+E       AssertionError: assert 'silver' == 'gold'
+E         
+E         - gold
+E         + silver
+
+tests\test_shop.py:15: AssertionError</failure></testcase><testcase classname="tests.test_shop" name="test_refunds" time="0.000"><skipped type="pytest.skip" message="not implemented yet">/work/tests/test_shop.py:18: not implemented yet</skipped></testcase><testcase classname="tests.test_shop" name="test_tiers[10-bronze]" time="0.001" /><testcase classname="tests.test_shop" name="test_tiers[200-gold]" time="0.001" /><testcase classname="tests.test_shop" name="test_broken_fixture" time="0.000"><error message="failed on setup with &quot;file /work/tests/test_shop.py, line 28&#10;  def test_broken_fixture(missing_fixture):&#10;E       fixture 'missing_fixture' not found&#10;[+4 more lines; full report in element text]">file /work/tests/test_shop.py, line 28
+  def test_broken_fixture(missing_fixture):
+E       fixture 'missing_fixture' not found
+&gt;       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+&gt;       use 'pytest --fixtures [testpath]' for help on them.
+
+/work/tests/test_shop.py:28</error></testcase></testsuite></testsuites>

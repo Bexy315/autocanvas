@@ -109,7 +109,7 @@ Jobs without `needs` start in parallel. A job runs its steps one after another i
 | `services` | Containers next to the job, reachable by their key as host name (see below). |
 | `steps` | The steps, at least one. |
 | `outputs` | Values published to later jobs: `digest: ${{ steps.build.outputs.digest }}`, read as `${{ jobs.image.outputs.digest }}`. Nothing else of a job is visible to other jobs. |
-| `reports` | Test and coverage files collected after the steps, even if a step failed: `format` (`junit`, `trx`, `cobertura`), `path` (glob or list of globs), optional `name`. |
+| `reports` | Test and coverage files collected after the steps, even if a step failed: `format` (`junit`, `trx`, `cobertura`), `path` (glob or list of globs), optional `name`. See [Test reports](reports.md). |
 | `timeout_minutes` | Time limit for this job. |
 | `retry` | `max_attempts` (2–10, including the first) and optional `delay_seconds`. |
 | `finally` | Runs once every other job is done, whatever happened; `${{ run.status }}` tells how the run went. Cannot have `needs`. |
