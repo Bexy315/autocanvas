@@ -5,3 +5,8 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
 # Test method arguments come from xUnit's data attributes, never from external callers.
 dotnet_diagnostic.CA1062.severity = none
+# xUnit runs tests without a synchronization context and asks not to use ConfigureAwait in tests (xUnit1030).
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.MA0004.severity = none
+# Theory data for URL validation is text on purpose: the server reads URLs from configuration as text.
+dotnet_diagnostic.CA1054.severity = none

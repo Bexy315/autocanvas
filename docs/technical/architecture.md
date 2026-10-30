@@ -26,7 +26,7 @@ machines where work runs.
 |---|---|---|
 | `AutoCanvas.Core` | Automation model, parsing, validation, expressions, orchestration decisions — pure code | model, parser, validator, expressions, orchestration decisions |
 | `AutoCanvas.Reports` | Reading test and coverage reports into a normalized model | test results (TRX, JUnit), coverage (Cobertura) |
-| `AutoCanvas.Server` | HTTP API, authentication, CLI subcommands; scheduling and job queue from S2 | planned (S1/S2) |
+| `AutoCanvas.Server` | HTTP API, authentication, CLI subcommands; scheduling and job queue from S2 | host, configuration, health, problem details, OpenAPI ([API conventions](api.md)) |
 | `AutoCanvas.Server.Application` | Use cases: identity, folders and permissions, automations, variables and secrets, audit | planned (S1) |
 | `AutoCanvas.Persistence` | EF Core model shared by all databases; one project per provider (PostgreSQL, SQLite) with its migrations ([ADR-0010](../adr/0010-database-providers.md)) | planned (S1) |
 | `AutoCanvas.Runner` | Reference runner implementing the runner protocol | planned (S2) |

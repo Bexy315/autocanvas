@@ -1,6 +1,6 @@
 # 0010. Support PostgreSQL and SQLite behind provider ports
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-30
 - Supersedes: [0005](0005-own-postgres-job-queue.md)
 

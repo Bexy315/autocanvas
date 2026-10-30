@@ -1,0 +1,68 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "AutoCanvas API",
+    "description": "HTTP API of the AutoCanvas server. Conventions: https://bexy315.github.io/autocanvas/technical/api",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/v1/info": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Describe this server",
+        "description": "Product name and version. Needs no authentication, so clients can check that they talk to an AutoCanvas server.",
+        "operationId": "GetServerInfo",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ServerInfo": {
+        "required": [
+          "product",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Always `AutoCanvas`."
+          },
+          "version": {
+            "type": "string",
+            "description": "The server's version, including the source revision when built from git."
+          }
+        },
+        "description": "What `GET /api/v1/info` returns."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Server"
+    }
+  ]
+}

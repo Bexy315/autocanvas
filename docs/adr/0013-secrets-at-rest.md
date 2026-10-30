@@ -1,6 +1,6 @@
 # 0013. Encrypt secrets with AES-GCM under a master key
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-30
 
 ## Context

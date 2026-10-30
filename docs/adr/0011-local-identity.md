@@ -1,6 +1,6 @@
 # 0011. Own local identity: users, sessions and API tokens
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-30
 
 ## Context

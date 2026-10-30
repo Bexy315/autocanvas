@@ -1,6 +1,6 @@
 # 0012. Permissions through roles on a folder tree
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-30
 
 ## Context
