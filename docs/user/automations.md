@@ -209,4 +209,5 @@ A **switch** evaluates its expression and activates the first case whose `when` 
 that case was activated; the others are skipped. A **join** waits for its needs and passes through,
 which keeps branches tidy on the canvas.
 
-Expressions are described in [Expressions](expressions.md).
+Expressions are described in [Expressions](expressions.md); the messages AutoCanvas shows for
+mistakes in a file are listed in [Problems in automation files](diagnostics.md).

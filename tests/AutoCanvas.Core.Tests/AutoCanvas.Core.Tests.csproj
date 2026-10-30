@@ -1,2 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- Validates schema/examples against schema/automation.v1.json (ADR-0009). -->
+    <PackageReference Include="Corvus.Json.Validator" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../../schema/**/*" LinkBase="schema" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
