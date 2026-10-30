@@ -56,7 +56,32 @@ internal static class UserEndpoints
             .WithDescription("The user must change it at the next sign-in; their sessions end.")
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        MapTokenEndpoints(users);
     }
+
+    private static void MapTokenEndpoints(RouteGroupBuilder users)
+    {
+        users.MapGet("/{id:guid}/tokens", ListTokensAsync)
+            .WithName("ListUserTokens")
+            .Produces<IReadOnlyList<TokenView>>()
+            .WithSummary("List a user's API tokens")
+            .WithDescription("Newest first, without the secrets.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        users.MapDelete("/{id:guid}/tokens/{tokenId:guid}", DeleteTokenAsync)
+            .WithName("DeleteUserToken")
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("Delete a user's API token")
+            .WithDescription("For example when a token has leaked. Requests with it fail from now on.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+    }
+
+    private static async Task<IResult> ListTokensAsync(Guid id, TokenService tokens, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await tokens.ListAsync(id, cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> DeleteTokenAsync(Guid id, Guid tokenId, TokenService tokens, CancellationToken cancellationToken) =>
+        ApiResults.NoContent(await tokens.DeleteAsync(id, tokenId, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> ListAsync(int? limit, string? cursor, UserService users, CancellationToken cancellationToken) =>
         ApiResults.Ok(await users.ListAsync(new PageRequest(limit, cursor), cancellationToken).ConfigureAwait(false));

@@ -42,6 +42,8 @@ feature that records them is built.
 | `auth.sign_in_failed` | Anonymous | — | `userName` as typed, `reason` (`unknown user`, `wrong password`, `disabled`, `locked`) |
 | `auth.signed_out` | the user | user | `sessionId` |
 | `auth.sessions_ended` | the user | user | `count` (sign out everywhere) |
+| `token.created` | the user | user (owner) | `tokenId`, `name`, `expiresAt` — never the token |
+| `token.deleted` | the owner or an admin | user (owner) | `tokenId`, `name` |
 | `group.created` | admin | group | `name` |
 | `group.updated` | admin | group | `changed` (field names), `name` |
 | `group.deleted` | admin | group | `name` |

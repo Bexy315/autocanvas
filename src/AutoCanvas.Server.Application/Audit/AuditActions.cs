@@ -53,4 +53,10 @@ public static class AuditActions
 
     /// <summary>A user ended all their sessions; details: <c>count</c>.</summary>
     public const string SessionsEnded = "auth.sessions_ended";
+
+    /// <summary>An API token was created; details: <c>tokenId</c>, <c>name</c>, <c>expiresAt</c>.</summary>
+    public const string TokenCreated = "token.created";
+
+    /// <summary>An API token was deleted; details: <c>tokenId</c>, <c>name</c>.</summary>
+    public const string TokenDeleted = "token.deleted";
 }

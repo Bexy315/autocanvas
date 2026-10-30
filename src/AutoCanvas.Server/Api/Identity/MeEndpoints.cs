@@ -37,6 +37,29 @@ internal static class MeEndpoints
             .WithSummary("End one of my sessions")
             .RequireAuthorization(AutoCanvasPolicies.SessionOnly)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        me.MapGet("/tokens", ListTokensAsync)
+            .WithName("ListMyTokens")
+            .Produces<IReadOnlyList<TokenView>>()
+            .WithSummary("List my API tokens")
+            .WithDescription("Newest first, without the secrets. Needs a session: a token cannot manage tokens.")
+            .RequireAuthorization(AutoCanvasPolicies.SessionOnly);
+
+        me.MapPost("/tokens", CreateTokenAsync)
+            .WithName("CreateMyToken")
+            .Produces<CreatedToken>(StatusCodes.Status201Created)
+            .WithSummary("Create an API token")
+            .WithDescription("The answer contains the secret once; store it right away. Send it as 'Authorization: Bearer acp_…'. Needs a session.")
+            .RequireAuthorization(AutoCanvasPolicies.SessionOnly)
+            .ProducesValidationProblem();
+
+        me.MapDelete("/tokens/{id:guid}", DeleteTokenAsync)
+            .WithName("DeleteMyToken")
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("Delete one of my API tokens")
+            .WithDescription("Requests with the token fail from now on. Needs a session.")
+            .RequireAuthorization(AutoCanvasPolicies.SessionOnly)
+            .ProducesProblem(StatusCodes.Status404NotFound);
     }
 
     private static async Task<IResult> GetMeAsync(HttpContext context, AccountService accounts, CancellationToken cancellationToken) =>
@@ -52,6 +75,17 @@ internal static class MeEndpoints
 
     private static async Task<IReadOnlyList<SessionView>> ListSessionsAsync(HttpContext context, SessionService sessions, CancellationToken cancellationToken) =>
         await sessions.ListAsync(context.User.GetUserId(), context.User.GetSessionId(), cancellationToken).ConfigureAwait(false);
+
+    private static async Task<IResult> ListTokensAsync(HttpContext context, TokenService tokens, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await tokens.ListAsync(context.User.GetUserId(), cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> CreateTokenAsync(CreateTokenRequest request, HttpContext context, TokenService tokens, CancellationToken cancellationToken) =>
+        ApiResults.Created(
+            await tokens.CreateAsync(context.User.GetUserId(), request.Name, request.ExpiresAt, cancellationToken).ConfigureAwait(false),
+            token => $"/api/v1/me/tokens/{token.Details.Id}");
+
+    private static async Task<IResult> DeleteTokenAsync(Guid id, HttpContext context, TokenService tokens, CancellationToken cancellationToken) =>
+        ApiResults.NoContent(await tokens.DeleteAsync(context.User.GetUserId(), id, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> EndSessionAsync(Guid id, HttpContext context, SessionService sessions, CancellationToken cancellationToken) =>
         ApiResults.NoContent(await sessions.EndAsync(context.User.GetUserId(), id, cancellationToken).ConfigureAwait(false));

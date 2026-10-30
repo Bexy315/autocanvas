@@ -28,6 +28,27 @@ Changing the password signs you out everywhere else. `GET /api/v1/me/sessions` l
 signed in; `POST /api/v1/auth/sign-out-everywhere` ends all of it. After five wrong passwords in a
 row, the user name is locked for 15 minutes.
 
+## API tokens
+
+Scripts, CI jobs and other tools use a personal API token instead of a password. Create one while
+signed in (a token cannot create tokens):
+
+```sh
+curl -b cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json'   -d '{"name":"nightly backup","expiresAt":"2027-01-01T00:00:00Z"}' http://localhost:5080/api/v1/me/tokens
+```
+
+The answer contains the token (`acp_…`) once; store it right away, it cannot be shown again. Use
+it as a bearer token; requests with a token do not need the `X-AutoCanvas-Request` header:
+
+```sh
+curl -H 'Authorization: Bearer acp_…' http://localhost:5080/api/v1/me
+```
+
+A token can do what its owner can do, and nothing once the owner is disabled. Without
+`expiresAt` it never expires. `GET /api/v1/me/tokens` lists your tokens with when they were last
+used; `DELETE /api/v1/me/tokens/{id}` revokes one. Admins can list and revoke the tokens of any
+user under `/api/v1/users/{id}/tokens`, for example when one has leaked.
+
 ## The first admin
 
 A fresh installation has no accounts. Create the first admin in one of two ways.

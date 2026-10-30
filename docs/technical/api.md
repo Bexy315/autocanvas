@@ -22,8 +22,10 @@ API; see [Operations](operations.md#health-endpoints).
 
 Browsers sign in with `POST /api/v1/auth/sign-in` (user name and password). The answer sets the
 session cookie `autocanvas_session` (`HttpOnly`, `SameSite=Strict`, `Secure` behind HTTPS); the
-session token never appears in a response body. Scripts and tools use API tokens instead (*S1
-step 4c*). Without a valid session, protected endpoints answer [401](#unauthorized).
+session token never appears in a response body. Scripts and tools use **API tokens** instead:
+`Authorization: Bearer acp_…`. A token acts with its owner's current permissions; it cannot manage
+tokens or sessions or change the password, which needs a session. Without valid credentials,
+protected endpoints answer [401](#unauthorized).
 
 **Every request that changes something** (`POST`, `PUT`, `PATCH`, `DELETE` under `/api`) must send
 the header `X-AutoCanvas-Request: 1`, unless it carries an API token. Browsers do not let other
