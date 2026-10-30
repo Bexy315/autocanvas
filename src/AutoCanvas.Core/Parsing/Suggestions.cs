@@ -32,12 +32,18 @@ internal static class Suggestions
         return best is null ? string.Empty : $" Did you mean '{best}'?";
     }
 
-    /// <summary>Levenshtein distance between two short strings.</summary>
+    /// <summary>
+    /// Edit distance between two short strings, counting an insertion, deletion, substitution or
+    /// swap of two adjacent characters as one edit (optimal string alignment), so "biuld" is one
+    /// typo away from "build".
+    /// </summary>
     public static int Distance(string a, string b)
     {
         ArgumentNullException.ThrowIfNull(a);
         ArgumentNullException.ThrowIfNull(b);
 
+        // Three rows suffice: the swap rule looks back two rows.
+        var beforePrevious = new int[b.Length + 1];
         var previous = new int[b.Length + 1];
         var current = new int[b.Length + 1];
         for (var j = 0; j <= b.Length; j++)
@@ -51,10 +57,14 @@ internal static class Suggestions
             for (var j = 1; j <= b.Length; j++)
             {
                 var cost = a[i - 1] == b[j - 1] ? 0 : 1;
-                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost);
+                current[j] = Math.Min(Math.Min(previous[j] + 1, current[j - 1] + 1), previous[j - 1] + cost);
+                if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
+                {
+                    current[j] = Math.Min(current[j], beforePrevious[j - 2] + 1);
+                }
             }
 
-            (previous, current) = (current, previous);
+            (beforePrevious, previous, current) = (previous, current, beforePrevious);
         }
 
         return previous[b.Length];

@@ -37,7 +37,8 @@ public static class AutomationParser
         var context = new ParseContext();
         var root = Load(yaml, context);
         var definition = root is null ? null : ReadDocument(root, context);
-        return new ParseResult(context.HasErrors ? null : definition, context.Diagnostics);
+        var locations = root is null ? new Dictionary<string, SourceLocation>(StringComparer.Ordinal) : SourceMap.Build(root);
+        return new ParseResult(context.HasErrors ? null : definition, context.Diagnostics, locations);
     }
 
     private static YamlNode? Load(string yaml, ParseContext context)

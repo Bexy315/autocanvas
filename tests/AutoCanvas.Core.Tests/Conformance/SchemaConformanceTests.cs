@@ -29,9 +29,9 @@ public sealed class SchemaConformanceTests
 
     [Theory]
     [MemberData(nameof(ValidExamples))]
-    public void Valid_examples_parse_without_diagnostics(string file)
+    public void Valid_examples_load_without_diagnostics(string file)
     {
-        var result = AutomationParser.Parse(Read(file));
+        var result = AutomationLoader.Load(Read(file));
 
         result.Diagnostics.ShouldBeEmpty();
         result.Succeeded.ShouldBeTrue();
