@@ -46,7 +46,8 @@ public abstract class DatabaseTests(DatabaseProvider provider) : DatabaseTest(pr
         var (second, secondOutput, _) = await RunAsync(args);
 
         first.ShouldBe(0);
-        firstOutput.ShouldStartWith("Applied 1 migration(s): ");
+        firstOutput.ShouldStartWith("Applied ");
+        firstOutput.ShouldContain(" migration(s): ");
         firstOutput.ShouldContain("_Initial");
         second.ShouldBe(0);
         secondOutput.ShouldStartWith("The database is up to date.");
@@ -60,11 +61,12 @@ public abstract class DatabaseTests(DatabaseProvider provider) : DatabaseTest(pr
         }
     }
 
-    internal static async Task<(int ExitCode, string Output, string Error)> RunAsync(string[] args)
+    internal static async Task<(int ExitCode, string Output, string Error)> RunAsync(string[] args, string input = "")
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
-        var exitCode = await ServerCommandLine.RunAsync(args, output, error);
+        using var reader = new StringReader(input);
+        var exitCode = await ServerCommandLine.RunAsync(args, output, error, reader);
         return (exitCode, output.ToString(), error.ToString());
     }
 }

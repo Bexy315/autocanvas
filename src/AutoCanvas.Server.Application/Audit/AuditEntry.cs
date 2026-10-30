@@ -18,4 +18,11 @@ public sealed record AuditEntry(string Action)
     /// for a secret, record only its name.
     /// </summary>
     public IReadOnlyDictionary<string, object?>? Details { get; init; }
+
+    /// <summary>Details from key/value pairs, in the given order; <see langword="null"/> for none.</summary>
+    public static IReadOnlyDictionary<string, object?>? DetailsOf(params (string Key, object? Value)[] details)
+    {
+        ArgumentNullException.ThrowIfNull(details);
+        return details.Length == 0 ? null : details.ToDictionary(d => d.Key, d => d.Value, StringComparer.Ordinal);
+    }
 }

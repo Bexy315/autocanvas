@@ -4,6 +4,7 @@ using AutoCanvas.Server.Application;
 using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Database;
 using AutoCanvas.Server.Health;
+using AutoCanvas.Server.Identity;
 using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -33,6 +34,12 @@ internal static class ServerBuilderExtensions
         services.AddHealthChecks();
         builder.AddAutoCanvasDatabase();
         services.AddAutoCanvasApplication();
+
+        services.AddOptions<BootstrapOptions>()
+            .BindConfiguration(BootstrapOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<BootstrapOptions>, BootstrapOptionsValidator>();
+        services.AddHostedService<BootstrapAdminService>();
 
         return builder;
     }

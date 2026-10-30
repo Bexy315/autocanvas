@@ -8,4 +8,34 @@ public static class AuditActions
 {
     /// <summary>The database schema was updated; details: <c>migrations</c> (names applied).</summary>
     public const string DatabaseMigrated = "database.migrated";
+
+    /// <summary>An account was created; details: <c>userName</c>, <c>isAdmin</c>.</summary>
+    public const string UserCreated = "user.created";
+
+    /// <summary>An account was changed; details: <c>changed</c> (field names), <c>isAdmin</c>, <c>isDisabled</c>.</summary>
+    public const string UserUpdated = "user.updated";
+
+    /// <summary>An account was deleted; details: <c>userName</c>.</summary>
+    public const string UserDeleted = "user.deleted";
+
+    /// <summary>A user changed their own password.</summary>
+    public const string UserPasswordChanged = "user.password_changed";
+
+    /// <summary>Someone else set a user's password; the user must change it.</summary>
+    public const string UserPasswordReset = "user.password_reset";
+
+    /// <summary>A group was created; details: <c>name</c>.</summary>
+    public const string GroupCreated = "group.created";
+
+    /// <summary>A group was renamed or described; details: <c>changed</c>, <c>name</c>.</summary>
+    public const string GroupUpdated = "group.updated";
+
+    /// <summary>A group was deleted; details: <c>name</c>.</summary>
+    public const string GroupDeleted = "group.deleted";
+
+    /// <summary>A user joined a group; details: <c>userId</c>, <c>userName</c>.</summary>
+    public const string GroupMemberAdded = "group.member_added";
+
+    /// <summary>A user left a group; details: <c>userId</c>, <c>userName</c>.</summary>
+    public const string GroupMemberRemoved = "group.member_removed";
 }
