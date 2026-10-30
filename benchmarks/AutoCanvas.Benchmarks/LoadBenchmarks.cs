@@ -1,8 +1,9 @@
+using AutoCanvas.Core;
 using AutoCanvas.Core.Parsing;
 using AutoCanvas.Core.Validation;
 using BenchmarkDotNet.Attributes;
 
-namespace AutoCanvas.Core.Benchmarks;
+namespace AutoCanvas.Benchmarks;
 
 /// <summary>Reading automation files: parsing alone, and parsing plus validation.</summary>
 [MemoryDiagnoser]

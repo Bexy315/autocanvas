@@ -1,9 +1,10 @@
+using AutoCanvas.Core;
 using AutoCanvas.Core.Expressions;
 using AutoCanvas.Core.Model;
 using AutoCanvas.Core.Orchestration;
 using BenchmarkDotNet.Attributes;
 
-namespace AutoCanvas.Core.Benchmarks;
+namespace AutoCanvas.Benchmarks;
 
 /// <summary>
 /// Deciding the next actions of a run. The server calls this every time a job finishes, so it

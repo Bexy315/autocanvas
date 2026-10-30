@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace AutoCanvas.Core.Benchmarks;
+namespace AutoCanvas.Benchmarks;
 
 /// <summary>
 /// Generates a large but realistic automation: <c>jobs</c> jobs in layers of ten, each needing the

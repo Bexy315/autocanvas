@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="7d40cfbf-e128-4f69-ad75-6bde4a387e04" name="runner@ci-host 2026-10-30 15:43:10.0054662" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-30T15:43:09.7426812Z" queuing="2026-10-30T15:43:09.7426812Z" start="2026-10-30T15:43:09.7426812Z" finish="2026-10-30T15:43:10.0058717Z" />
+  <TestSettings name="default" id="b540bcf0-85d9-4ff8-bd57-78c4aebe07c5">
+    <Deployment runDeploymentRoot="runner_ci-host_2026-10-30_15_43_10.0054662" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="9b739c2a-3f3c-41b2-a5e8-1b6a36a0ebe3" testId="8c879325-32b2-0058-41e1-6d3d0af2bf67" testName="Sample.Tests.CalculatorTests.Needs_a_database" computerName="ci-host" duration="00:00:00.0000000" startTime="2026-10-30T15:43:09.9230925+00:00" endTime="2026-10-30T15:43:09.9264993+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="NotExecuted" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="9b739c2a-3f3c-41b2-a5e8-1b6a36a0ebe3">
+      <Output>
+        <StdOut>Waits for the database</StdOut>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="94d8a6ec-adc1-4189-8b63-3508a141d624" testId="4a34eadd-d752-40c1-a77f-3f0483f45d45" testName="Sample.Tests.CalculatorTests.Divide_by_zero_throws" computerName="ci-host" duration="00:00:00.0090000" startTime="2026-10-30T15:43:09.9332555+00:00" endTime="2026-10-30T15:43:09.9578691+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Failed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="94d8a6ec-adc1-4189-8b63-3508a141d624">
+      <Output>
+        <ErrorInfo>
+          <Message>System.DivideByZeroException : Attempted to divide by zero.</Message>
+          <StackTrace>   at Sample.Calculator.Divide(Int32 a, Int32 b) in /work/Calculator.cs:line 11
+   at Sample.Tests.CalculatorTests.Divide_by_zero_throws() in /work/CalculatorTests.cs:line 27
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8b275467-aa1a-485d-aa50-0a57cf8dc334" testId="f8e47a0d-f3c2-0a24-f17b-2740255d1777" testName="Sample.Tests.CalculatorTests.Add_works" computerName="ci-host" duration="00:00:00.0030000" startTime="2026-10-30T15:43:09.9585593+00:00" endTime="2026-10-30T15:43:09.9626223+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Passed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="8b275467-aa1a-485d-aa50-0a57cf8dc334" />
+    <UnitTestResult executionId="845ac9c4-a113-416a-a6cb-4f763f561b23" testId="389515a9-ba6c-4f47-3e2c-36f705a2bce6" testName="Sample.Tests.CalculatorTests.Add_is_broken_on_purpose" computerName="ci-host" duration="00:00:00.0010000" startTime="2026-10-30T15:43:09.9627687+00:00" endTime="2026-10-30T15:43:09.9659544+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Failed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="845ac9c4-a113-416a-a6cb-4f763f561b23">
+      <Output>
+        <StdOut>checking 2 + 2
+</StdOut>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Values differ
+Expected: 5
+Actual:   4</Message>
+          <StackTrace>   at Sample.Tests.CalculatorTests.Add_is_broken_on_purpose() in /work/CalculatorTests.cs:line 14
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="6befa26a-2c3b-44f4-973b-1a49274ab277" testId="aa77326c-285e-ce51-9aa4-4d454038d81d" testName="Sample.Tests.CalculatorTests.Classify_works(value: 0, expected: &quot;zero&quot;)" computerName="ci-host" duration="00:00:00.0000000" startTime="2026-10-30T15:43:09.9667099+00:00" endTime="2026-10-30T15:43:09.9674544+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Passed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="6befa26a-2c3b-44f4-973b-1a49274ab277" />
+    <UnitTestResult executionId="fa531029-d453-4e11-9ec8-2126d5a3e7b1" testId="d5021264-67da-704a-c2aa-73931ea84362" testName="Sample.Tests.CalculatorTests.Classify_works(value: -1, expected: &quot;positive&quot;)" computerName="ci-host" duration="00:00:00.0010000" startTime="2026-10-30T15:43:09.9675387+00:00" endTime="2026-10-30T15:43:09.9695571+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Failed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="fa531029-d453-4e11-9ec8-2126d5a3e7b1">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "positive"
+Actual:   "negative"
+           ↑ (pos 0)</Message>
+          <StackTrace>   at Sample.Tests.CalculatorTests.Classify_works(Int32 value, String expected) in /work/CalculatorTests.cs:line 24
+   at InvokeStub_CalculatorTests.Classify_works(Object, Span`1)
+   at System.Reflection.MethodBaseInvoker.InvokeWithFewArgs(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="8dbabbd6-18be-48c5-9f16-68a6de9c1798" testId="cb5ce4c0-9a7c-3cce-8dc7-cf82ed1c8e35" testName="Sample.Tests.CalculatorTests.Classify_works(value: 1, expected: &quot;positive&quot;)" computerName="ci-host" duration="00:00:00.0000000" startTime="2026-10-30T15:43:09.9696211+00:00" endTime="2026-10-30T15:43:09.9696580+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Passed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="8dbabbd6-18be-48c5-9f16-68a6de9c1798" />
+    <UnitTestResult executionId="05557a2c-8bcf-4b12-9225-3e03236f57a0" testId="eb09ad24-2c96-2ad3-ff43-6f7819a42c8d" testName="Sample.Tests.CalculatorTests.Slow_works" computerName="ci-host" duration="00:00:00.0010000" startTime="2026-10-30T15:43:09.9698088+00:00" endTime="2026-10-30T15:43:09.9713317+00:00" testType="13CDC9D9-DDB5-4fa4-A97D-D965CCFC6D4B" outcome="Passed" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" relativeResultsDirectory="05557a2c-8bcf-4b12-9225-3e03236f57a0" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Sample.Tests.CalculatorTests.Needs_a_database" storage="/work/bin/debug/net10.0/sample.tests.dll" id="8c879325-32b2-0058-41e1-6d3d0af2bf67">
+      <Execution id="9b739c2a-3f3c-41b2-a5e8-1b6a36a0ebe3" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Needs_a_database" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Divide_by_zero_throws" storage="/work/bin/debug/net10.0/sample.tests.dll" id="4a34eadd-d752-40c1-a77f-3f0483f45d45">
+      <Execution id="94d8a6ec-adc1-4189-8b63-3508a141d624" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Divide_by_zero_throws" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Add_works" storage="/work/bin/debug/net10.0/sample.tests.dll" id="f8e47a0d-f3c2-0a24-f17b-2740255d1777">
+      <Execution id="8b275467-aa1a-485d-aa50-0a57cf8dc334" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Add_works" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Add_is_broken_on_purpose" storage="/work/bin/debug/net10.0/sample.tests.dll" id="389515a9-ba6c-4f47-3e2c-36f705a2bce6">
+      <Execution id="845ac9c4-a113-416a-a6cb-4f763f561b23" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Add_is_broken_on_purpose" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Classify_works(value: 0, expected: &quot;zero&quot;)" storage="/work/bin/debug/net10.0/sample.tests.dll" id="aa77326c-285e-ce51-9aa4-4d454038d81d">
+      <Execution id="6befa26a-2c3b-44f4-973b-1a49274ab277" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Classify_works" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Classify_works(value: -1, expected: &quot;positive&quot;)" storage="/work/bin/debug/net10.0/sample.tests.dll" id="d5021264-67da-704a-c2aa-73931ea84362">
+      <Execution id="fa531029-d453-4e11-9ec8-2126d5a3e7b1" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Classify_works" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Classify_works(value: 1, expected: &quot;positive&quot;)" storage="/work/bin/debug/net10.0/sample.tests.dll" id="cb5ce4c0-9a7c-3cce-8dc7-cf82ed1c8e35">
+      <Execution id="8dbabbd6-18be-48c5-9f16-68a6de9c1798" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Classify_works" />
+    </UnitTest>
+    <UnitTest name="Sample.Tests.CalculatorTests.Slow_works" storage="/work/bin/debug/net10.0/sample.tests.dll" id="eb09ad24-2c96-2ad3-ff43-6f7819a42c8d">
+      <Execution id="05557a2c-8bcf-4b12-9225-3e03236f57a0" />
+      <TestMethod codeBase="/work/bin/Debug/net10.0/Sample.Tests.dll" adapterTypeName="executor://30ea7c6e-dd24-4152-a360-1387158cd41d/4.0.2" className="Sample.Tests.CalculatorTests" name="Slow_works" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="8c879325-32b2-0058-41e1-6d3d0af2bf67" executionId="9b739c2a-3f3c-41b2-a5e8-1b6a36a0ebe3" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="4a34eadd-d752-40c1-a77f-3f0483f45d45" executionId="94d8a6ec-adc1-4189-8b63-3508a141d624" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="f8e47a0d-f3c2-0a24-f17b-2740255d1777" executionId="8b275467-aa1a-485d-aa50-0a57cf8dc334" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="389515a9-ba6c-4f47-3e2c-36f705a2bce6" executionId="845ac9c4-a113-416a-a6cb-4f763f561b23" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="aa77326c-285e-ce51-9aa4-4d454038d81d" executionId="6befa26a-2c3b-44f4-973b-1a49274ab277" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="d5021264-67da-704a-c2aa-73931ea84362" executionId="fa531029-d453-4e11-9ec8-2126d5a3e7b1" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="cb5ce4c0-9a7c-3cce-8dc7-cf82ed1c8e35" executionId="8dbabbd6-18be-48c5-9f16-68a6de9c1798" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestEntry testId="eb09ad24-2c96-2ad3-ff43-6f7819a42c8d" executionId="05557a2c-8bcf-4b12-9225-3e03236f57a0" testListId="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8C84FA94-04C1-424b-9868-57A2D4851A1D" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="8" executed="7" passed="4" failed="3" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="1" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <RunInfos>
+      <RunInfo computerName="ci-host" outcome="Error" timestamp="2026-10-30T15:43:10.0123387">
+        <Text>Exit code indicates failure: '2'. Please refer to https://aka.ms/testingplatform/exitcodes for more information.</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/benchmarks/">
-    <Project Path="benchmarks/AutoCanvas.Core.Benchmarks/AutoCanvas.Core.Benchmarks.csproj" />
+    <Project Path="benchmarks/AutoCanvas.Benchmarks/AutoCanvas.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AutoCanvas.Core/AutoCanvas.Core.csproj" />

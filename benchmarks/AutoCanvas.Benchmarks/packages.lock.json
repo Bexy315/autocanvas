@@ -178,6 +178,9 @@
           "YamlDotNet": "[18.1.0, )"
         }
       },
+      "autocanvas.reports": {
+        "type": "Project"
+      },
       "YamlDotNet": {
         "type": "CentralTransitive",
         "requested": "[18.1.0, )",

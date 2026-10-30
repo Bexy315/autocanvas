@@ -18,5 +18,5 @@ it, and it has the highest bar for correctness and performance.
 - **Coverage target is higher than the gate**: aim for ≥ 90 % here; the code is pure, so there is
   no excuse for untested branches.
 - **Mind allocations** on hot paths (parsing, expression evaluation). Measure with the benchmark
-  project (`benchmarks/AutoCanvas.Core.Benchmarks`) before and after optimizing, and update the
+  project (`benchmarks/AutoCanvas.Benchmarks`) before and after optimizing, and update the
   baseline in `docs/technical/performance.md`; do not optimize without a number.
