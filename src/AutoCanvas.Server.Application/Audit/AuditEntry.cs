@@ -14,6 +14,12 @@ public sealed record AuditEntry(string Action)
     public Guid? FolderId { get; init; }
 
     /// <summary>
+    /// The actor, when it is not the scope's: a sign-in is made by the user who signs in, although
+    /// the request is not authenticated yet.
+    /// </summary>
+    public AuditActor? Actor { get; init; }
+
+    /// <summary>
     /// A few facts about the change, stored as a JSON object. Never put secret values here —
     /// for a secret, record only its name.
     /// </summary>

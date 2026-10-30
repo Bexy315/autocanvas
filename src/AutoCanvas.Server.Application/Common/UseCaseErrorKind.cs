@@ -14,4 +14,10 @@ public enum UseCaseErrorKind
 
     /// <summary>The caller may not do this.</summary>
     Forbidden,
+
+    /// <summary>The credentials are wrong; deliberately unspecific.</summary>
+    Unauthorized,
+
+    /// <summary>Too many attempts; the caller has to wait.</summary>
+    TooManyRequests,
 }

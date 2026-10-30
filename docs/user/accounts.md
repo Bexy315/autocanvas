@@ -8,6 +8,26 @@ AutoCanvas has its own accounts: no external identity provider is needed. Every 
 a user name and a password; administrators manage users and groups, and groups are what folder
 permissions are granted to.
 
+## Signing in
+
+The web UI arrives with S3; until then, sign in through the API. The session lasts 7 days without
+use and 30 days at most:
+
+```sh
+curl -c cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json'   -d '{"userName":"root","password":"…"}' http://localhost:5080/api/v1/auth/sign-in
+curl -b cookies.txt http://localhost:5080/api/v1/me
+```
+
+If the password was set by an admin, change it first; until then nothing else is allowed:
+
+```sh
+curl -b cookies.txt -X PUT -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json'   -d '{"currentPassword":"…","newPassword":"my own long password"}' http://localhost:5080/api/v1/me/password
+```
+
+Changing the password signs you out everywhere else. `GET /api/v1/me/sessions` lists where you are
+signed in; `POST /api/v1/auth/sign-out-everywhere` ends all of it. After five wrong passwords in a
+row, the user name is locked for 15 minutes.
+
 ## The first admin
 
 A fresh installation has no accounts. Create the first admin in one of two ways.

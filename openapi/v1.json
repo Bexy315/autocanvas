@@ -36,10 +36,1206 @@
           }
         }
       }
+    },
+    "/api/v1/auth/sign-in": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Sign in",
+        "description": "Checks user name and password and sets the session cookie. Every failure gives the same answer. Too many failures for a name lock it for 15 minutes; too many attempts from one address are refused with 429.",
+        "operationId": "SignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sign-out": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Sign out",
+        "description": "Ends the current session and removes the cookie.",
+        "operationId": "SignOut",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sign-out-everywhere": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Sign out everywhere",
+        "description": "Ends every session of the signed-in user, on all devices.",
+        "operationId": "SignOutEverywhere",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get the signed-in user",
+        "description": "The account with its groups. Also works while the password must be changed, so clients can show that.",
+        "operationId": "GetMe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/password": {
+      "put": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Change the password",
+        "description": "Needs the current password and a session (not an API token). Ends every other session of the user.",
+        "operationId": "ChangePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/sessions": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "List my sessions",
+        "description": "Where the user is signed in, newest first; the current session is marked.",
+        "operationId": "ListMySessions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/sessions/{id}": {
+      "delete": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "End one of my sessions",
+        "operationId": "EndMySession",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List users",
+        "description": "Ordered by user name, one page at a time (see API conventions: paging).",
+        "operationId": "ListUsers",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfUserView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create a user",
+        "description": "The user must change the given password at the first sign-in.",
+        "operationId": "CreateUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get a user",
+        "operationId": "GetUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Change a user",
+        "description": "Display name, e-mail, admin and disabled. The last enabled admin cannot be demoted or disabled (409).",
+        "operationId": "UpdateUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete a user",
+        "description": "Removes the account with its sessions, tokens and memberships; the audit log keeps the name. Not the last enabled admin (409).",
+        "operationId": "DeleteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/password-reset": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Set a user's password",
+        "description": "The user must change it at the next sign-in; their sessions end.",
+        "operationId": "ResetUserPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "List groups",
+        "description": "Ordered by name with member counts, one page at a time (see API conventions: paging).",
+        "operationId": "ListGroups",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfGroupView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Create a group",
+        "operationId": "CreateGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{id}": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Get a group with its members",
+        "operationId": "GetGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Rename or describe a group",
+        "operationId": "UpdateGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Delete a group",
+        "description": "Removes the group and its memberships; the users stay.",
+        "operationId": "DeleteGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/groups/{id}/members/{userId}": {
+      "put": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Add a user to a group",
+        "description": "Adding a member twice changes nothing.",
+        "operationId": "AddGroupMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Remove a user from a group",
+        "description": "Removing a non-member changes nothing.",
+        "operationId": "RemoveGroupMember",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ChangePasswordRequest": {
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "The password in use now."
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "The new password: 12 to 256 characters, not the user name."
+          }
+        },
+        "description": "A new password for the signed-in user."
+      },
+      "CreateGroupRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The group name; unique regardless of case."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the group is for."
+          }
+        },
+        "description": "A group to create."
+      },
+      "CreateUserRequest": {
+        "required": [
+          "userName",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "description": "The name to sign in with: letters, digits, dot, underscore, hyphen; unique regardless of case."
+          },
+          "password": {
+            "type": "string",
+            "description": "The initial password: 12 to 256 characters."
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name shown to other people; defaults to the user name."
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Contact address; information only."
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "Whether the user administers the instance.",
+            "default": false
+          }
+        },
+        "description": "A user to create. The user must change the password at the first sign-in."
+      },
+      "GroupDetails": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "createdAt",
+          "members"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The group's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The group's name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the group is for."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the group was created.",
+            "format": "date-time"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            },
+            "description": "The users in the group."
+          }
+        },
+        "description": "A group with its members, ordered by user name."
+      },
+      "GroupSummary": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The group's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The group's name."
+          }
+        },
+        "description": "A group as shown in a user's memberships."
+      },
+      "GroupView": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "createdAt",
+          "memberCount"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The group's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The group's name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the group is for."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the group was created.",
+            "format": "date-time"
+          },
+          "memberCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How many users are in it.",
+            "format": "int32"
+          }
+        },
+        "description": "A group as listed."
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "MeView": {
+        "required": [
+          "user",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "user": {
+            "description": "The account.",
+            "$ref": "#/components/schemas/UserView"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupSummary"
+            },
+            "description": "The groups the user is in, ordered by name."
+          }
+        },
+        "description": "The signed-in user's own account with their groups."
+      },
+      "PageOfGroupView": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupView"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
+      "PageOfUserView": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserView"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The new password: 12 to 256 characters."
+          }
+        },
+        "description": "A password chosen for a user by an admin; the user must change it at the next sign-in."
+      },
       "ServerInfo": {
         "required": [
           "product",
@@ -57,12 +1253,254 @@
           }
         },
         "description": "What `GET /api/v1/info` returns."
+      },
+      "SessionView": {
+        "required": [
+          "id",
+          "createdAt",
+          "lastSeenAt",
+          "expiresAt",
+          "clientAddress",
+          "userAgent",
+          "isCurrent"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The session's id.",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the user signed in.",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "description": "The last request with this session (to the minute).",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the session ends at the latest.",
+            "format": "date-time"
+          },
+          "clientAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Network address of the sign-in."
+          },
+          "userAgent": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Browser of the sign-in."
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether this is the session making the request."
+          }
+        },
+        "description": "One of the user's sessions, so they can recognize and end the ones they do not know."
+      },
+      "SignInRequest": {
+        "required": [
+          "userName",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string",
+            "description": "The user name; case does not matter."
+          },
+          "password": {
+            "type": "string",
+            "description": "The password."
+          }
+        },
+        "description": "Credentials for signing in."
+      },
+      "SignInResponse": {
+        "required": [
+          "me",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "me": {
+            "description": "The signed-in user with their groups.",
+            "$ref": "#/components/schemas/MeView"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the session ends at the latest.",
+            "format": "date-time"
+          }
+        },
+        "description": "A successful sign-in. The session itself travels in an HttpOnly cookie, never in the body."
+      },
+      "UpdateGroupRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new description; an empty string removes it."
+          }
+        },
+        "description": "Changes to a group; omitted properties stay as they are."
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new display name."
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new contact address; an empty string removes it."
+          },
+          "isAdmin": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Grant or take away instance administration."
+          },
+          "isDisabled": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Block or unblock the user; blocking signs them out everywhere."
+          }
+        },
+        "description": "Changes to a user; omitted properties stay as they are."
+      },
+      "UserSummary": {
+        "required": [
+          "id",
+          "userName",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The user's id.",
+            "format": "uuid"
+          },
+          "userName": {
+            "type": "string",
+            "description": "The name used to sign in."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The name shown to other people."
+          }
+        },
+        "description": "A user as shown in member lists."
+      },
+      "UserView": {
+        "required": [
+          "id",
+          "userName",
+          "displayName",
+          "email",
+          "isAdmin",
+          "isDisabled",
+          "mustChangePassword",
+          "createdAt",
+          "lastSignInAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The user's id.",
+            "format": "uuid"
+          },
+          "userName": {
+            "type": "string",
+            "description": "The name used to sign in."
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The name shown to other people."
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Contact address, if given."
+          },
+          "isAdmin": {
+            "type": "boolean",
+            "description": "Whether the user administers the instance."
+          },
+          "isDisabled": {
+            "type": "boolean",
+            "description": "Whether the user is blocked from signing in."
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "description": "Whether the user has to replace a password someone else set."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the account was created.",
+            "format": "date-time"
+          },
+          "lastSignInAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last successful sign-in, if any.",
+            "format": "date-time"
+          }
+        },
+        "description": "A user as administrators and the user themselves see it; never the password hash."
       }
     }
   },
   "tags": [
     {
       "name": "Server"
+    },
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Me"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "Groups"
     }
   ]
 }

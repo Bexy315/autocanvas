@@ -11,4 +11,7 @@ public enum AuditActorKind
 
     /// <summary>A user acting through one of their API tokens.</summary>
     Token,
+
+    /// <summary>A client that is not signed in, such as a failed sign-in attempt.</summary>
+    Anonymous,
 }

@@ -16,6 +16,8 @@ internal static class ProblemTypes
     public const string NotFound = Base + "not-found";
     public const string Conflict = Base + "conflict";
     public const string PreconditionFailed = Base + "precondition-failed";
+    public const string PasswordChangeRequired = Base + "password-change-required";
+    public const string TooManyRequests = Base + "too-many-requests";
     public const string Internal = Base + "internal";
 
     /// <summary>The type for a status code, or <see langword="null"/> when the API defines none.</summary>
@@ -27,6 +29,7 @@ internal static class ProblemTypes
         StatusCodes.Status404NotFound => NotFound,
         StatusCodes.Status409Conflict => Conflict,
         StatusCodes.Status412PreconditionFailed => PreconditionFailed,
+        StatusCodes.Status429TooManyRequests => TooManyRequests,
         >= StatusCodes.Status500InternalServerError => Internal,
         _ => null,
     };

@@ -38,6 +38,8 @@ setting and what is expected, instead of failing later on first use.
 | `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
 | `Database:ConnectionString` | SQLite file `autocanvas.db` in the data directory | Required for PostgreSQL |
 | `Database:MigrateOnStart` | `true` | Bring the database schema up to date when the server starts |
+| `Authentication:SessionIdleTimeout` | `7.00:00:00` | A session ends after this long without requests |
+| `Authentication:SessionLifetime` | `30.00:00:00` | A session ends this long after the sign-in, however active |
 | `Bootstrap:AdminUserName`, `Bootstrap:AdminPassword` | none | Create this admin on start while there is no account at all; set both or neither (see [Users and groups](../user/accounts.md#the-first-admin)) |
 
 ## Database
@@ -96,6 +98,13 @@ exit with `0` on success and `1` with a message on standard error otherwise.
 | `admin reset-password <user-name>` | Gives a user a new one-time password and ends their sessions |
 
 `admin` commands apply pending migrations first, unless `Database:MigrateOnStart` is `false`.
+
+## Reverse proxies and HTTPS
+
+The session cookie is marked `Secure` when the server sees an HTTPS request or when
+`Server:PublicUrl` starts with `https://`. Behind a proxy that ends TLS, set `Server:PublicUrl` to
+the public HTTPS address. Sign-in attempts are limited per client address; until forwarded headers
+are supported (S4), all requests through one proxy count as one address.
 
 ## Health endpoints
 

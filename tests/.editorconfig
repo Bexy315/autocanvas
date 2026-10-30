@@ -12,3 +12,5 @@ dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.CA1054.severity = none
 # Database tests keep their per-provider classes (…OnSqlite, …OnPostgres) next to the tests they run.
 dotnet_diagnostic.MA0048.severity = none
+# HttpClients come from WebApplicationFactory, which disposes every client it created with itself.
+dotnet_diagnostic.CA2000.severity = none

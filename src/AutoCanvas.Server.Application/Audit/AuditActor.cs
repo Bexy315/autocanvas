@@ -10,4 +10,7 @@ public sealed record AuditActor(AuditActorKind Kind, Guid? Id, string Name)
 {
     /// <summary>The server, a command-line tool or a background job.</summary>
     public static AuditActor System { get; } = new(AuditActorKind.System, null, "system");
+
+    /// <summary>A client that is not signed in.</summary>
+    public static AuditActor Anonymous { get; } = new(AuditActorKind.Anonymous, null, "anonymous");
 }

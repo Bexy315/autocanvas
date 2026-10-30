@@ -25,6 +25,11 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<PasswordHasher>();
         services.AddScoped<UserService>();
         services.AddScoped<GroupService>();
+        services.AddOptions<SessionLifetimeOptions>();
+        services.AddSingleton<LoginThrottle>();
+        services.AddScoped<SessionService>();
+        services.AddScoped<AccountService>();
+        services.AddScoped<SignInService>();
         return services;
     }
 }
