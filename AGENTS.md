@@ -16,6 +16,8 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 |---|---|
 | `src/AutoCanvas.Core/` | Pipeline model, parsing, validation, expressions, DAG. Pure code, no I/O. |
 | `src/AutoCanvas.Reports/` | Test and coverage report parsers |
+| `src/AutoCanvas.Server/` | ASP.NET Core host: HTTP API, health, configuration |
+| `openapi/` | Committed OpenAPI document of the HTTP API, checked by a test |
 | `benchmarks/` | BenchmarkDotNet benchmarks of Core's hot paths; baselines in `docs/technical/performance.md` |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
 | `proto/` | Runner protocol (Protocol Buffers, `buf.yaml` at the root) |
@@ -29,8 +31,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `build/` | Build and CI support files |
 | `.claude/skills/` | Task playbooks — any agent can read them (see below) |
 
-Planned areas (server, runner, web UI, protocol, schema) appear with their milestone; see the
-target layout in the S0 plan.
+Planned areas (persistence, runner, web UI) appear with their milestone; see the active plan.
 
 ## Commands
 

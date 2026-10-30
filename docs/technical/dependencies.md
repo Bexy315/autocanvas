@@ -35,6 +35,9 @@ EULA in version 9, so check the exact version, not only the package.
 | coverlet.MTP | MIT | Coverage collection and the 75 % gate |
 | Corvus.Json.Validator | Apache-2.0 | Schema conformance test (tests only) |
 | BenchmarkDotNet | MIT | Benchmarks in `benchmarks/` (not shipped) |
+| Microsoft.AspNetCore.OpenApi | MIT | OpenAPI document of the server's HTTP API |
+| Microsoft.AspNetCore.Mvc.Testing | MIT | Hosting the server in memory in API tests (tests only) |
+| Microsoft.Extensions.TimeProvider.Testing | MIT | Controllable clock in tests (tests only) |
 
 Local tools (`dotnet-tools.json`): ReportGenerator (Apache-2.0) for coverage summaries,
 nuget-license (Apache-2.0) for the license check.

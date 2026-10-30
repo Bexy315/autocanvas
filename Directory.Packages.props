@@ -6,12 +6,17 @@
     <!-- Parsing -->
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
 
+    <!-- Server -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
 
     <!-- Tests -->
     <PackageVersion Include="Corvus.Json.Validator" Version="5.7.9" />
     <PackageVersion Include="coverlet.MTP" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
