@@ -6,6 +6,9 @@
     <!-- Parsing -->
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
 
+    <!-- Benchmarks -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+
     <!-- Tests -->
     <PackageVersion Include="Corvus.Json.Validator" Version="5.7.9" />
     <PackageVersion Include="coverlet.MTP" Version="10.1.0" />

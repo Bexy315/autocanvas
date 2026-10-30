@@ -34,6 +34,7 @@ EULA in version 9, so check the exact version, not only the package.
 | Shouldly | BSD-3-Clause | Test assertions |
 | coverlet.MTP | MIT | Coverage collection and the 75 % gate |
 | Corvus.Json.Validator | Apache-2.0 | Schema conformance test (tests only) |
+| BenchmarkDotNet | MIT | Benchmarks in `benchmarks/` (not shipped) |
 
 Local tools (`dotnet-tools.json`): ReportGenerator (Apache-2.0) for coverage summaries,
 nuget-license (Apache-2.0) for the license check.

@@ -1,0 +1,5 @@
+[*.cs]
+# BenchmarkDotNet discovers public benchmark classes in the executable.
+dotnet_diagnostic.CA1515.severity = none
+# BenchmarkDotNet runs instance methods; they cannot be static.
+dotnet_diagnostic.CA1822.severity = none

@@ -7,6 +7,8 @@ it, and it has the highest bar for correctness and performance.
 - **Pure code only.** No I/O, no `DateTime.Now`/`Guid.NewGuid()`/`Random`, no static mutable state,
   no logging. If something needs time, IDs or data from outside, take it as a parameter or an
   interface the host implements.
+- **Orchestration decisions are pure.** `RunPlanner`, `StepPlanner` and `RunOutcome` take a
+  snapshot of the run and return decisions; storing state and talking to runners is the server's.
 - **No dependencies** beyond the BCL without an ADR. Parsing libraries (e.g. YAML) are the expected
   exception and get one.
 - **Immutable models.** Prefer `sealed record` and read-only collections; validation returns
@@ -16,4 +18,5 @@ it, and it has the highest bar for correctness and performance.
 - **Coverage target is higher than the gate**: aim for ≥ 90 % here; the code is pure, so there is
   no excuse for untested branches.
 - **Mind allocations** on hot paths (parsing, expression evaluation). Measure with the benchmark
-  project (`benchmarks/`, arrives in S0 step 6) before and after optimizing; do not optimize without a number.
+  project (`benchmarks/AutoCanvas.Core.Benchmarks`) before and after optimizing, and update the
+  baseline in `docs/technical/performance.md`; do not optimize without a number.

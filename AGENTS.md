@@ -16,6 +16,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 |---|---|
 | `src/AutoCanvas.Core/` | Pipeline model, parsing, validation, expressions, DAG. Pure code, no I/O. |
 | `src/AutoCanvas.Reports/` | Test and coverage report parsers |
+| `benchmarks/` | BenchmarkDotNet benchmarks of Core's hot paths; baselines in `docs/technical/performance.md` |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
 | `proto/` | Runner protocol (Protocol Buffers, `buf.yaml` at the root) |
 | `schema/` | JSON Schema of the automation format, with valid and invalid examples |
@@ -58,6 +59,12 @@ npm ci
 npm run typecheck
 npm run build      # broken links, anchors and images fail the build
 npm run start      # local preview with hot reload
+```
+
+Benchmarks (not part of CI; run before and after performance work, see `docs/technical/performance.md`):
+
+```sh
+dotnet run -c Release --project benchmarks/AutoCanvas.Core.Benchmarks -- --filter '*' --job short
 ```
 
 Coverage reports are written to `artifacts/coverage/`. For a readable summary:
