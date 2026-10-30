@@ -3,3 +3,5 @@
 dotnet_diagnostic.CA1707.severity = none
 # xUnit requires test classes to be public (xUnit1000), so they cannot be made internal.
 dotnet_diagnostic.CA1515.severity = none
+# Test method arguments come from xUnit's data attributes, never from external callers.
+dotnet_diagnostic.CA1062.severity = none

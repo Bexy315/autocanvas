@@ -1,2 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- The one dependency of Core, see ADR-0009. -->
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoCanvas.Core.Tests" />
+  </ItemGroup>
 </Project>

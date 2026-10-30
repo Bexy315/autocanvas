@@ -7,6 +7,12 @@
         "requested": "[3.0.317, )",
         "resolved": "3.0.317",
         "contentHash": "IC9fCjxniZol2dcdj+hiXjK01a8gBWQproGL/qWjBI7CgB5GeEOD5oGV0PwpQaSr7Aa/RPaM8Ddho3Y1OAZe1Q=="
+      },
+      "YamlDotNet": {
+        "type": "Direct",
+        "requested": "[18.1.0, )",
+        "resolved": "18.1.0",
+        "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       }
     }
   }
