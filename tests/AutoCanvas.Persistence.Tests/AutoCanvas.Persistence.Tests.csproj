@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- One test project covers the shared model and both provider projects. -->
+    <CoverageInclude>[AutoCanvas.Persistence*]*</CoverageInclude>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../AutoCanvas.TestSupport/AutoCanvas.TestSupport.csproj" />
+  </ItemGroup>
+</Project>

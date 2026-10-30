@@ -18,3 +18,4 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0011](0011-local-identity.md) | Own local identity: users, sessions and API tokens | Accepted |
 | [0012](0012-folder-permissions.md) | Permissions through roles on a folder tree | Accepted |
 | [0013](0013-secrets-at-rest.md) | Encrypt secrets with AES-GCM under a master key | Accepted |
+| [0014](0014-data-access-with-ef-core.md) | Data access with EF Core, one project per database provider | Proposed |

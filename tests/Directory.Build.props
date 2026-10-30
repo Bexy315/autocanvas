@@ -3,23 +3,27 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <OutputType>Exe</OutputType>
     <!-- Test code is not public API. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-
-    <!-- Coverage gate: each test project measures the source project it is named after. -->
-    <CoveredAssembly>$(MSBuildProjectName.Replace('.Tests', ''))</CoveredAssembly>
-    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
-    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --results-directory "$(MSBuildThisFileDirectory)../artifacts/coverage" --coverlet --coverlet-output-format cobertura --coverlet-file-prefix $(CoveredAssembly) --coverlet-include "[$(CoveredAssembly)]*" --coverlet-threshold 75 --coverlet-threshold-type line --coverlet-threshold-stat total</TestingPlatformCommandLineArguments>
+    <!-- AutoCanvas.TestSupport is a shared library for the test projects, not a test project itself. -->
+    <AutoCanvasTestProject Condition="'$(MSBuildProjectName)' != 'AutoCanvas.TestSupport'">true</AutoCanvasTestProject>
   </PropertyGroup>
 
-  <ItemGroup>
+  <PropertyGroup Condition="'$(AutoCanvasTestProject)' == 'true'">
+    <OutputType>Exe</OutputType>
+    <!-- Coverage gate: each test project measures the source project it is named after
+         (a project can widen this with CoverageInclude, see Directory.Build.targets). -->
+    <CoveredAssembly>$(MSBuildProjectName.Replace('.Tests', ''))</CoveredAssembly>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(AutoCanvasTestProject)' == 'true'">
     <PackageReference Include="coverlet.MTP" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(AutoCanvasTestProject)' == 'true'">
     <Using Include="Shouldly" />
     <Using Include="Xunit" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)../src/$(CoveredAssembly)/$(CoveredAssembly).csproj" />

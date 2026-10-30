@@ -16,10 +16,12 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 |---|---|
 | `src/AutoCanvas.Core/` | Pipeline model, parsing, validation, expressions, DAG. Pure code, no I/O. |
 | `src/AutoCanvas.Reports/` | Test and coverage report parsers |
-| `src/AutoCanvas.Server/` | ASP.NET Core host: HTTP API, health, configuration |
+| `src/AutoCanvas.Persistence/` | EF Core model shared by all databases; `.Postgres` and `.Sqlite` hold each provider's context and migrations |
+| `src/AutoCanvas.Server/` | ASP.NET Core host: HTTP API, health, configuration, CLI commands |
 | `openapi/` | Committed OpenAPI document of the HTTP API, checked by a test |
 | `benchmarks/` | BenchmarkDotNet benchmarks of Core's hot paths; baselines in `docs/technical/performance.md` |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
+| `tests/AutoCanvas.TestSupport/` | Shared test helpers, e.g. fresh SQLite/PostgreSQL databases per test |
 | `proto/` | Runner protocol (Protocol Buffers, `buf.yaml` at the root) |
 | `schema/` | JSON Schema of the automation format, with valid and invalid examples |
 | `docs/user/` | User documentation (how to use AutoCanvas) |
@@ -44,6 +46,10 @@ dotnet build -c Release             # warnings are errors
 dotnet test -c Release              # ≥ 75 % line coverage per project, else exit code 14
 dotnet nuget-license --input AutoCanvas.slnx --include-transitive --allowed-license-types build/allowed-licenses.json
 ```
+
+Database tests run on SQLite and on PostgreSQL. PostgreSQL comes from Docker via Testcontainers, or
+from `AUTOCANVAS_TEST_POSTGRES` (a connection string) if set. Without either, the PostgreSQL tests
+are skipped locally; CI sets `AUTOCANVAS_REQUIRE_POSTGRES=1`, where they must run.
 
 Protocol (needs the `buf` CLI, e.g. `npx @bufbuild/buf`):
 
@@ -119,3 +125,4 @@ automatically; other agents should read the matching file before starting such a
 | `write-adr` | recording an architectural decision |
 | `docs-update` | deciding which docs a change touches and updating them |
 | `harvest` | moving code over from the origin project |
+| `add-migration` | changing the database schema (migrations for both providers) |

@@ -12,6 +12,7 @@ MIT. CI enforces this with `nuget-license` against the allow list in
 | Apache-2.0 | Permissive; keep NOTICE files when redistributing binaries |
 | BSD-2-Clause, BSD-3-Clause | Permissive |
 | MS-PL | Permissive, used by some older .NET packages |
+| PostgreSQL | Permissive (MIT/BSD-like); Npgsql, the PostgreSQL driver ([ADR-0014](../adr/0014-data-access-with-ef-core.md)) |
 
 Anything else (copyleft such as GPL/LGPL/AGPL, "source available", or custom licenses) needs an ADR
 before it is added. Licenses can change between versions: JsonSchema.Net moved to a proprietary
@@ -34,10 +35,15 @@ EULA in version 9, so check the exact version, not only the package.
 | Shouldly | BSD-3-Clause | Test assertions |
 | coverlet.MTP | MIT | Coverage collection and the 75 % gate |
 | Corvus.Json.Validator | Apache-2.0 | Schema conformance test (tests only) |
+| Testcontainers.PostgreSql | MIT | PostgreSQL in Docker for database tests (tests only) |
 | BenchmarkDotNet | MIT | Benchmarks in `benchmarks/` (not shipped) |
 | Microsoft.AspNetCore.OpenApi | MIT | OpenAPI document of the server's HTTP API |
 | Microsoft.AspNetCore.Mvc.Testing | MIT | Hosting the server in memory in API tests (tests only) |
 | Microsoft.Extensions.TimeProvider.Testing | MIT | Controllable clock in tests (tests only) |
+| System.CommandLine | MIT | Commands of the server executable (`migrate`) |
+| Microsoft.EntityFrameworkCore (+ `.Sqlite`, `.Design`) | MIT | Data access and migrations ([ADR-0014](../adr/0014-data-access-with-ef-core.md)); `.Design` only for generating migrations |
+| Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL | PostgreSQL provider ([ADR-0014](../adr/0014-data-access-with-ef-core.md)) |
+| EFCore.NamingConventions | Apache-2.0 | snake_case table and column names |
 
 Local tools (`dotnet-tools.json`): ReportGenerator (Apache-2.0) for coverage summaries,
-nuget-license (Apache-2.0) for the license check.
+nuget-license (Apache-2.0) for the license check, dotnet-ef (MIT) for generating migrations.

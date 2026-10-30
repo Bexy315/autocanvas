@@ -34,8 +34,12 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
+      # Database tests run on SQLite and on PostgreSQL (Testcontainers, Docker is preinstalled);
+      # in CI they must not be skipped (ADR-0010).
       - name: Test (coverage gate 75 % per project)
         run: dotnet test --configuration Release --no-build
+        env:
+          AUTOCANVAS_REQUIRE_POSTGRES: "1"
 
       - name: Coverage summary
         if: always()

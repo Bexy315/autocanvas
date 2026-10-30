@@ -1,3 +1,4 @@
+using AutoCanvas.TestSupport;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -10,19 +11,30 @@ namespace AutoCanvas.Server.Tests;
 
 /// <summary>
 /// Hosts the server in memory for API tests: <c>Testing</c> environment, a controllable clock,
-/// and optional configuration and service overrides per test.
+/// a fresh SQLite database (or the one given to <see cref="WithDatabase"/>), and optional
+/// configuration and service overrides per test.
 /// </summary>
 public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
 {
     private readonly Dictionary<string, string?> settings = new(StringComparer.Ordinal);
     private readonly List<Action<IServiceCollection>> serviceOverrides = [];
     private readonly List<Action<IApplicationBuilder>> appendedMiddleware = [];
+    private readonly SqliteTestDatabase ownDatabase = SqliteTestDatabase.Create();
+
+    public AutoCanvasFactory() => UseDatabaseSettings(ownDatabase);
 
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
     public AutoCanvasFactory With(string key, string? value)
     {
         settings[key] = value;
+        return this;
+    }
+
+    /// <summary>Runs the server on the given database instead of its own SQLite file.</summary>
+    public AutoCanvasFactory WithDatabase(TestDatabase database)
+    {
+        UseDatabaseSettings(database);
         return this;
     }
 
@@ -43,6 +55,13 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
     {
         builder.UseEnvironment("Testing");
         builder.ConfigureLogging(logging => logging.ClearProviders());
+        // UseSetting makes the values visible while Program configures services, which the
+        // database registration needs; ConfigureAppConfiguration alone applies them too late.
+        foreach (var (key, value) in settings)
+        {
+            builder.UseSetting(key, value);
+        }
+
         builder.ConfigureAppConfiguration(configuration => configuration.AddInMemoryCollection(settings));
         builder.ConfigureServices(services =>
         {
@@ -57,6 +76,20 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
                 services.AddSingleton<IStartupFilter>(new AppendMiddleware(appendedMiddleware));
             }
         });
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await ownDatabase.DisposeAsync();
+    }
+
+    private void UseDatabaseSettings(TestDatabase database)
+    {
+        foreach (var (key, value) in database.Settings)
+        {
+            settings[key] = value;
+        }
     }
 
     private sealed class AppendMiddleware(IReadOnlyList<Action<IApplicationBuilder>> middleware) : IStartupFilter

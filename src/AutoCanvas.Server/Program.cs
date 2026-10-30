@@ -1,12 +1,6 @@
 using AutoCanvas.Server.Hosting;
 
-var builder = WebApplication.CreateBuilder(args);
-builder.AddAutoCanvasServer();
-
-var app = builder.Build();
-app.MapAutoCanvasServer();
-
-await app.RunAsync().ConfigureAwait(false);
+return await ServerCommandLine.RunAsync(args).ConfigureAwait(false);
 
 /// <summary>
 /// Entry point of the AutoCanvas server. Public only so that integration tests can host the

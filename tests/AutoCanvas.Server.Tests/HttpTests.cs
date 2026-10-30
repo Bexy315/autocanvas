@@ -74,7 +74,7 @@ public sealed class HttpTests
     public async Task Readiness_fails_when_a_ready_check_fails_without_revealing_details()
     {
         await using var factory = new AutoCanvasFactory().WithServices(services => services.AddHealthChecks()
-            .AddCheck("database", () => HealthCheckResult.Unhealthy("Host=db;Password=hunter2"), ["ready"])
+            .AddCheck("broken", () => HealthCheckResult.Unhealthy("Host=db;Password=hunter2"), ["ready"])
             .AddCheck("other", () => HealthCheckResult.Unhealthy()));
 
         var response = await factory.CreateClient().GetAsync(new Uri("/health/ready", UriKind.Relative), Cancel);
@@ -84,7 +84,7 @@ public sealed class HttpTests
         text.ShouldNotContain("hunter2");
         var body = JsonDocument.Parse(text).RootElement;
         body.GetProperty("status").GetString().ShouldBe("Unhealthy");
-        body.GetProperty("checks").GetProperty("database").GetString().ShouldBe("Unhealthy");
+        body.GetProperty("checks").GetProperty("broken").GetString().ShouldBe("Unhealthy");
         body.GetProperty("checks").TryGetProperty("other", out _).ShouldBeFalse();
     }
 
