@@ -6,8 +6,8 @@ using BenchmarkDotNet.Attributes;
 namespace AutoCanvas.Benchmarks;
 
 /// <summary>
-/// Reading test reports of a large suite: 10,000 tests, one in ten failing with a stack trace and
-/// output, as JUnit and as TRX.
+/// Reading reports of a large project: 10,000 tests, one in ten failing with a stack trace and
+/// output, as JUnit and as TRX; and coverage of 2,000 classes with 50 lines each as Cobertura.
 /// </summary>
 [MemoryDiagnoser]
 public class ReportBenchmarks
@@ -16,12 +16,14 @@ public class ReportBenchmarks
 
     private byte[] _junit = [];
     private byte[] _trx = [];
+    private byte[] _cobertura = [];
 
     [GlobalSetup]
     public void Setup()
     {
         _junit = Encoding.UTF8.GetBytes(JUnit());
         _trx = Encoding.UTF8.GetBytes(Trx());
+        _cobertura = Encoding.UTF8.GetBytes(Cobertura());
     }
 
     [Benchmark]
@@ -36,6 +38,37 @@ public class ReportBenchmarks
     {
         using var stream = new MemoryStream(_trx);
         return TestReportReader.Read(ReportFormat.Trx, stream).Report!.Counts.Total;
+    }
+
+    [Benchmark]
+    public int ReadCobertura()
+    {
+        using var stream = new MemoryStream(_cobertura);
+        return CoverageReportReader.Read(ReportFormat.Cobertura, stream).Report!.Total.LinesValid;
+    }
+
+    private static string Cobertura()
+    {
+        var xml = new StringBuilder("<coverage><packages>");
+        for (var p = 0; p < 20; p++)
+        {
+            xml.Append(CultureInfo.InvariantCulture, $"<package name=\"Big.Package{p}\"><classes>");
+            for (var c = 0; c < 100; c++)
+            {
+                xml.Append(CultureInfo.InvariantCulture, $"<class name=\"Big.Package{p}.Class{c}\" filename=\"src/P{p}/Class{c}.cs\"><methods/><lines>");
+                for (var line = 1; line <= 50; line++)
+                {
+                    var branch = line % 5 == 0 ? " branch=\"True\" condition-coverage=\"50% (1/2)\"" : string.Empty;
+                    xml.Append(CultureInfo.InvariantCulture, $"<line number=\"{line}\" hits=\"{(line % 7 == 0 ? 0 : 3)}\"{branch}/>");
+                }
+
+                xml.Append("</lines></class>");
+            }
+
+            xml.Append("</classes></package>");
+        }
+
+        return xml.Append("</packages></coverage>").ToString();
     }
 
     private static string JUnit()

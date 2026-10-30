@@ -21,7 +21,7 @@ public sealed class EdgeCaseTests
     }
 
     [Fact]
-    public void Document_type_definitions_are_refused()
+    public void Entities_from_a_document_type_definition_are_never_expanded()
     {
         const string xml = """
             <?xml version="1.0"?>
@@ -31,6 +31,11 @@ public sealed class EdgeCaseTests
 
         Fixture.ReadTestsText(ReportFormat.JUnit, xml).Error.ShouldNotBeNull().ShouldContain("not valid XML");
     }
+
+    [Fact]
+    public void A_document_type_declaration_alone_is_skipped() =>
+        Fixture.ReadTestsText(ReportFormat.JUnit, "<!DOCTYPE testsuite SYSTEM \"http://example.org/junit.dtd\"><testsuite><testcase name=\"a\"/></testsuite>")
+            .Succeeds().Counts.Total.ShouldBe(1);
 
     [Fact]
     public void Nested_suites_give_each_case_its_nearest_suite()

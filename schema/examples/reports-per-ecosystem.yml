@@ -10,19 +10,23 @@ jobs:
   dotnet:
     image: mcr.microsoft.com/dotnet/sdk:10.0
     steps:
-      - run: dotnet test -c Release --report-trx --results-directory TestResults
+      - run: dotnet test -c Release --report-trx --coverlet --coverlet-output-format cobertura --results-directory TestResults
     reports:
       - format: trx
         path: 'TestResults/*.trx'
+      - format: cobertura
+        path: '**/TestResults/*.cobertura.xml'
 
   python:
     image: python:3.13
     steps:
-      - run: pip install -r requirements.txt pytest
-      - run: pytest --junitxml=reports/junit.xml
+      - run: pip install -r requirements.txt pytest pytest-cov
+      - run: pytest --junitxml=reports/junit.xml --cov --cov-branch --cov-report=xml
     reports:
       - format: junit
         path: reports/junit.xml
+      - format: cobertura
+        path: coverage.xml
 
   node:
     image: node:24

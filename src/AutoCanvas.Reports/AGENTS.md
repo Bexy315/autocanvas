@@ -5,7 +5,8 @@ normalized model. Report files are **untrusted input** from arbitrary tools, oft
 
 - **Stream, do not load.** Read with `XmlReader` (through `Xml/SafeXml`); materialize at most one
   test case at a time. Never `XDocument.Load` a whole file.
-- **Safe XML only.** DTDs prohibited, no resolver — never relax `SafeXml`'s settings.
+- **Safe XML only.** DTDs are ignored (never processed), no resolver — never relax `SafeXml`'s
+  settings. Ignore, not Prohibit, because real Cobertura writers emit a DOCTYPE.
 - **No exceptions for bad files.** Return `ReportReadResult` with a user-facing `Error`; warnings
   for partial reads. Exceptions are for programming errors (null arguments).
 - **Bounded output.** Respect `ReportLimits`: cut texts, cap the number of kept cases, but keep the

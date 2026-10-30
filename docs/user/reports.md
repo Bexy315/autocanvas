@@ -2,11 +2,11 @@
 sidebar_position: 5
 ---
 
-# Test reports
+# Test and coverage reports
 
-A job can publish the test results its steps produce. AutoCanvas reads them after the job's steps —
+A job can publish the test results and code coverage its steps produce. AutoCanvas reads them after the job's steps —
 also when a step failed, which is exactly when they matter — and shows every test of the run with
-its outcome, duration, message and output.
+its outcome, duration, message and output, and how much of the code the tests reached.
 
 :::note Specification
 
@@ -88,10 +88,49 @@ jobs:
 
 Quote patterns that start with `*` — in YAML an unquoted `*` starts an alias.
 
+## Coverage
+
+**Cobertura XML** is the coverage format AutoCanvas reads. Most coverage tools write it directly
+or through a converter:
+
+| Tool | Command or setting | Typical `path` |
+|---|---|---|
+| .NET (coverlet on Microsoft.Testing.Platform) | `dotnet test --coverlet --coverlet-output-format cobertura` (package `coverlet.MTP`) | `**/TestResults/*.cobertura.xml` |
+| .NET (VSTest) | `dotnet test --collect "XPlat Code Coverage"` | `**/TestResults/*/coverage.cobertura.xml` |
+| Python | `pytest --cov --cov-report=xml` or `coverage xml` | `coverage.xml` |
+| Jest | `coverageReporters: ["cobertura"]` | `coverage/cobertura-coverage.xml` |
+| Java (JaCoCo) | convert JaCoCo XML, for example with `cover2cover` | as written by the converter |
+| Go | `go test -coverprofile=cover.out` and `gocover-cobertura < cover.out > coverage.xml` | `coverage.xml` |
+
+```yaml
+jobs:
+  test:
+    image: python:3.13
+    steps:
+      - run: pip install -r requirements.txt pytest pytest-cov
+      - run: pytest --junitxml=reports/junit.xml --cov --cov-branch --cov-report=xml
+    reports:
+      - format: junit
+        path: reports/junit.xml
+      - format: cobertura
+        path: coverage.xml
+```
+
+AutoCanvas shows coverage per package (an assembly in .NET, a directory in Python or JavaScript)
+and per class or file, with the share of lines and branches covered and the lines no test reached,
+such as `10-11, 19, 45`. A few details:
+
+- Totals are computed from the lines in the report, not taken from the rates a tool writes on top,
+  which are rounded.
+- Classes the compiler generates for async methods, iterators and lambdas (`Foo/<Bar>d__3`,
+  `Foo+<>c`) and nested classes count towards the class they belong to.
+- Lines that tools repeat under each method are counted once.
+- Files without coverable lines, such as an empty `__init__.py`, are left out.
+
 ## Limits
 
-A report file keeps the details of at most 100,000 tests; the counts still include every test, and
-the run shows a warning. Long texts are shortened: names to 1,000 characters, messages to 4,000,
+A report file keeps the details of at most 100,000 tests, a coverage file of at most 50,000 classes;
+the counts and totals still include everything, and the run shows a warning. Long texts are shortened: names to 1,000 characters, messages to 4,000,
 stack traces to 8,000 and output to 4,000.
 
 A file that is not a report of its declared format — not XML, or a different root element — is

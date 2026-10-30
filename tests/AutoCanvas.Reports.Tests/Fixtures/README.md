@@ -14,3 +14,6 @@ paths were replaced (`ci-host`, `runner`, `/work/…`). Nothing else was edited.
 | `junit/go-junit-report.xml` | Generated: `go test -v` piped through go-junit-report v2.1.0. Subtests, CDATA output. |
 | `junit/maven-surefire.xml` | Hand-written after the Surefire 3 report schema (no Maven available): `flakyFailure` (passed on rerun), `rerunFailure` (failed on every run), `error`, and the thousands separator in `time` that some Surefire versions write. |
 | `junit/gradle.xml` | Hand-written after Gradle's JUnit XML output: single `testsuite` root, suite-level `system-out`. |
+| `cobertura/coverlet.xml` | Generated: coverlet.MTP 10.1.0 over a small library with an async method, an iterator and a lambda, so it has compiler-generated classes (`Sample.Calculator/<SlowAsync>d__3`). |
+| `cobertura/coverage-py.xml` | Generated: coverage.py 7.17 through pytest-cov with branch coverage; has an `__init__.py` without lines. |
+| `cobertura/istanbul.xml` | Generated: Jest 30 with the istanbul `cobertura` reporter; has a `DOCTYPE` and lines listed only under `<methods>`. |
