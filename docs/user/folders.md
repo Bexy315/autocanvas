@@ -24,7 +24,8 @@ roles on a folder — directly, through groups, and from folders above — the h
 Admins have every role on every folder.
 
 What the roles mean for variables and secrets, and how folders pass them down, is described in
-[Variables and secrets](variables-and-secrets.md).
+[Variables and secrets](variables-and-secrets.md). Owners can also read the
+[audit log](../technical/audit.md#reading-the-log) of their folders.
 
 ## Inheritance and restricted folders
 

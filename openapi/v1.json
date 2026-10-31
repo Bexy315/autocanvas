@@ -37,6 +37,241 @@
         }
       }
     },
+    "/api/v1/audit": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Read the audit log",
+        "description": "Every recorded change, newest first, one page at a time. Admins only. Filters: `from` and `to` (date and time, `to` exclusive), `action` (exact, or a prefix ending in `*` such as `folder.*`), `actorId`, `targetType`, `targetId`.",
+        "operationId": "ListAuditEvents",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAuditEventView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/audit": {
+      "get": {
+        "tags": [
+          "Audit"
+        ],
+        "summary": "Read a folder's audit log",
+        "description": "Changes in the folder and in the folders below it that the caller owns too, newest first. Needs Owner. Filters: `from` and `to` (date and time, `to` exclusive), `action` (exact, or a prefix ending in `*` such as `folder.*`), `actorId`, `targetType`, `targetId`.",
+        "operationId": "ListFolderAuditEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "targetId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAuditEventView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/sign-in": {
       "post": {
         "tags": [
@@ -3360,6 +3595,112 @@
   },
   "components": {
     "schemas": {
+      "AuditActorKind": {
+        "enum": [
+          "System",
+          "User",
+          "Token",
+          "Anonymous"
+        ],
+        "description": "Who made an audited change."
+      },
+      "AuditEventView": {
+        "required": [
+          "id",
+          "occurredAt",
+          "actorKind",
+          "actorId",
+          "actorName",
+          "action",
+          "targetType",
+          "targetId",
+          "folderId",
+          "details",
+          "clientAddress",
+          "userAgent"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The entry's id.",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "When the change was committed, in UTC.",
+            "format": "date-time"
+          },
+          "actorKind": {
+            "description": "System, User, Token or Anonymous.",
+            "$ref": "#/components/schemas/AuditActorKind"
+          },
+          "actorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user behind the change, if any.",
+            "format": "uuid"
+          },
+          "actorName": {
+            "type": "string",
+            "description": "The actor's name at the time."
+          },
+          "action": {
+            "type": "string",
+            "description": "What happened, such as `folder.created`."
+          },
+          "targetType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Kind of object changed."
+          },
+          "targetId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Id of the object changed."
+          },
+          "folderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The folder the object lives in.",
+            "format": "uuid"
+          },
+          "details": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "A few facts about the change; never secret values.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "clientAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Network address of the client, for changes over HTTP."
+          },
+          "userAgent": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "User agent of the client, for changes over HTTP."
+          }
+        },
+        "description": "An audit entry as the API shows it; fields as described in the audit catalogue."
+      },
       "AutomationSummary": {
         "required": [
           "id",
@@ -4233,6 +4574,7 @@
           }
         }
       },
+      "JsonElement": {},
       "MeView": {
         "required": [
           "user",
@@ -4284,6 +4626,30 @@
           }
         },
         "description": "Where to move a folder."
+      },
+      "PageOfAuditEventView": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEventView"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
       },
       "PageOfAutomationSummary": {
         "required": [
@@ -4926,6 +5292,9 @@
   "tags": [
     {
       "name": "Server"
+    },
+    {
+      "name": "Audit"
     },
     {
       "name": "Authentication"

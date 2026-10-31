@@ -22,8 +22,43 @@ every action. The rules behind it are in the [Security model](security.md#audit)
 
 An entry is written in the same database transaction as the change it describes: a change that
 fails leaves no entry, and an entry never describes a change that did not happen. Entries are
-never updated or deleted through AutoCanvas; a retention setting for old entries follows in S1
-step 8.
+never changed through AutoCanvas; only the retention below deletes old ones.
+
+## Reading the log
+
+| Request | Who | Returns |
+|---|---|---|
+| `GET /api/v1/audit` | admins | every entry |
+| `GET /api/v1/folders/{id}/audit` | the folder's owners | entries of the folder and of the folders below it that the caller owns too |
+
+A restricted subfolder the caller does not own stays out of their view, like everywhere else.
+Entries of deleted folders can only be read by admins.
+
+Both list the newest entries first, one page at a time (`limit`, `cursor` as for every list), and
+take the same filters, which combine:
+
+| Parameter | Matches |
+|---|---|
+| `from`, `to` | `occurredAt` from (inclusive) and to (exclusive), e.g. `2026-11-01T00:00:00Z` |
+| `action` | an action, or a prefix ending in `*`: `folder.*` matches every folder action |
+| `actorId` | changes by this user, in person or through their API tokens |
+| `targetType`, `targetId` | changes to this kind of object, or to one object |
+
+```sh
+curl -H "Authorization: Bearer $AUTOCANVAS_TOKEN" \
+  "https://autocanvas.example.org/api/v1/audit?action=secret.*&from=2026-11-01T00:00:00Z"
+```
+
+In responses, `details` is a JSON object, and the actor is given as `actorKind`, `actorId` and
+`actorName`.
+
+## Retention
+
+Entries older than `Audit:RetentionDays` (default **365**) are deleted once a day, starting when
+the server has started; `0` keeps them forever. Each run that deletes something records
+`audit.pruned` with the cut-off time and the number of entries, so the log shows where it begins.
+To keep entries longer than the retention allows, export them regularly, for example with the
+query above.
 
 ## Actions
 
@@ -69,3 +104,4 @@ part of the log.
 | `group.deleted` | admin | group | `name` |
 | `group.member_added` | admin | group | `userId`, `userName` |
 | `group.member_removed` | admin | group | `userId`, `userName` |
+| `audit.pruned` | System | — | `before` (cut-off time), `deleted` (number of entries) |

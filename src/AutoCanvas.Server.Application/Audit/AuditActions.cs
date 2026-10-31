@@ -110,4 +110,7 @@ public static class AuditActions
 
     /// <summary>Every secret was re-encrypted under a new master key; details: <c>fromKeyId</c>, <c>toKeyId</c>, <c>secrets</c>.</summary>
     public const string MasterKeyRotated = "secrets.master_key_rotated";
+
+    /// <summary>Entries older than the retention period were deleted; details: <c>before</c>, <c>deleted</c>.</summary>
+    public const string AuditPruned = "audit.pruned";
 }

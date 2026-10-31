@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using AutoCanvas.Server.Api;
 using AutoCanvas.Server.Application;
+using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Authentication;
 using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Database;
@@ -51,6 +52,12 @@ internal static class ServerBuilderExtensions
         // Reading the options validates them, so a missing or broken key is reported, not null.
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<SecretsOptions>>().Value.Load(out _)!);
         services.AddHostedService<MasterKeyCheckService>();
+
+        services.AddOptions<AuditOptions>()
+            .BindConfiguration(AuditOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AuditOptions>, AuditOptionsValidator>();
+        services.AddHostedService<AuditRetentionService>();
 
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)

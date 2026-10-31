@@ -42,6 +42,7 @@ setting and what is expected, instead of failing later on first use.
 | `Authentication:SessionIdleTimeout` | `7.00:00:00` | A session ends after this long without requests |
 | `Authentication:SessionLifetime` | `30.00:00:00` | A session ends this long after the sign-in, however active |
 | `Bootstrap:AdminUserName`, `Bootstrap:AdminPassword` | none | Create this admin on start while there is no account at all; set both or neither (see [Users and groups](../user/accounts.md#the-first-admin)) |
+| `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
 | `Secrets:MasterKey` or `Secrets:MasterKeyFile` | none — **required** | The master key, or a file holding it; exactly one of them (see [Master key](#master-key)) |
 
 ## Database
