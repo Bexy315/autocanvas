@@ -480,6 +480,12 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "autocanvas.core": {
+        "type": "Project",
+        "dependencies": {
+          "YamlDotNet": "[18.1.0, )"
+        }
+      },
       "autocanvas.persistence": {
         "type": "Project",
         "dependencies": {
@@ -504,6 +510,7 @@
       "autocanvas.server.application": {
         "type": "Project",
         "dependencies": {
+          "AutoCanvas.Core": "[1.0.0, )",
           "AutoCanvas.Persistence": "[1.0.0, )"
         }
       },
@@ -589,6 +596,12 @@
         "dependencies": {
           "xunit.v3.common": "[4.0.2]"
         }
+      },
+      "YamlDotNet": {
+        "type": "CentralTransitive",
+        "requested": "[18.1.0, )",
+        "resolved": "18.1.0",
+        "contentHash": "5K+9KFg2TdTl7VXv88Qzi/0lqK6JFoNP3lRuImPYGRV7K/QYklDyTrj4+A+KAki1JsQi6qKY+hDyY7d6WRqjrw=="
       }
     }
   }

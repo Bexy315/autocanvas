@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../AutoCanvas.Core/AutoCanvas.Core.csproj" />
     <ProjectReference Include="../AutoCanvas.Persistence/AutoCanvas.Persistence.csproj" />
   </ItemGroup>
 

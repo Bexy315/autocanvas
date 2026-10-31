@@ -1,4 +1,5 @@
 using AutoCanvas.Persistence.Audit;
+using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,12 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Roles of users and groups on folders.</summary>
     public DbSet<FolderGrant> FolderGrants => Set<FolderGrant>();
 
+    /// <summary>Managed automations.</summary>
+    public DbSet<Automation> Automations => Set<Automation>();
+
+    /// <summary>Every saved version of every managed automation.</summary>
+    public DbSet<AutomationVersion> AutomationVersions => Set<AutomationVersion>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -69,5 +76,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ApiTokenConfiguration());
         modelBuilder.ApplyConfiguration(new FolderConfiguration());
         modelBuilder.ApplyConfiguration(new FolderGrantConfiguration());
+        modelBuilder.ApplyConfiguration(new AutomationConfiguration());
+        modelBuilder.ApplyConfiguration(new AutomationVersionConfiguration());
     }
 }

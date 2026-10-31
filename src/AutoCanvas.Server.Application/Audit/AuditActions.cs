@@ -80,4 +80,19 @@ public static class AuditActions
 
     /// <summary>A grant was removed; details: <c>subjectType</c>, <c>subjectId</c>, <c>subjectName</c>, <c>role</c>.</summary>
     public const string FolderGrantRemoved = "folder.grant_removed";
+
+    /// <summary>An automation was created with version 1; details: <c>name</c>.</summary>
+    public const string AutomationCreated = "automation.created";
+
+    /// <summary>A new version was saved; details: <c>version</c>, <c>message</c>. Never the file itself.</summary>
+    public const string AutomationSaved = "automation.saved";
+
+    /// <summary>An automation got another key in its folder; details: <c>from</c>, <c>to</c>.</summary>
+    public const string AutomationRenamed = "automation.renamed";
+
+    /// <summary>An automation moved to another folder; details: <c>fromFolderId</c>, <c>toFolderId</c>.</summary>
+    public const string AutomationMoved = "automation.moved";
+
+    /// <summary>An automation was deleted with all its versions; details: <c>name</c>, <c>versions</c>.</summary>
+    public const string AutomationDeleted = "automation.deleted";
 }
