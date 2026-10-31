@@ -6,5 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/AutoCanvas.Core/AutoCanvas.Core.csproj" />
     <ProjectReference Include="../../src/AutoCanvas.Reports/AutoCanvas.Reports.csproj" />
+    <ProjectReference Include="../../src/AutoCanvas.Persistence.Postgres/AutoCanvas.Persistence.Postgres.csproj" />
+    <ProjectReference Include="../../src/AutoCanvas.Persistence.Sqlite/AutoCanvas.Persistence.Sqlite.csproj" />
   </ItemGroup>
 </Project>

@@ -65,6 +65,7 @@ internal static class ServerBuilderExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
         services.AddHostedService<QueueSweepService>();
+        services.AddHostedService<JobSignalListenerService>();
 
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)

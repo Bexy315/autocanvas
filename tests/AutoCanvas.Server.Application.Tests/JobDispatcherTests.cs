@@ -62,6 +62,22 @@ public abstract class JobDispatcherTests(DatabaseProvider provider) : IdentityTe
     }
 
     [Fact]
+    public async Task Queuing_or_returning_an_attempt_wakes_waiting_dispatchers()
+    {
+        var idle = await DispatchAsync(d => d.WaitForWorkAsync(TimeSpan.FromMilliseconds(50), Cancel));
+        var waiting = DispatchAsync(d => d.WaitForWorkAsync(TimeSpan.FromSeconds(10), Cancel));
+        await StartAsync(TwoJobs);
+        var woken = await waiting;
+        var offered = (await ClaimAsync(runnerA, None, None, containers: false))!.Value;
+        var waitingAgain = DispatchAsync(d => d.WaitForWorkAsync(TimeSpan.FromSeconds(10), Cancel));
+        await DispatchAsync(d => d.RejectAsync(offered, runnerA, Cancel));
+
+        idle.ShouldBeFalse();
+        woken.ShouldBeTrue();
+        (await waitingAgain).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Concurrent_claims_hand_out_every_attempt_exactly_once()
     {
         const int Jobs = 24;
@@ -265,7 +281,7 @@ public abstract class JobDispatcherTests(DatabaseProvider provider) : IdentityTe
         await using (context)
         {
             var options = Options.Create(new QueueOptions { LeaseDuration = lease ?? TimeSpan.FromMinutes(1) });
-            return await action(new JobDispatcher(context, claimer, new ConfigurationService(context, new SecretCipher(Key)), options, Clock));
+            return await action(new JobDispatcher(context, claimer, Signal, new ConfigurationService(context, new SecretCipher(Key)), options, Clock));
         }
     }
 

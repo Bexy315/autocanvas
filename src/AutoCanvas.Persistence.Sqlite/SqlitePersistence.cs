@@ -18,6 +18,7 @@ public static class SqlitePersistence
     public static IServiceCollection AddAutoCanvasSqlite(this IServiceCollection services, string connectionString)
     {
         services.AddSingleton<IJobClaimer, SqliteJobClaimer>();
+        services.AddSingleton<IJobSignal, SqliteJobSignal>();
         return services.AddDbContext<AutoCanvasDbContext, SqliteAutoCanvasDbContext>(options => options.UseAutoCanvasSqlite(connectionString));
     }
 }

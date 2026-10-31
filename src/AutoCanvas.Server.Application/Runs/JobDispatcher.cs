@@ -16,20 +16,28 @@ public sealed class JobDispatcher
 {
     private readonly AutoCanvasDbContext database;
     private readonly IJobClaimer claimer;
+    private readonly IJobSignal signal;
     private readonly TimeProvider time;
     private readonly TimeSpan lease;
     private readonly RunEngine engine;
 
     /// <summary>Creates the dispatcher for one unit of work.</summary>
-    public JobDispatcher(AutoCanvasDbContext database, IJobClaimer claimer, ConfigurationService configuration, IOptions<QueueOptions> options, TimeProvider time)
+    public JobDispatcher(AutoCanvasDbContext database, IJobClaimer claimer, IJobSignal signal, ConfigurationService configuration, IOptions<QueueOptions> options, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(options);
         this.database = database;
         this.claimer = claimer;
+        this.signal = signal;
         this.time = time;
         lease = options.Value.LeaseDuration;
         engine = new RunEngine(database, configuration, time);
     }
+
+    /// <summary>
+    /// Waits until attempts may be due — after something was queued, on any server — or until
+    /// <paramref name="timeout"/>. Dispatchers claim after it returns either way.
+    /// </summary>
+    public Task<bool> WaitForWorkAsync(TimeSpan timeout, CancellationToken cancellationToken) => signal.WaitAsync(timeout, cancellationToken);
 
     /// <summary>
     /// Offers the oldest attempt the runner can take to it; <see langword="null"/> when there is none.
@@ -52,11 +60,19 @@ public sealed class JobDispatcher
     }
 
     /// <summary>The runner declines the attempt it was offered; it returns to the queue for others.</summary>
-    public async Task<bool> RejectAsync(Guid attemptId, Guid runnerId, CancellationToken cancellationToken) =>
-        await database.JobAttempts
+    public async Task<bool> RejectAsync(Guid attemptId, Guid runnerId, CancellationToken cancellationToken)
+    {
+        var rejected = await database.JobAttempts
             .Where(a => a.Id == attemptId && a.RunnerId == runnerId && a.Status == AttemptStatus.Offered)
             .ExecuteUpdateAsync(set => set.SetProperty(a => a.Status, AttemptStatus.Queued).SetProperty(a => a.RunnerId, (Guid?)null).SetProperty(a => a.LeaseExpiresAt, (DateTimeOffset?)null), cancellationToken)
             .ConfigureAwait(false) == 1;
+        if (rejected)
+        {
+            await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
+        }
+
+        return rejected;
+    }
 
     /// <summary>
     /// Extends the leases of the attempts the runner says it holds (a heartbeat) and returns the ones
@@ -118,6 +134,10 @@ public sealed class JobDispatcher
 
         await engine.AdvanceAsync(run, jobs, cancellationToken).ConfigureAwait(false);
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        // Jobs that needed this one may have been queued. A retry waits for its delay; dispatchers
+        // find it on their next look after the delay, as waiting has a timeout.
+        await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -133,6 +153,10 @@ public sealed class JobDispatcher
             .Where(a => a.Status == AttemptStatus.Offered && a.LeaseExpiresAt < now)
             .ExecuteUpdateAsync(set => set.SetProperty(a => a.Status, AttemptStatus.Queued).SetProperty(a => a.RunnerId, (Guid?)null).SetProperty(a => a.LeaseExpiresAt, (DateTimeOffset?)null), cancellationToken)
             .ConfigureAwait(false);
+        if (changed > 0)
+        {
+            await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
+        }
 
         var running = await database.JobAttempts.AsNoTracking()
             .Where(a => a.Status == AttemptStatus.Running)
