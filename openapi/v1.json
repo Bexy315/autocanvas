@@ -1968,7 +1968,7 @@
           "Editor",
           "Owner"
         ],
-        "description": "Roles on a folder (ADR-0012), each including the ones before it. The numeric order is the\r\norder of power; the database stores the names."
+        "description": "Roles on a folder (ADR-0012), each including the ones before it. The numeric order is the\norder of power; the database stores the names."
       },
       "FolderSummary": {
         "required": [

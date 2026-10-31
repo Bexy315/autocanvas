@@ -27,7 +27,9 @@ public sealed class ApiContractTests
     {
         await using var factory = new AutoCanvasFactory();
         var served = await factory.CreateClient().GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
-        var expected = JsonNode.Parse(served)!.ToJsonString(Indented).ReplaceLineEndings("\n") + "\n";
+        // The compiler writes multi-line XML docs with the platform's line ending, which ends up in
+        // descriptions; compare them with "\n" so the snapshot is the same on Windows and Linux.
+        var expected = JsonNode.Parse(served)!.ToJsonString(Indented).ReplaceLineEndings("\n").Replace("\\r\\n", "\\n", StringComparison.Ordinal) + "\n";
 
         var path = Path.Combine(RepositoryRoot(), "openapi", "v1.json");
         var committed = File.Exists(path) ? (await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ReplaceLineEndings("\n") : null;
