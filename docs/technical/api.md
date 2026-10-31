@@ -7,7 +7,8 @@ sidebar_position: 4
 The AutoCanvas server offers an HTTP API that the web UI, the command line and scripts use alike.
 This page describes the rules every endpoint follows. The endpoints themselves are described by the
 OpenAPI document the server serves at `/openapi/v1.json`; the same document is kept in the
-repository as `openapi/v1.json`, and a test fails when the two differ.
+repository as `openapi/v1.json`, and a test fails when the two differ. It is rendered as the
+[API reference](pathname:///autocanvas/api) on this site.
 
 ## Versions
 
@@ -140,8 +141,8 @@ while the list changes, so items are neither skipped nor repeated.
 
 ## Concurrency
 
-Resources that people edit return their version as an `ETag` header (`"3"`); folders do so today,
-automations will from S1 step 6. Send it back as `If-Match` when changing the resource. If someone
+Resources that people edit return their version as an `ETag` header (`"3"`): folders, and
+automations, whose ETag is their version number. Send it back as `If-Match` when changing the resource. If someone
 else changed it in between, the server answers [412 precondition failed](#precondition-failed)
 instead of overwriting their change; read it again and repeat yours. `If-Match` is optional:
 without it (or with `*`) the change applies unconditionally. Weak ETags (`W/"3"`) are accepted.

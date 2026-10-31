@@ -31,6 +31,35 @@ const config: Config = {
     locales: ['en'],
   },
 
+  plugins: [
+    [
+      // The HTTP API reference, rendered from the committed OpenAPI document. Both the document
+      // and the viewer (the pinned @scalar/api-reference bundle) are served from this site by
+      // scripts/copy-schemas.mjs: without `cdn`, the plugin would load the latest viewer from a
+      // CDN on every visit. Everything that talks to Scalar's services is switched off.
+      '@scalar/docusaurus',
+      {
+        label: 'API reference',
+        route: '/api',
+        showNavLink: true,
+        cdn: '/autocanvas/scalar/standalone.js',
+        configuration: {
+          url: '/autocanvas/openapi/v1.json',
+          // The document says "/" (wherever the server runs); here that would be the docs site.
+          servers: [{ url: 'https://autocanvas.example.org', description: 'Your AutoCanvas server' }],
+          hideClientButton: true,
+          hideTestRequestButton: true,
+          showDeveloperTools: 'never',
+          showToolbar: 'never',
+          telemetry: false,
+          withDefaultFonts: false,
+          agent: { disabled: true },
+          mcp: { disabled: true },
+        },
+      },
+    ],
+  ],
+
   presets: [
     [
       'classic',

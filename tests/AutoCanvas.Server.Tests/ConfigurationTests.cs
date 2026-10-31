@@ -1,5 +1,6 @@
 using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Hosting;
+using AutoCanvas.TestSupport;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -67,11 +68,11 @@ public sealed class ConfigurationTests
     [Fact]
     public async Task Invalid_settings_stop_the_server_from_starting()
     {
-        await using var factory = new AutoCanvasFactory().With("Server:PublicUrl", "not-a-url");
+        await using var database = SqliteTestDatabase.Create();
 
-        var error = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
+        var message = await ServerStart.FailsAsync<OptionsValidationException>(database, ("Server:PublicUrl", "not-a-url"));
 
-        error.Message.ShouldContain("Server:PublicUrl must be an absolute http or https URL");
+        message.ShouldContain("Server:PublicUrl must be an absolute http or https URL");
     }
 
     private static IConfigurationRoot Build(params (string Variable, string Value)[] environment)

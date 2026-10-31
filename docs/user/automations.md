@@ -9,8 +9,8 @@ or build it on the canvas; both use the format described here, so they behave th
 
 :::note Specification
 
-This page describes format version 1. Parsing and running automations are being built; until then
-the format is a specification. The machine-readable form is the JSON Schema
+This page describes format version 1. The server reads and validates automation files
+([Managed automations](managed-automations.md)); running them comes with the next milestone. The machine-readable form is the JSON Schema
 `schema/automation.v1.json`, published at
 <https://bexy315.github.io/autocanvas/schema/automation.v1.json>.
 

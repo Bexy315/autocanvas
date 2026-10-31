@@ -18,10 +18,10 @@ public abstract class MasterKeyTests(DatabaseProvider provider) : DatabaseTest(p
         await File.WriteAllTextAsync(file, MasterKey.Generate().Text + "\n", Cancel);
         try
         {
-            StartFails<OptionsValidationException>(f => f.With("Secrets:MasterKey", null)).ShouldContain("No master key is configured");
-            StartFails<OptionsValidationException>(f => f.With("Secrets:MasterKeyFile", file)).ShouldContain("not both");
-            StartFails<OptionsValidationException>(f => f.With("Secrets:MasterKey", "AAEC")).ShouldContain("32 bytes");
-            StartFails<OptionsValidationException>(f => f.With("Secrets:MasterKey", null).With("Secrets:MasterKeyFile", file + ".missing")).ShouldContain("cannot be read");
+            (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKey", null))).ShouldContain("No master key is configured");
+            (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKeyFile", file))).ShouldContain("not both");
+            (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKey", "AAEC"))).ShouldContain("32 bytes");
+            (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKey", null), ("Secrets:MasterKeyFile", file + ".missing"))).ShouldContain("cannot be read");
 
             await using var fromFile = Factory().With("Secrets:MasterKey", null).With("Secrets:MasterKeyFile", file);
             (await fromFile.CreateClient().GetAsync(new Uri("/health/ready", UriKind.Relative), Cancel)).StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -41,7 +41,7 @@ public abstract class MasterKeyTests(DatabaseProvider provider) : DatabaseTest(p
         }
 
         var other = MasterKey.Generate();
-        StartFails<InvalidOperationException>(f => f.With("Secrets:MasterKey", other.Text)).ShouldContain(other.Id);
+        (await ServerStart.FailsAsync<InvalidOperationException>(Database, ("Secrets:MasterKey", other.Text))).ShouldContain(other.Id);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public abstract class MasterKeyTests(DatabaseProvider provider) : DatabaseTest(p
         badError.ShouldContain("cannot be used");
         exitCode.ShouldBe(0);
         output.ShouldContain($"Re-encrypted 1 secret(s) with master key {next.Id}");
-        StartFails<InvalidOperationException>(f => f).ShouldContain(next.Id);
+        (await ServerStart.FailsAsync<InvalidOperationException>(Database)).ShouldContain(next.Id);
         await using (var restarted = Factory().With("Secrets:MasterKey", next.Text))
         {
             await using var scope = restarted.Services.CreateAsyncScope();
@@ -84,13 +84,6 @@ public abstract class MasterKeyTests(DatabaseProvider provider) : DatabaseTest(p
             _ = restarted.CreateClient();
             scope.ServiceProvider.GetRequiredService<SecretCipher>().Decrypt(secret.Scope, secret.NormalizedName, secret.Ciphertext).ShouldBe("s3cr3t-value");
         }
-    }
-
-    private string StartFails<TException>(Func<AutoCanvasFactory, AutoCanvasFactory> configure)
-        where TException : Exception
-    {
-        using var factory = configure(Factory());
-        return Should.Throw<TException>(() => factory.CreateClient()).Message;
     }
 
     private AutoCanvasFactory Factory() => new AutoCanvasFactory().WithDatabase(Database);

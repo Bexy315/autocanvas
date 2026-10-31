@@ -90,9 +90,10 @@ values in text before it is stored (used for run logs in S2). The key is rotated
 
 Every change writes an audit event in the same transaction as the change: who, what, which object,
 when and from where. Events never contain secret values, and AutoCanvas offers no way to change or
-delete them. Today the log records schema migrations; accounts, groups, grants, folders,
-automations, variables and secrets follow with their S1 steps. Fields and the list of actions are
-in [Audit log](audit.md).
+delete them; only the configured retention removes old ones (`audit.pruned` records that). The
+log covers schema migrations, accounts, tokens, groups, folders and grants, automations, variables
+and secrets. Admins read all of it; folder owners read the entries of the folders they own. Fields,
+queries and the list of actions are in [Audit log](audit.md).
 
 ## Reporting a vulnerability
 
