@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- C# code generated from the runner protocol in proto/ (ADR-0004): messages plus server and
+       client stubs, shared by the server, its tests and the reference runner. -->
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Core.Api" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="../../proto/**/*.proto" ProtoRoot="../../proto" GrpcServices="Both" />
+  </ItemGroup>
+</Project>

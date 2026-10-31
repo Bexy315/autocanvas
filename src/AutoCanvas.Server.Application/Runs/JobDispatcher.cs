@@ -49,6 +49,10 @@ public sealed class JobDispatcher
         return claimer.ClaimAsync(database, new JobClaim(runnerId, labels, nodeTypes, runsContainers, now, now + lease), cancellationToken);
     }
 
+    /// <summary>How many attempts the runner holds, offered or running; it takes no more than it can run at once.</summary>
+    public Task<int> CountHeldAsync(Guid runnerId, CancellationToken cancellationToken) =>
+        database.JobAttempts.CountAsync(a => a.RunnerId == runnerId && (a.Status == AttemptStatus.Offered || a.Status == AttemptStatus.Running), cancellationToken);
+
     /// <summary>The runner starts the attempt it was offered; <see langword="false"/> if it is no longer its own.</summary>
     public async Task<bool> AcceptAsync(Guid attemptId, Guid runnerId, CancellationToken cancellationToken)
     {

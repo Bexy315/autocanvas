@@ -48,13 +48,31 @@ public sealed class SqliteTestDatabase : TestDatabase
     }
 
     /// <inheritdoc />
-    protected override ValueTask DisposeCoreAsync()
+    protected override async ValueTask DisposeCoreAsync()
     {
         foreach (var file in new[] { path, path + "-wal", path + "-shm" })
         {
-            File.Delete(file);
+            await DeleteAsync(file);
         }
+    }
 
-        return ValueTask.CompletedTask;
+    /// <summary>
+    /// Deletes a database file, waiting a little while Windows still holds it: right after a test
+    /// server with runner streams has stopped, the file was seen locked for a few milliseconds.
+    /// </summary>
+    private static async Task DeleteAsync(string file)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Delete(file);
+                return;
+            }
+            catch (IOException) when (attempt < 60)
+            {
+                await Task.Delay(50);
+            }
+        }
     }
 }

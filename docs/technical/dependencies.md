@@ -36,6 +36,11 @@ EULA in version 9, so check the exact version, not only the package.
 | coverlet.MTP | MIT | Coverage collection and the 75 % gate |
 | Corvus.Json.Validator | Apache-2.0 | Schema conformance test (tests only) |
 | Testcontainers.PostgreSql | MIT | PostgreSQL in Docker for database tests (tests only) |
+| Google.Protobuf | BSD-3-Clause | Messages of the runner protocol ([ADR-0004](../adr/0004-runner-protocol-grpc-spec-first.md)) |
+| Grpc.Tools | Apache-2.0 | Generating C# from `proto/` at build time (not shipped) |
+| Grpc.Core.Api | Apache-2.0 | Base types of the generated gRPC stubs |
+| Grpc.AspNetCore.Server | Apache-2.0 | Serving the runner protocol in the server ([ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)) |
+| Grpc.Net.Client | Apache-2.0 | The runner protocol's client side in tests |
 | BenchmarkDotNet | MIT | Benchmarks in `benchmarks/` (not shipped) |
 | Microsoft.AspNetCore.OpenApi | MIT | OpenAPI document of the server's HTTP API |
 | Microsoft.AspNetCore.Mvc.Testing | MIT | Hosting the server in memory in API tests (tests only) |

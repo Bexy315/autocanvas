@@ -13,7 +13,7 @@ every action. The rules behind it are in the [Security model](security.md#audit)
 | Field | Meaning |
 |---|---|
 | `occurredAt` | When the change was committed, in UTC |
-| actor | `System` (the server, a command-line tool or a background job), `User` (signed in), `Token` (a user's API token) or `Anonymous` (a client that is not signed in); for users also their id and their name at the time |
+| actor | `System` (the server, a command-line tool or a background job), `User` (signed in), `Token` (a user's API token), `Runner` (a runner, with its credential) or `Anonymous` (a client that is not signed in); for users and runners also their id and their name at the time |
 | `action` | What happened, from the catalogue below |
 | target | Kind and id of the object changed, if any |
 | folder | The folder the object lives in; folder owners can read the entries of their folders |
@@ -107,3 +107,8 @@ part of the log.
 | `audit.pruned` | System | — | `before` (cut-off time), `deleted` (number of entries) |
 | `run.started` | an operator | run | `automation`, `number` |
 | `run.cancelled` | an operator | run | `automation`, `number` |
+| `runner.token_created` | admin | runner_token | `tokenId`, `description`, `expiresAt` |
+| `runner.token_deleted` | admin | runner_token | `tokenId`, `description` |
+| `runner.registered` | the runner | runner | `name`, `tokenId` |
+| `runner.updated` | admin | runner | `name`, `changed` (field names), `isPaused` |
+| `runner.deleted` | admin | runner | `name` |

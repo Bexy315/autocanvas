@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package autocanvas.runner.v1;
 
+option csharp_namespace = "AutoCanvas.Protocol.Runner.V1";
+
 // What a runner offers. The server only offers jobs whose requirements a runner meets.
 message Capabilities {
   // Labels used for matching jobs' runs_on, for example "linux", "docker", "gpu".

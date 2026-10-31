@@ -8,6 +8,7 @@ using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Database;
 using AutoCanvas.Server.Health;
 using AutoCanvas.Server.Identity;
+using AutoCanvas.Server.Runners;
 using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -66,6 +67,7 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
         services.AddHostedService<QueueSweepService>();
         services.AddHostedService<JobSignalListenerService>();
+        builder.AddAutoCanvasRunners();
 
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)
@@ -85,6 +87,7 @@ internal static class ServerBuilderExtensions
         app.MapOpenApi().AllowAnonymous();
         app.MapAutoCanvasHealth();
         app.MapAutoCanvasApi();
+        app.MapAutoCanvasRunners();
 
         return app;
     }

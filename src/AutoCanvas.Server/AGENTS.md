@@ -31,6 +31,11 @@ persistence wiring and CLI subcommands. Business rules belong in application ser
   first run — a start that fails must not leave them working on the database — skip their work
   while migrations are pending, create a scope per run, and log failures instead of throwing.
   `AuditRetentionService` and `QueueSweepService` are the templates.
+- **Runner gRPC services** live in `Runners/`. They are authenticated by `RunnerAuthInterceptor`
+  (runner credentials only), map use case errors with `ProtocolMapping.ToRpcException`, and keep no
+  state beyond the stream: whatever a reconnect to another server needs is in the database. Every
+  database access of a `RunnerSession` uses its own scope. Protocol tests drive the server with
+  `Runners/ProtocolClient` in the test project.
 - **Tests** host the server with `AutoCanvasFactory` (in memory, `Testing` environment) and assert
   on HTTP responses, not on internals. Tests that run `ServerCommandLine` in-process belong to the
   `[Collection(CommandLineTests.Name)]` collection: a command's host could otherwise be picked up

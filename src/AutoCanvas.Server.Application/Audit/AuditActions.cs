@@ -119,4 +119,19 @@ public static class AuditActions
 
     /// <summary>Someone cancelled a run; details: <c>automation</c>, <c>number</c>.</summary>
     public const string RunCancelled = "run.cancelled";
+
+    /// <summary>An administrator created a runner registration token; details: <c>tokenId</c>, <c>description</c>, <c>expiresAt</c>.</summary>
+    public const string RunnerTokenCreated = "runner.token_created";
+
+    /// <summary>A runner registration token was deleted; details: <c>tokenId</c>, <c>description</c>.</summary>
+    public const string RunnerTokenDeleted = "runner.token_deleted";
+
+    /// <summary>A runner registered with a token (the actor is the runner); details: <c>name</c>, <c>tokenId</c>.</summary>
+    public const string RunnerRegistered = "runner.registered";
+
+    /// <summary>A runner was renamed, paused or resumed; details: <c>changed</c>, <c>name</c>, <c>isPaused</c>.</summary>
+    public const string RunnerUpdated = "runner.updated";
+
+    /// <summary>A runner was deleted and its credential revoked; details: <c>name</c>.</summary>
+    public const string RunnerDeleted = "runner.deleted";
 }

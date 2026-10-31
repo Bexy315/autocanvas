@@ -22,9 +22,11 @@ This page describes what AutoCanvas protects and how. It grows with the server; 
   ([ADR-0011](../adr/0011-local-identity.md)). Everything from a client is untrusted input.
 - **Server → database**: the database is not trusted with secrets. A dump or a copied SQLite file
   reveals no secret values ([ADR-0013](../adr/0013-secrets-at-rest.md)).
-- **Server → runners** (*planned, S2*): runners authenticate with their own credentials and receive
-  resolved steps one at a time, including only the secrets those steps use
-  ([ADR-0008](../adr/0008-server-resolves-steps.md)).
+- **Server → runners**: runners authenticate with their own credentials on a port of their own
+  ([ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)) and receive resolved jobs and steps,
+  one step at a time, including only the secrets those steps use
+  ([ADR-0008](../adr/0008-server-resolves-steps.md)). An offered job's environment contains no
+  secrets; service containers get the secrets their environment names.
 
 ## Authentication
 
@@ -61,6 +63,14 @@ permissions (a disabled owner disables them), and are subject to the same passwo
 sessions. A token cannot create or list tokens, list sessions or change the password, so a leaked
 token cannot lock its owner out or create more tokens. Admins can list and delete any user's tokens.
 The `acp_` prefix lets secret scanners recognize leaked tokens.
+
+Runners register with a one-time registration token (`acrt_`, created by an admin, valid for 24
+hours by default and at most 30 days) and receive a runner credential (`acr_`). Both are 32 random
+bytes, shown once and stored only as SHA-256 hashes; a token registers one runner, also when two
+registrations race. Runner calls are checked by their own interceptor, which accepts only runner
+credentials: user sessions and API tokens never authenticate a runner, and runner credentials never
+authenticate the HTTP API. Deleting a runner revokes its credential, and a connected runner is told
+not to reconnect.
 
 ## Authorization
 

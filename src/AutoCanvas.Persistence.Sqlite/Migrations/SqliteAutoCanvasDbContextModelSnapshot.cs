@@ -550,6 +550,140 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Runners.Runner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Capabilities")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("capabilities");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("CredentialHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("credential_hash")
+                        .IsFixedLength();
+
+                    b.Property<string>("CredentialHint")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("credential_hint");
+
+                    b.Property<bool>("IsPaused")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_paused");
+
+                    b.Property<long?>("LastSeenAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_runners");
+
+                    b.HasIndex("CredentialHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_runners_credential_hash");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_runners_normalized_name");
+
+                    b.ToTable("runners", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("description");
+
+                    b.Property<long>("ExpiresAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Hint")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("hint");
+
+                    b.Property<Guid?>("RunnerId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("runner_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("token_hash")
+                        .IsFixedLength();
+
+                    b.Property<long?>("UsedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("used_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_runner_registration_tokens");
+
+                    b.HasIndex("RunnerId")
+                        .HasDatabaseName("ix_runner_registration_tokens_runner_id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_runner_registration_tokens_token_hash");
+
+                    b.ToTable("runner_registration_tokens", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Runs.JobAttempt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1062,6 +1196,15 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasConstraintName("fk_sessions_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runners.Runner", null)
+                        .WithMany()
+                        .HasForeignKey("RunnerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_runner_registration_tokens_runners_runner_id");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runs.JobAttempt", b =>

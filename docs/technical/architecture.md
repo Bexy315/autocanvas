@@ -26,9 +26,10 @@ machines where work runs.
 |---|---|---|
 | `AutoCanvas.Core` | Automation model, parsing, validation, expressions, orchestration decisions — pure code | model, parser, validator, expressions, orchestration decisions |
 | `AutoCanvas.Reports` | Reading test and coverage reports into a normalized model | test results (TRX, JUnit), coverage (Cobertura) |
-| `AutoCanvas.Server` | HTTP API, authentication, CLI subcommands; scheduling and job queue from S2 | host, configuration, health, problem details, OpenAPI ([API conventions](api.md)), authentication, database selection and master key, `migrate` and `admin` commands, audit retention |
+| `AutoCanvas.Server` | HTTP API, authentication, CLI subcommands, runner endpoint; scheduling from S2 | host, configuration, health, problem details, OpenAPI ([API conventions](api.md)), authentication, database selection and master key, `migrate` and `admin` commands, audit retention, runs API, job queue sweeper, runner gRPC services on their own port ([ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)) |
 | `AutoCanvas.Server.Application` | Use cases: identity, folders and permissions, automations, variables and secrets, audit | users, groups, sessions and tokens; folders and permissions; managed automations; variables, secrets and the master key; audit log and its queries |
 | `AutoCanvas.Persistence` | EF Core model shared by all databases; one project per provider (PostgreSQL, SQLite) with its migrations ([ADR-0010](../adr/0010-database-providers.md), [ADR-0014](../adr/0014-data-access-with-ef-core.md)) | complete S1 model, both providers, migrations |
+| `AutoCanvas.Protocol` | C# generated from the runner protocol in `proto/`: messages, server and client stubs | runner protocol v1 |
 | `AutoCanvas.Runner` | Reference runner implementing the runner protocol | planned (S2) |
 | Web UI | Canvas editor, runs, logs, reports, administration | planned (S3) |
 | `AutoCanvas.Forge` | Git and forge integrations | planned (S5) |

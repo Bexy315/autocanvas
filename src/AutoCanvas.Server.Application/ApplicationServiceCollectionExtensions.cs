@@ -5,6 +5,7 @@ using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Database;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
+using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -53,6 +54,12 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<RunService>();
         services.AddOptions<QueueOptions>();
         services.AddScoped<JobDispatcher>();
+        services.AddScoped<JobOfferBuilder>();
+
+        services.AddOptions<RunnerOptions>();
+        services.AddScoped<RunnerRegistrationService>();
+        services.AddScoped<RunnerService>();
+        services.AddScoped<RunnerConnectionService>();
         return services;
     }
 }
