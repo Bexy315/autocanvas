@@ -556,9 +556,34 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("id");
 
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("error");
+
                     b.Property<long?>("FinishedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("finished_at");
+
+                    b.Property<string>("Labels")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("labels");
+
+                    b.Property<long?>("LeaseExpiresAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lease_expires_at");
+
+                    b.Property<bool>("NeedsContainer")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("needs_container");
+
+                    b.Property<string>("NodeTypes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("node_types");
 
                     b.Property<long>("NotBefore")
                         .HasColumnType("INTEGER")
@@ -576,6 +601,10 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("run_job_id");
 
+                    b.Property<Guid?>("RunnerId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("runner_id");
+
                     b.Property<long?>("StartedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("started_at");
@@ -586,12 +615,22 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("status");
 
+                    b.Property<int>("TimeoutMinutes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("timeout_minutes");
+
                     b.HasKey("Id")
                         .HasName("pk_job_attempts");
 
                     b.HasIndex("RunJobId", "Number")
                         .IsUnique()
                         .HasDatabaseName("ix_job_attempts_run_job_id_number");
+
+                    b.HasIndex("RunnerId", "Status")
+                        .HasDatabaseName("ix_job_attempts_runner_id_status");
+
+                    b.HasIndex("Status", "LeaseExpiresAt")
+                        .HasDatabaseName("ix_job_attempts_status_lease_expires_at");
 
                     b.HasIndex("Status", "NotBefore")
                         .HasDatabaseName("ix_job_attempts_status_not_before");

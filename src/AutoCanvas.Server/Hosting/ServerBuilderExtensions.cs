@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using AutoCanvas.Server.Api;
 using AutoCanvas.Server.Application;
 using AutoCanvas.Server.Application.Audit;
+using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Authentication;
 using AutoCanvas.Server.Configuration;
 using AutoCanvas.Server.Database;
@@ -58,6 +59,12 @@ internal static class ServerBuilderExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<AuditOptions>, AuditOptionsValidator>();
         services.AddHostedService<AuditRetentionService>();
+
+        services.AddOptions<QueueOptions>()
+            .BindConfiguration(QueueOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
+        services.AddHostedService<QueueSweepService>();
 
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)

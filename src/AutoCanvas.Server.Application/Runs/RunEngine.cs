@@ -2,6 +2,7 @@ using AutoCanvas.Core;
 using AutoCanvas.Core.Model;
 using AutoCanvas.Core.Orchestration;
 using AutoCanvas.Persistence;
+using AutoCanvas.Persistence.Queue;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
@@ -80,8 +81,7 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
                 case StartJob:
                     job.Status = RunJobStatus.Running;
                     job.StartedAt = now;
-                    job.AttemptCount = 1;
-                    database.JobAttempts.Add(new JobAttempt { Id = Guid.CreateVersion7(now), RunJobId = job.Id, Number = 1, QueuedAt = now, NotBefore = now });
+                    Enqueue(automation, job, 1, now);
                     break;
                 case SkipJob skip:
                     Finish(job, RunJobStatus.Skipped, now, skip.Reason);
@@ -101,6 +101,52 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
                     throw new InvalidOperationException($"Unknown action {action.GetType().Name} for job '{action.JobId}' of '{automation.Name}'.");
             }
         }
+    }
+
+    /// <summary>
+    /// Queues the next attempt of a failed job if its <c>retry</c> allows one, after the retry delay.
+    /// </summary>
+    /// <returns>Whether an attempt was queued.</returns>
+    public bool Retry(Run run, RunJob job, int failedAttempt)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(job);
+        var automation = Load(run);
+        if (run.CancelRequested
+            || automation.Jobs.FirstOrDefault(j => string.Equals(j.Id, job.Key, StringComparison.Ordinal)) is not StepJob step
+            || RunPlanner.RetryDelay(step, failedAttempt) is not { } delay)
+        {
+            return false;
+        }
+
+        Enqueue(automation, job, failedAttempt + 1, time.GetUtcNow() + delay);
+        return true;
+    }
+
+    /// <summary>The job's time limit: its own, else the automation's, else <see cref="DefaultTimeoutMinutes"/>.</summary>
+    public const int DefaultTimeoutMinutes = 60;
+
+    /// <summary>
+    /// Queues an attempt with what a runner needs to take it: all <c>runs_on</c> labels, every node
+    /// type of its steps, a container executor for an image or services, and the time limit.
+    /// </summary>
+    private void Enqueue(AutomationDefinition automation, RunJob job, int number, DateTimeOffset notBefore)
+    {
+        var step = (StepJob)automation.Jobs.First(j => string.Equals(j.Id, job.Key, StringComparison.Ordinal));
+        var now = time.GetUtcNow();
+        job.AttemptCount = number;
+        database.JobAttempts.Add(new JobAttempt
+        {
+            Id = Guid.CreateVersion7(now),
+            RunJobId = job.Id,
+            Number = number,
+            QueuedAt = now,
+            NotBefore = notBefore,
+            Labels = JobRequirements.Write(step.RunsOn),
+            NodeTypes = JobRequirements.Write(step.Steps.OfType<NodeStep>().Select(n => n.Type)),
+            NeedsContainer = step.Image is not null || step.Services.Count > 0,
+            TimeoutMinutes = step.TimeoutMinutes ?? automation.TimeoutMinutes ?? DefaultTimeoutMinutes,
+        });
     }
 
     /// <summary>

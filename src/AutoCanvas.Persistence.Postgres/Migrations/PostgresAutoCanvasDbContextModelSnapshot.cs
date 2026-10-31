@@ -561,9 +561,34 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
                     b.Property<DateTimeOffset?>("FinishedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("finished_at");
+
+                    b.Property<string>("Labels")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("labels");
+
+                    b.Property<DateTimeOffset?>("LeaseExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_expires_at");
+
+                    b.Property<bool>("NeedsContainer")
+                        .HasColumnType("boolean")
+                        .HasColumnName("needs_container");
+
+                    b.Property<string>("NodeTypes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("node_types");
 
                     b.Property<DateTimeOffset>("NotBefore")
                         .HasColumnType("timestamp with time zone")
@@ -581,6 +606,10 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("run_job_id");
 
+                    b.Property<Guid?>("RunnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("runner_id");
+
                     b.Property<DateTimeOffset?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("started_at");
@@ -591,12 +620,22 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<int>("TimeoutMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("timeout_minutes");
+
                     b.HasKey("Id")
                         .HasName("pk_job_attempts");
 
                     b.HasIndex("RunJobId", "Number")
                         .IsUnique()
                         .HasDatabaseName("ix_job_attempts_run_job_id_number");
+
+                    b.HasIndex("RunnerId", "Status")
+                        .HasDatabaseName("ix_job_attempts_runner_id_status");
+
+                    b.HasIndex("Status", "LeaseExpiresAt")
+                        .HasDatabaseName("ix_job_attempts_status_lease_expires_at");
 
                     b.HasIndex("Status", "NotBefore")
                         .HasDatabaseName("ix_job_attempts_status_not_before");
