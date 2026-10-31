@@ -1,9 +1,7 @@
 using AutoCanvas.Core.Expressions;
-using AutoCanvas.Core.Model;
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Variables;
-using Microsoft.EntityFrameworkCore;
 
 namespace AutoCanvas.Server.Application.Runs;
 
@@ -23,19 +21,13 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
     /// </summary>
     public async Task<UseCaseResult<OfferedJob>> BuildAsync(Guid attemptId, CancellationToken cancellationToken)
     {
-        var attempt = await database.JobAttempts.AsNoTracking().FirstOrDefaultAsync(a => a.Id == attemptId, cancellationToken).ConfigureAwait(false);
-        if (attempt is null)
+        var context = await AttemptContext.LoadAsync(database, configuration, time, attemptId, track: false, cancellationToken).ConfigureAwait(false);
+        if (context is null)
         {
             return UseCase.Failure<OfferedJob>(UseCaseError.NotFound("The job attempt does not exist."));
         }
 
-        var job = await database.RunJobs.AsNoTracking().FirstAsync(j => j.Id == attempt.RunJobId, cancellationToken).ConfigureAwait(false);
-        var run = await database.Runs.AsNoTracking().FirstAsync(r => r.Id == job.RunId, cancellationToken).ConfigureAwait(false);
-        var jobs = await database.RunJobs.AsNoTracking().Where(j => j.RunId == run.Id).OrderBy(j => j.Position).ToListAsync(cancellationToken).ConfigureAwait(false);
-        var automation = RunEngine.Load(run);
-        var step = (StepJob)automation.Jobs.First(j => string.Equals(j.Id, job.Key, StringComparison.Ordinal));
-        var values = await new RunEngine(database, configuration, time).ValuesAsync(run, automation, jobs, cancellationToken).ConfigureAwait(false);
-
+        var (attempt, job, run, step, values) = context;
         var checkouts = new List<OfferedCheckout>();
         foreach (var repository in step.Checkout.Repositories)
         {
@@ -50,12 +42,21 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
         var services = new List<OfferedService>();
         foreach (var service in step.Services)
         {
-            if (service.Image is not { } image)
+            var env = RenderAll(service.Env, values, keepSecrets: true);
+            if (service.Preset is { } name)
             {
-                return Unsupported($"Service '{service.Name}' uses a preset, which AutoCanvas does not support yet; give it an image.");
-            }
+                var preset = ServicePresets.Of(name);
+                foreach (var (key, value) in preset.Env)
+                {
+                    env.TryAdd(key, value);
+                }
 
-            services.Add(new OfferedService(service.Name, Render(image, values), RenderAll(service.Env, values, keepSecrets: true), service.Ready, ServiceReadyTimeout));
+                services.Add(new OfferedService(service.Name, $"{preset.Image}:{service.Version ?? preset.DefaultVersion}", env, service.Ready ?? preset.Ready, ServiceReadyTimeout));
+            }
+            else
+            {
+                services.Add(new OfferedService(service.Name, new SecretReads(values).Render(service.Image!), env, service.Ready, ServiceReadyTimeout));
+            }
         }
 
         return UseCase.Success(new OfferedJob(
@@ -66,7 +67,7 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
             job.Key,
             job.Name,
             TimeSpan.FromMinutes(attempt.TimeoutMinutes),
-            step.Image is null ? null : Render(step.Image, values),
+            step.Image is null ? null : new SecretReads(values).Render(step.Image),
             checkouts,
             services,
             RenderAll(step.Env, values, keepSecrets: false),
@@ -75,38 +76,23 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
 
     private static UseCaseResult<OfferedJob> Unsupported(string message) => UseCase.Failure<OfferedJob>(UseCaseError.Invalid("job", message));
 
-    private static string Render(string text, IValueResolver values) => Template.Parse(text).Template.Render(values);
-
     /// <summary>
     /// Renders every value; without <paramref name="keepSecrets"/>, entries that read a secret are
-    /// left out — a job's environment is sent without secrets.
+    /// left out — a job's environment is sent without secrets, the steps get those entries.
     /// </summary>
-    private static Dictionary<string, string> RenderAll(IReadOnlyDictionary<string, string> entries, IValueResolver values, bool keepSecrets)
+    internal static Dictionary<string, string> RenderAll(IReadOnlyDictionary<string, string> entries, IValueResolver values, bool keepSecrets)
     {
         var rendered = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (name, text) in entries)
         {
-            var reader = new SecretReadTracker(values);
-            var value = Render(text, reader);
-            if (keepSecrets || !reader.ReadSecret)
+            var reads = new SecretReads(values);
+            var value = reads.Render(text);
+            if (keepSecrets || reads.Values.Count == 0)
             {
                 rendered[name] = value;
             }
         }
 
         return rendered;
-    }
-
-    /// <summary>Passes reads on and notes whether one of them was a secret.</summary>
-    private sealed class SecretReadTracker(IValueResolver inner) : IValueResolver
-    {
-        public bool ReadSecret { get; private set; }
-
-        public bool TryResolve(IReadOnlyList<string> path, out string? value)
-        {
-            ArgumentNullException.ThrowIfNull(path);
-            ReadSecret |= path is ["secrets", ..];
-            return inner.TryResolve(path, out value);
-        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using AutoCanvas.Persistence.Queue;
@@ -33,6 +34,9 @@ internal sealed partial class RunnerSession(
 
     private readonly Channel<ConnectResponse> outbox = Channel.CreateUnbounded<ConnectResponse>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Channel<bool> wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
+
+    // Attempts this stream has told to stop, so that CancelJob goes out once per stream.
+    private readonly ConcurrentDictionary<Guid, bool> cancelSent = new();
     private RunnerCapabilities capabilities = null!;
     private volatile bool draining;
 
@@ -61,7 +65,8 @@ internal sealed partial class RunnerSession(
         }, cancellationToken).ConfigureAwait(false);
         LogConnected(logger, runner.Name, runnerId, hello.ProtocolVersion);
 
-        await RenewAsync(hello.ActiveJobIds, "The job was given up while the runner was away.", cancellationToken).ConfigureAwait(false);
+        var continuing = await RenewAsync(hello.ActiveJobIds, "The job was given up while the runner was away.", cancellationToken).ConfigureAwait(false);
+        await ResumeAsync(continuing, cancellationToken).ConfigureAwait(false);
 
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         using var shutdown = serverStopping.Register(() => SayGoodbye("The server is shutting down.", ReconnectAfterShutdown));
@@ -162,9 +167,21 @@ internal sealed partial class RunnerSession(
                     draining = true;
                     LogDraining(logger, runnerId);
                     break;
+                case ConnectRequest.MessageOneofCase.JobPrepared:
+                    await PreparedAsync(message.JobPrepared, cancellationToken).ConfigureAwait(false);
+                    break;
+                case ConnectRequest.MessageOneofCase.StepStarted:
+                    await StepStartedAsync(message.StepStarted, cancellationToken).ConfigureAwait(false);
+                    break;
+                case ConnectRequest.MessageOneofCase.StepCompleted:
+                    await StepCompletedAsync(message.StepCompleted, cancellationToken).ConfigureAwait(false);
+                    break;
+                case ConnectRequest.MessageOneofCase.JobFinished:
+                    await FinishedAsync(message.JobFinished, cancellationToken).ConfigureAwait(false);
+                    break;
                 default:
-                    // Preparation, steps, logs and results are handled from S2 steps 4b and 5 on;
-                    // messages this server does not know are ignored (protocol versioning).
+                    // Logs are stored from S2 step 5 on; messages this server does not know are
+                    // ignored (protocol versioning).
                     break;
             }
         }
@@ -173,6 +190,7 @@ internal sealed partial class RunnerSession(
     private async Task HeartbeatAsync(Heartbeat heartbeat, CancellationToken cancellationToken)
     {
         await RenewAsync(heartbeat.ActiveJobIds, "The runner no longer holds this job.", cancellationToken).ConfigureAwait(false);
+        await SendCancellationsAsync(cancellationToken).ConfigureAwait(false);
         var scope = scopes.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
         {
@@ -187,12 +205,15 @@ internal sealed partial class RunnerSession(
         Wake();
     }
 
-    /// <summary>Renews the leases of the jobs the runner lists and cancels the ones it no longer holds.</summary>
-    private async Task RenewAsync(RepeatedField<string> jobIds, string reason, CancellationToken cancellationToken)
+    /// <summary>
+    /// Renews the leases of the jobs the runner lists and cancels the ones it no longer holds.
+    /// </summary>
+    /// <returns>The jobs it still holds.</returns>
+    private async Task<IReadOnlyList<Guid>> RenewAsync(RepeatedField<string> jobIds, string reason, CancellationToken cancellationToken)
     {
         if (jobIds.Count == 0)
         {
-            return;
+            return [];
         }
 
         var ids = jobIds.Select(ProtocolMapping.ToId).OfType<Guid>().ToList();
@@ -203,6 +224,101 @@ internal sealed partial class RunnerSession(
             foreach (var jobId in jobIds.Where(id => ProtocolMapping.ToId(id) is not { } parsed || givenUp.Contains(parsed)))
             {
                 Send(new ConnectResponse { CancelJob = new Protocol.Runner.V1.CancelJob { JobId = jobId, Reason = reason } });
+            }
+
+            return [.. ids.Where(id => !givenUp.Contains(id))];
+        }
+    }
+
+    /// <summary>
+    /// After a reconnect, sends each job the runner still holds whatever it may have missed: the
+    /// step it was sent, or <c>CompleteJob</c>. A runner ignores a step it has already started.
+    /// </summary>
+    private async Task ResumeAsync(IReadOnlyList<Guid> attemptIds, CancellationToken cancellationToken)
+    {
+        foreach (var attemptId in attemptIds)
+        {
+            await ProgressAsync(progress => progress.PendingAsync(attemptId, runnerId, cancellationToken)).ConfigureAwait(false);
+        }
+    }
+
+    private Task PreparedAsync(JobPrepared prepared, CancellationToken cancellationToken) =>
+        ProtocolMapping.ToId(prepared.JobId) is { } attemptId
+            ? ProgressAsync(progress => progress.PreparedAsync(attemptId, runnerId, prepared.Error, cancellationToken))
+            : Task.CompletedTask;
+
+    private async Task StepStartedAsync(StepStarted started, CancellationToken cancellationToken)
+    {
+        if (ProtocolMapping.ToId(started.JobId) is not { } attemptId)
+        {
+            return;
+        }
+
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            await scope.ServiceProvider.GetRequiredService<JobProgress>()
+                .StepStartedAsync(attemptId, runnerId, (int)Math.Min(started.StepIndex, int.MaxValue), started.StartedAt?.ToDateTimeOffset(), cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private Task StepCompletedAsync(StepCompleted completed, CancellationToken cancellationToken) =>
+        ProtocolMapping.ToId(completed.JobId) is { } attemptId
+            ? ProgressAsync(progress => progress.StepCompletedAsync(attemptId, runnerId, ProtocolMapping.ToReport(completed), cancellationToken))
+            : Task.CompletedTask;
+
+    private async Task FinishedAsync(JobFinished finished, CancellationToken cancellationToken)
+    {
+        if (ProtocolMapping.ToId(finished.JobId) is not { } attemptId)
+        {
+            return;
+        }
+
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            await scope.ServiceProvider.GetRequiredService<JobProgress>().FinishedAsync(attemptId, runnerId, [.. finished.Warnings], cancellationToken).ConfigureAwait(false);
+        }
+
+        cancelSent.TryRemove(attemptId, out _);
+
+        // The runner has room again.
+        Wake();
+    }
+
+    /// <summary>Runs a progress use case in its own scope and sends the instruction it returns.</summary>
+    private async Task ProgressAsync(Func<JobProgress, Task<JobInstruction?>> action)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            switch (await action(scope.ServiceProvider.GetRequiredService<JobProgress>()).ConfigureAwait(false))
+            {
+                case RunStepInstruction run:
+                    Send(new ConnectResponse { RunStep = new Protocol.Runner.V1.RunStep { JobId = run.AttemptId.ToString(), Step = ProtocolMapping.ToStep(run.Step) } });
+                    break;
+                case CompleteJobInstruction complete:
+                    Send(new ConnectResponse { CompleteJob = new CompleteJob { JobId = complete.AttemptId.ToString() } });
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Tells the runner to stop the jobs that were cancelled or ran out of time, once per stream.</summary>
+    private async Task SendCancellationsAsync(CancellationToken cancellationToken)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            foreach (var (attemptId, reason) in await scope.ServiceProvider.GetRequiredService<JobProgress>().CancellationsAsync(runnerId, cancellationToken).ConfigureAwait(false))
+            {
+                if (cancelSent.TryAdd(attemptId, true))
+                {
+                    Send(new ConnectResponse { CancelJob = new Protocol.Runner.V1.CancelJob { JobId = attemptId.ToString(), Reason = reason } });
+                }
             }
         }
     }
@@ -251,6 +367,8 @@ internal sealed partial class RunnerSession(
         {
             try
             {
+                // Cancelling a run or a time limit wakes this loop through the queue's signal.
+                await SendCancellationsAsync(cancellationToken).ConfigureAwait(false);
                 if (await TryOfferAsync(cancellationToken).ConfigureAwait(false))
                 {
                     continue;

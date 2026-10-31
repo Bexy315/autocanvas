@@ -72,6 +72,9 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Every try to execute a job; queued ones are the job queue.</summary>
     public DbSet<JobAttempt> JobAttempts => Set<JobAttempt>();
 
+    /// <summary>The steps of job attempts, as far as they got.</summary>
+    public DbSet<JobStep> JobSteps => Set<JobStep>();
+
     /// <summary>Registered runners.</summary>
     public DbSet<Runner> Runners => Set<Runner>();
 
@@ -111,6 +114,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RunConfiguration());
         modelBuilder.ApplyConfiguration(new RunJobConfiguration());
         modelBuilder.ApplyConfiguration(new JobAttemptConfiguration());
+        modelBuilder.ApplyConfiguration(new JobStepConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
     }

@@ -147,7 +147,9 @@ public sealed class JobDispatcher
 
     /// <summary>
     /// Cleans up after runners: offers nobody accepted go back to the queue, attempts whose runner
-    /// stopped renewing the lease or that ran past their time limit fail (and are retried if allowed).
+    /// stopped renewing the lease fail (and are retried if allowed). An attempt that runs past its
+    /// time limit is first stopped through its runner (<c>CancelJob</c>); if the runner has not
+    /// reported it finished one lease later, it fails here.
     /// </summary>
     /// <returns>How many attempts it changed.</returns>
     public async Task<int> SweepAsync(CancellationToken cancellationToken)
@@ -164,21 +166,41 @@ public sealed class JobDispatcher
 
         var running = await database.JobAttempts.AsNoTracking()
             .Where(a => a.Status == AttemptStatus.Running)
-            .Select(a => new { a.Id, a.LeaseExpiresAt, a.StartedAt, a.TimeoutMinutes })
+            .Select(a => new { a.Id, a.LeaseExpiresAt, a.StartedAt, a.TimeoutMinutes, a.TimedOut })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var stopping = 0;
         foreach (var attempt in running)
         {
-            var error = attempt.LeaseExpiresAt < now
-                ? "The runner stopped responding before the job finished."
-                : attempt.StartedAt + TimeSpan.FromMinutes(attempt.TimeoutMinutes) < now
-                    ? $"The job ran longer than its time limit of {attempt.TimeoutMinutes} minutes."
-                    : null;
+            var limit = attempt.StartedAt + TimeSpan.FromMinutes(attempt.TimeoutMinutes);
+            string? error = null;
+            if (attempt.LeaseExpiresAt < now)
+            {
+                error = "The runner stopped responding before the job finished.";
+            }
+            else if (limit < now && !attempt.TimedOut)
+            {
+                stopping += await database.JobAttempts
+                    .Where(a => a.Id == attempt.Id && a.Status == AttemptStatus.Running)
+                    .ExecuteUpdateAsync(set => set.SetProperty(a => a.TimedOut, true).SetProperty(a => a.CancelReason, $"The job ran longer than its time limit of {attempt.TimeoutMinutes} minutes."), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else if (limit + lease < now)
+            {
+                error = $"The job ran longer than its time limit of {attempt.TimeoutMinutes} minutes, and the runner did not stop it.";
+            }
+
             if (error is not null && await FinishAsync(attempt.Id, null, AttemptOutcome.Failed, error, cancellationToken).ConfigureAwait(false))
             {
                 changed++;
             }
         }
 
-        return changed;
+        if (stopping > 0)
+        {
+            // Wakes the sessions of the runners, which send CancelJob.
+            await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
+        }
+
+        return changed + stopping;
     }
 }

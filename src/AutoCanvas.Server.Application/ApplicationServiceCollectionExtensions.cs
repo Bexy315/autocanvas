@@ -55,6 +55,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddOptions<QueueOptions>();
         services.AddScoped<JobDispatcher>();
         services.AddScoped<JobOfferBuilder>();
+        services.AddScoped<JobProgress>();
 
         services.AddOptions<RunnerOptions>();
         services.AddScoped<RunnerRegistrationService>();

@@ -15,6 +15,7 @@ internal sealed class RunJobConfiguration : IEntityTypeConfiguration<RunJob>
         builder.Property(j => j.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(j => j.ActivatedCase).HasMaxLength(RunJob.MaxNameLength);
         builder.Property(j => j.Reason).HasMaxLength(RunJob.MaxReasonLength);
+        builder.Property(j => j.Outputs).HasMaxLength(RunJob.MaxOutputsLength);
         builder.HasIndex(j => new { j.RunId, j.Key }).IsUnique();
         builder.HasOne(j => j.Run).WithMany().HasForeignKey(j => j.RunId).OnDelete(DeleteBehavior.Cascade);
     }

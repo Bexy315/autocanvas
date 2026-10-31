@@ -12,6 +12,9 @@ public sealed class JobAttempt
     /// <summary>Column size of <see cref="Error"/>.</summary>
     public const int MaxErrorLength = 500;
 
+    /// <summary>Column size of <see cref="Warnings"/>.</summary>
+    public const int MaxWarningsLength = 4000;
+
     /// <summary>Time-ordered identifier (UUID version 7); the protocol's job id.</summary>
     public required Guid Id { get; init; }
 
@@ -56,6 +59,21 @@ public sealed class JobAttempt
 
     /// <summary>When it ended.</summary>
     public DateTimeOffset? FinishedAt { get; set; }
+
+    /// <summary>When the runner had the workspace, checkouts and services ready.</summary>
+    public DateTimeOffset? PreparedAt { get; set; }
+
+    /// <summary>
+    /// Why the runner was asked to stop the running attempt (the run was cancelled, or the job ran
+    /// out of time); <see langword="null"/> while it may go on.
+    /// </summary>
+    public string? CancelReason { get; set; }
+
+    /// <summary>The attempt is stopped because it exceeded its time limit: it fails rather than being cancelled.</summary>
+    public bool TimedOut { get; set; }
+
+    /// <summary>Problems the runner had collecting reports or cleaning up, as a JSON array.</summary>
+    public string? Warnings { get; set; }
 
     /// <summary>Navigation to the job.</summary>
     public RunJob? Job { get; init; }

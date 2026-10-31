@@ -695,6 +695,11 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("cancel_reason");
+
                     b.Property<string>("Error")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -732,6 +737,10 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("number");
 
+                    b.Property<DateTimeOffset?>("PreparedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("prepared_at");
+
                     b.Property<DateTimeOffset>("QueuedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("queued_at");
@@ -754,9 +763,18 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<bool>("TimedOut")
+                        .HasColumnType("boolean")
+                        .HasColumnName("timed_out");
+
                     b.Property<int>("TimeoutMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("timeout_minutes");
+
+                    b.Property<string>("Warnings")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("warnings");
 
                     b.HasKey("Id")
                         .HasName("pk_job_attempts");
@@ -775,6 +793,74 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasDatabaseName("ix_job_attempts_status_not_before");
 
                     b.ToTable("job_attempts", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.JobStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attempt_id");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("error");
+
+                    b.Property<int?>("ExitCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("exit_code");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer")
+                        .HasColumnName("index");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Outputs")
+                        .HasMaxLength(65536)
+                        .HasColumnType("character varying(65536)")
+                        .HasColumnName("outputs");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StepId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("step_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_job_steps");
+
+                    b.HasIndex("AttemptId", "Index")
+                        .IsUnique()
+                        .HasDatabaseName("ix_job_steps_attempt_id_index");
+
+                    b.ToTable("job_steps", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runs.Run", b =>
@@ -899,6 +985,11 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
+
+                    b.Property<string>("Outputs")
+                        .HasMaxLength(65536)
+                        .HasColumnType("character varying(65536)")
+                        .HasColumnName("outputs");
 
                     b.Property<int>("Position")
                         .HasColumnType("integer")
@@ -1222,6 +1313,18 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasConstraintName("fk_job_attempts_run_jobs_run_job_id");
 
                     b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.JobStep", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runs.JobAttempt", "Attempt")
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_job_steps_job_attempts_attempt_id");
+
+                    b.Navigation("Attempt");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runs.Run", b =>

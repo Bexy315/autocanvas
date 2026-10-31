@@ -12,6 +12,9 @@ public sealed class RunJob
     /// <summary>Column size of <see cref="Reason"/>.</summary>
     public const int MaxReasonLength = 500;
 
+    /// <summary>Column size of <see cref="Outputs"/>.</summary>
+    public const int MaxOutputsLength = 65536;
+
     /// <summary>Time-ordered identifier (UUID version 7).</summary>
     public required Guid Id { get; init; }
 
@@ -44,6 +47,12 @@ public sealed class RunJob
 
     /// <summary>When it finished.</summary>
     public DateTimeOffset? FinishedAt { get; set; }
+
+    /// <summary>
+    /// What the job published under its <c>outputs</c>, as a JSON object of strings, masked; from
+    /// its last attempt.
+    /// </summary>
+    public string? Outputs { get; set; }
 
     /// <summary>Navigation to the run.</summary>
     public Run? Run { get; init; }

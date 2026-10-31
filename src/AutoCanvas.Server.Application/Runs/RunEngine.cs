@@ -32,9 +32,11 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
     {
         var automation = Load(run);
 
-        // Loaded so that cancelling a job finds its queued attempt among the tracked entities.
+        // Loaded so that cancelling a job finds its unfinished attempt among the tracked entities.
         var jobIds = jobs.Select(j => j.Id).ToList();
-        await database.JobAttempts.Where(a => jobIds.Contains(a.RunJobId) && a.Status == AttemptStatus.Queued).LoadAsync(cancellationToken).ConfigureAwait(false);
+        await database.JobAttempts
+            .Where(a => jobIds.Contains(a.RunJobId) && (a.Status == AttemptStatus.Queued || a.Status == AttemptStatus.Offered || a.Status == AttemptStatus.Running))
+            .LoadAsync(cancellationToken).ConfigureAwait(false);
         Apply(automation, jobs, RunPlanner.Cancel(automation, State(run, jobs)));
         await AdvanceAsync(run, jobs, cancellationToken).ConfigureAwait(false);
     }
@@ -56,9 +58,8 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
         return jobs;
     }
 
-    internal static AutomationDefinition Load(Run run) =>
-        AutomationLoader.Load(run.Yaml).Definition
-            ?? throw new InvalidOperationException($"Run {run.Id} carries an automation file that does not load; only valid files are saved.");
+    /// <summary>The run's automation, parsed once per run and server (<see cref="RunDefinitions"/>).</summary>
+    internal static AutomationDefinition Load(Run run) => RunDefinitions.Get(run);
 
     private static CoreRunState State(Run run, IReadOnlyList<RunJob> jobs) =>
         new(jobs.ToDictionary(j => j.Key, j => new JobState(ToCore(j.Status), j.ActivatedCase, Math.Max(1, j.AttemptCount)), StringComparer.Ordinal), run.CancelRequested);
@@ -67,7 +68,8 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
     {
         var resolved = await configuration.ResolveForRunAsync(run.FolderId, run.AutomationId, automation.Variables, cancellationToken).ConfigureAwait(false);
         var status = RunOutcome.Describe(RunOutcome.OfMainJobs(automation, State(run, jobs)));
-        return new RunValues(run, resolved, status);
+        var outputs = jobs.Where(j => j.Outputs is not null).ToDictionary(j => j.Key, j => RunOutputs.Read(j.Outputs), StringComparer.Ordinal);
+        return new RunValues(run, resolved, status, outputs);
     }
 
     private void Apply(AutomationDefinition automation, IReadOnlyList<RunJob> jobs, IReadOnlyList<JobAction> actions)
@@ -150,15 +152,24 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
     }
 
     /// <summary>
-    /// Attempts no runner has taken are cancelled here; running ones are stopped through their
-    /// runner, which comes with S2 step 4.
+    /// Attempts no runner has started are cancelled here — a runner that accepts an offer now is told
+    /// it was withdrawn. A running attempt is stopped through its runner: it gets a reason, which its
+    /// runner's session sends as <c>CancelJob</c>, and catches up when the runner reports it finished.
     /// </summary>
     private void CancelQueuedAttempts(RunJob job, DateTimeOffset now)
     {
-        foreach (var attempt in database.JobAttempts.Local.Where(a => a.RunJobId == job.Id && a.Status == AttemptStatus.Queued).ToList())
+        foreach (var attempt in database.JobAttempts.Local.Where(a => a.RunJobId == job.Id).ToList())
         {
-            attempt.Status = AttemptStatus.Cancelled;
-            attempt.FinishedAt = now;
+            if (attempt.Status is AttemptStatus.Queued or AttemptStatus.Offered)
+            {
+                attempt.Status = AttemptStatus.Cancelled;
+                attempt.FinishedAt = now;
+                attempt.LeaseExpiresAt = null;
+            }
+            else if (attempt.Status == AttemptStatus.Running)
+            {
+                attempt.CancelReason ??= "The run was cancelled.";
+            }
         }
     }
 

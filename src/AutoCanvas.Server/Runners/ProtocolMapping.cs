@@ -1,4 +1,5 @@
 using AutoCanvas.Protocol.Runner.V1;
+using CoreStepOutcome = AutoCanvas.Core.Orchestration.StepOutcome;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
@@ -97,6 +98,60 @@ internal static class ProtocolMapping
         }
 
         return job;
+    }
+
+    /// <summary>A resolved step as sent in <see cref="RunStep"/>.</summary>
+    public static Step ToStep(ResolvedStep resolved)
+    {
+        ArgumentNullException.ThrowIfNull(resolved);
+        var step = new Step
+        {
+            Index = (uint)resolved.Index,
+            Id = resolved.StepId ?? string.Empty,
+            DisplayName = resolved.Name,
+        };
+        if (resolved.Timeout is { } timeout)
+        {
+            step.Timeout = Duration.FromTimeSpan(timeout);
+        }
+
+        foreach (var (name, value) in resolved.Env)
+        {
+            step.Env[name] = value;
+        }
+
+        step.MaskValues.Add(resolved.MaskValues);
+        if (resolved.Script is { } script)
+        {
+            step.Script = new ScriptAction { Shell = script.Shell, Script = script.Text, WorkingDirectory = script.WorkingDirectory ?? string.Empty };
+        }
+        else if (resolved.Node is { } node)
+        {
+            step.Node = new NodeAction { Type = node.Type, Inputs = Google.Protobuf.JsonParser.Default.Parse<Struct>(node.Inputs) };
+        }
+
+        return step;
+    }
+
+    /// <summary>What a runner reported about a step, as the application reads it.</summary>
+    public static StepReport ToReport(StepCompleted completed)
+    {
+        ArgumentNullException.ThrowIfNull(completed);
+        var outcome = completed.Outcome switch
+        {
+            Protocol.Runner.V1.StepOutcome.Succeeded => CoreStepOutcome.Succeeded,
+            Protocol.Runner.V1.StepOutcome.Failed => CoreStepOutcome.Failed,
+            Protocol.Runner.V1.StepOutcome.Cancelled => CoreStepOutcome.Cancelled,
+            Protocol.Runner.V1.StepOutcome.TimedOut => CoreStepOutcome.TimedOut,
+            _ => CoreStepOutcome.Errored,
+        };
+        return new StepReport(
+            (int)Math.Min(completed.StepIndex, int.MaxValue),
+            outcome,
+            completed.HasExitCode ? completed.ExitCode : null,
+            completed.Outputs.ToDictionary(o => o.Key, o => o.Value, StringComparer.Ordinal),
+            string.IsNullOrEmpty(completed.Error) ? null : completed.Error,
+            completed.FinishedAt?.ToDateTimeOffset());
     }
 
     /// <summary>Ids in messages are attempt or run UUIDs; anything else names nothing.</summary>

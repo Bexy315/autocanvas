@@ -52,9 +52,32 @@ public sealed class RunValuesTests
     [InlineData("trigger.body.deeper")]
     [InlineData("run.unknown")]
     [InlineData("vars.MISSING")]
-    [InlineData("steps.build.outputs.x")]
+    [InlineData("steps.build.result")]
     public void Unknown_paths_do_not_resolve(string path) =>
         Values.TryResolve(path.Split('.'), out _).ShouldBeFalse();
+
+    [Theory]
+    [InlineData("jobs.image.outputs.digest", "sha256:1")]
+    [InlineData("jobs.image.outputs.missing", null)]
+    [InlineData("jobs.other.outputs.digest", null)]
+    [InlineData("steps.build.outputs.tag", "v2")]
+    [InlineData("steps.later.outputs.tag", null)]
+    public void Outputs_of_jobs_and_earlier_steps_resolve_and_unset_ones_are_empty(string path, string? expected)
+    {
+        var jobs = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)
+        {
+            ["image"] = new Dictionary<string, string>(StringComparer.Ordinal) { ["digest"] = "sha256:1" },
+        };
+        var steps = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)
+        {
+            ["build"] = new Dictionary<string, string>(StringComparer.Ordinal) { ["tag"] = "v2" },
+        };
+        var values = new RunValues(Webhook, new ResolvedConfiguration(new Dictionary<string, string>(StringComparer.Ordinal), new Dictionary<string, string>(StringComparer.Ordinal)), "success", jobs).WithSteps(steps);
+
+        values.TryResolve(path.Split('.'), out var value).ShouldBeTrue();
+
+        value.ShouldBe(expected);
+    }
 
     [Theory]
     [InlineData(RunTriggerKind.Manual, "manual")]

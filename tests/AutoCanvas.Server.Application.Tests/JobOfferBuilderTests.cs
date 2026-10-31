@@ -95,14 +95,48 @@ public abstract class JobOfferBuilderTests(DatabaseProvider provider) : Identity
         offered.Timeout.ShouldBe(TimeSpan.FromMinutes(60));
     }
 
-    [Theory]
-    [InlineData("checkout:\n      - repository: self", "connected repository")]
-    [InlineData("services:\n      db:\n        preset: postgres", "preset")]
-    public async Task What_the_server_cannot_provide_yet_is_refused_with_a_reason(string part, string reason)
+    [Fact]
+    public async Task Checking_out_connected_repositories_is_refused_with_a_reason()
     {
-        var attempt = await StartAsync($"version: 1\ntriggers:\n  manual: true\njobs:\n  a:\n    {part}\n    steps:\n      - run: echo hi\n");
+        var attempt = await StartAsync("version: 1\ntriggers:\n  manual: true\njobs:\n  a:\n    checkout:\n      - repository: self\n    steps:\n      - run: echo hi\n");
 
-        (await BuildAsync(attempt)).ShouldFail(UseCaseErrorKind.Validation).Message.ShouldContain(reason);
+        (await BuildAsync(attempt)).ShouldFail(UseCaseErrorKind.Validation).Message.ShouldContain("connected repository");
+    }
+
+    [Fact]
+    public async Task Service_presets_bring_their_image_environment_and_readiness_check()
+    {
+        var attempt = await StartAsync("""
+            version: 1
+            triggers:
+              manual: true
+            jobs:
+              test:
+                services:
+                  db:
+                    preset: postgres
+                    version: 16
+                    env:
+                      POSTGRES_PASSWORD: test
+                  cache:
+                    preset: redis
+                  sql:
+                    preset: mysql
+                    ready: mysqladmin ping
+                steps:
+                  - run: echo test
+            """);
+
+        var services = (await BuildAsync(attempt)).ShouldSucceed().Services.ToDictionary(s => s.Name, StringComparer.Ordinal);
+
+        services["db"].Image.ShouldBe("postgres:16");
+        services["db"].Env["POSTGRES_PASSWORD"].ShouldBe("test");
+        services["db"].ReadyCommand.ShouldBe("pg_isready -U postgres");
+        services["cache"].Image.ShouldBe("redis:7");
+        services["cache"].ReadyCommand.ShouldBe("redis-cli ping");
+        services["sql"].Image.ShouldBe("mysql:8.4");
+        services["sql"].Env["MYSQL_ROOT_PASSWORD"].ShouldBe("mysql");
+        services["sql"].ReadyCommand.ShouldBe("mysqladmin ping");
     }
 
     [Fact]

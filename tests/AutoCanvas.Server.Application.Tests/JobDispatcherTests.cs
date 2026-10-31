@@ -197,7 +197,7 @@ public abstract class JobDispatcherTests(DatabaseProvider provider) : IdentityTe
     }
 
     [Fact]
-    public async Task Jobs_that_run_past_their_time_limit_fail()
+    public async Task Jobs_that_run_past_their_time_limit_are_stopped_through_their_runner_and_fail_if_it_does_not()
     {
         var run = await StartAsync("""
             version: 1
@@ -226,10 +226,24 @@ public abstract class JobDispatcherTests(DatabaseProvider provider) : IdentityTe
 
         Clock.Advance(TimeSpan.FromMinutes(3));
         (await DispatchAsync(d => d.SweepAsync(Cancel), TimeSpan.FromHours(1))).ShouldBe(1);
+        (await DispatchAsync(d => d.SweepAsync(Cancel), TimeSpan.FromHours(1))).ShouldBe(0);
 
-        var timedOut = await ReadAsync(db => db.JobAttempts.SingleAsync(a => a.Id == slow, Cancel));
-        timedOut.Error!.ShouldContain("time limit of 2 minutes");
+        var stopping = await ReadAsync(db => db.JobAttempts.SingleAsync(a => a.Id == slow, Cancel));
+        stopping.Status.ShouldBe(AttemptStatus.Running);
+        stopping.TimedOut.ShouldBeTrue();
+        stopping.CancelReason!.ShouldContain("time limit of 2 minutes");
         (await ReadAsync(db => db.JobAttempts.SingleAsync(a => a.Id == other, Cancel))).TimeoutMinutes.ShouldBe(5);
+
+        // The runner keeps renewing the lease but never stops the job: one lease after the limit it fails.
+        Clock.Advance(TimeSpan.FromMinutes(59));
+        await DispatchAsync(d => d.RenewAsync(runnerA, [slow, other], Cancel), TimeSpan.FromHours(1));
+        Clock.Advance(TimeSpan.FromMinutes(2));
+        (await DispatchAsync(d => d.SweepAsync(Cancel), TimeSpan.FromHours(1))).ShouldBe(2);
+
+        var failed = await ReadAsync(db => db.JobAttempts.SingleAsync(a => a.Id == slow, Cancel));
+        failed.Status.ShouldBe(AttemptStatus.Failed);
+        failed.Error!.ShouldContain("did not stop it");
+        (await ReadAsync(db => db.JobAttempts.SingleAsync(a => a.Id == other, Cancel))).TimedOut.ShouldBeTrue();
         (await ReadAsync(db => db.Runs.SingleAsync(r => r.Id == run, Cancel))).State.ShouldBe(RunState.Running);
     }
 
