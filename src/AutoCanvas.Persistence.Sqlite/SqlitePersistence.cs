@@ -1,3 +1,4 @@
+using AutoCanvas.Persistence.Queue;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,9 @@ public static class SqlitePersistence
     }
 
     /// <summary>Makes <see cref="AutoCanvasDbContext"/> resolve to the SQLite context.</summary>
-    public static IServiceCollection AddAutoCanvasSqlite(this IServiceCollection services, string connectionString) =>
-        services.AddDbContext<AutoCanvasDbContext, SqliteAutoCanvasDbContext>(options => options.UseAutoCanvasSqlite(connectionString));
+    public static IServiceCollection AddAutoCanvasSqlite(this IServiceCollection services, string connectionString)
+    {
+        services.AddSingleton<IJobClaimer, SqliteJobClaimer>();
+        return services.AddDbContext<AutoCanvasDbContext, SqliteAutoCanvasDbContext>(options => options.UseAutoCanvasSqlite(connectionString));
+    }
 }

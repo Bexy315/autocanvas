@@ -1,3 +1,4 @@
+using AutoCanvas.Persistence.Queue;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +15,9 @@ public static class PostgresPersistence
     }
 
     /// <summary>Makes <see cref="AutoCanvasDbContext"/> resolve to the PostgreSQL context.</summary>
-    public static IServiceCollection AddAutoCanvasPostgres(this IServiceCollection services, string connectionString) =>
-        services.AddDbContext<AutoCanvasDbContext, PostgresAutoCanvasDbContext>(options => options.UseAutoCanvasPostgres(connectionString));
+    public static IServiceCollection AddAutoCanvasPostgres(this IServiceCollection services, string connectionString)
+    {
+        services.AddSingleton<IJobClaimer, PostgresJobClaimer>();
+        return services.AddDbContext<AutoCanvasDbContext, PostgresAutoCanvasDbContext>(options => options.UseAutoCanvasPostgres(connectionString));
+    }
 }

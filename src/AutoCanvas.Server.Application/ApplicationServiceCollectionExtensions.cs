@@ -51,6 +51,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AuditRetention>();
 
         services.AddScoped<RunService>();
+        services.AddOptions<QueueOptions>();
+        services.AddScoped<JobDispatcher>();
         return services;
     }
 }

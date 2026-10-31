@@ -66,7 +66,7 @@ tests and publishes the results, which then appear on the run.
 | `description` | | Shown in the UI. |
 | `triggers` | | What starts a run (below). |
 | `variables` | | Values readable as `${{ vars.NAME }}`; they override folder variables of the same name. |
-| `timeout_minutes` | | Default time limit per job. |
+| `timeout_minutes` | | Default time limit per job; without it, 60 minutes. |
 | `concurrency` | | `parallel` (default) or `single`: a new run starts only when no other run of this automation is active. |
 | `changed_when` | | Expression telling whether a successful run changed anything; runs that did not are collapsed in the history. Useful for frequent checks. |
 | `jobs` | yes | The jobs, keyed by job id. |
@@ -111,7 +111,7 @@ Jobs without `needs` start in parallel. A job runs its steps one after another i
 | `steps` | The steps, at least one. |
 | `outputs` | Values published to later jobs: `digest: ${{ steps.build.outputs.digest }}`, read as `${{ jobs.image.outputs.digest }}`. Nothing else of a job is visible to other jobs. |
 | `reports` | Test and coverage files collected after the steps, even if a step failed: `format` (`junit`, `trx`, `cobertura`), `path` (glob or list of globs), optional `name`. See [Test reports](reports.md). |
-| `timeout_minutes` | Time limit for this job. |
+| `timeout_minutes` | Time limit for this job; a job that runs longer fails (and is retried if `retry` allows). |
 | `retry` | `max_attempts` (2–10, including the first) and optional `delay_seconds`. |
 | `finally` | Runs once every other job is done, whatever happened; `${{ run.status }}` tells how the run went. Cannot have `needs`. |
 | `on_cancel` | For a `finally` job: also run when the run is cancelled. |
