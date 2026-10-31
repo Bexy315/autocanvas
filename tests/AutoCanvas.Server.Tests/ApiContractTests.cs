@@ -43,7 +43,7 @@ public sealed class ApiContractTests
             return;
         }
 
-        Assert.Fail($"openapi/v1.json is out of date. Run the tests with {UpdateVariable}=1 to update it, then review and commit the change.");
+        Assert.Fail($"openapi/v1.json is out of date. Run the tests with {UpdateVariable}=1 to update it, then review and commit the change.\n{FirstDifference(committed, expected)}");
     }
 
     [Fact]
@@ -62,6 +62,24 @@ public sealed class ApiContractTests
             e.Metadata.GetMetadata<IEndpointNameMetadata>() != null
             && e.Metadata.GetMetadata<IEndpointSummaryMetadata>() != null
             && (e.Metadata.GetMetadata<IAllowAnonymous>() != null || e.Metadata.GetMetadata<IAuthorizeData>() != null));
+    }
+
+    // Names the first line that differs, so a mismatch that only happens elsewhere (e.g. in CI) can be understood from the log.
+    private static string FirstDifference(string? committed, string served)
+    {
+        var expected = (committed ?? string.Empty).Split('\n');
+        var actual = served.Split('\n');
+        for (var line = 0; line < Math.Max(expected.Length, actual.Length); line++)
+        {
+            var left = line < expected.Length ? expected[line] : "<end of file>";
+            var right = line < actual.Length ? actual[line] : "<end of file>";
+            if (!string.Equals(left, right, StringComparison.Ordinal))
+            {
+                return $"First difference in line {line + 1}:\n  committed: {left}\n  served:    {right}";
+            }
+        }
+
+        return "The documents differ only in line endings.";
     }
 
     private static string RepositoryRoot()
