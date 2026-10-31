@@ -56,9 +56,7 @@ public abstract class AuditApiTests(DatabaseProvider provider) : DatabaseTest(pr
     [Fact]
     public async Task Retention_must_not_be_negative()
     {
-        await using var factory = Factory().With("Audit:RetentionDays", "-1");
-
-        Should.Throw<OptionsValidationException>(() => factory.CreateClient()).Message.ShouldContain("Audit:RetentionDays");
+        (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Audit:RetentionDays", "-1"))).ShouldContain("Audit:RetentionDays");
     }
 
     private static Guid Id(JsonElement element) => element.GetProperty("id").GetGuid();

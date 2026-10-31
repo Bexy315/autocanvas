@@ -45,5 +45,14 @@ EULA in version 9, so check the exact version, not only the package.
 | Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL | PostgreSQL provider ([ADR-0014](../adr/0014-data-access-with-ef-core.md)) |
 | EFCore.NamingConventions | Apache-2.0 | snake_case table and column names |
 
+The documentation site (`docs-site/`, not shipped with the server) pins its npm packages exactly
+in `package.json` and `package-lock.json`; new versions are taken only once they have been
+published for at least two weeks. Besides Docusaurus and React (all MIT):
+
+| Package | License | Used for |
+|---|---|---|
+| @scalar/docusaurus | MIT | The [API reference](pathname:///autocanvas/api) page |
+| @scalar/api-reference | MIT | The viewer behind it, served from the site itself rather than a CDN; its connections to Scalar's services (toolbar, AI agent, telemetry, request proxy) are switched off |
+
 Local tools (`dotnet-tools.json`): ReportGenerator (Apache-2.0) for coverage summaries,
 nuget-license (Apache-2.0) for the license check, dotnet-ef (MIT) for generating migrations.

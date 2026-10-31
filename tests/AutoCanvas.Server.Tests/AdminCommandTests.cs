@@ -89,18 +89,16 @@ public abstract class AdminCommandTests(DatabaseProvider provider) : DatabaseTes
     [Fact]
     public async Task A_bootstrap_admin_that_cannot_be_created_stops_the_server()
     {
-        await using var factory = BootstrapFactory("root", "short");
+        var message = await ServerStart.FailsAsync<InvalidOperationException>(Database, ("Bootstrap:AdminUserName", "root"), ("Bootstrap:AdminPassword", "short"));
 
-        Should.Throw<InvalidOperationException>(() => factory.CreateClient()).Message.ShouldContain("at least 12 characters");
+        message.ShouldContain("at least 12 characters");
     }
 
     [Fact]
     public async Task Bootstrap_settings_need_both_name_and_password()
     {
-        await using var factory = new AutoCanvasFactory().WithDatabase(Database).With("Bootstrap:AdminUserName", "root");
-
-        Should.Throw<Microsoft.Extensions.Options.OptionsValidationException>(() => factory.CreateClient())
-            .Message.ShouldContain("must be set together");
+        (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, ("Bootstrap:AdminUserName", "root")))
+            .ShouldContain("must be set together");
     }
 
     private AutoCanvasFactory BootstrapFactory(string userName, string password) =>

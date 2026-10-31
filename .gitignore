@@ -12,6 +12,8 @@ node_modules/
 dist/
 docs-site/build/
 docs-site/static/schema/
+docs-site/static/openapi/
+docs-site/static/scalar/
 .docusaurus/
 
 # IDEs

@@ -87,6 +87,8 @@ are missing, `/health/ready` answers `503`.
 - **SQLite**: the database runs in write-ahead-log mode, so copying `autocanvas.db` alone while the
   server runs is not safe. Stop the server and copy `autocanvas.db` with its `-wal` and `-shm`
   files, or use `sqlite3 autocanvas.db ".backup backup.db"` while it runs.
+- **Master key**: back it up once, separately from the database backups (see [Master key](#master-key)).
+  A database backup without the key restores everything except the secrets.
 
 ## Master key
 
