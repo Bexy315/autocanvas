@@ -77,7 +77,7 @@ public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(pro
     }
 
     /// <summary>The master key the tests encrypt secrets with.</summary>
-    protected static MasterKey Key { get; } = MasterKey.Parse("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=", out _)!;
+    protected static MasterKey Key { get; } = MasterKey.Parse(Convert.ToBase64String([.. Enumerable.Range(0, 32).Select(i => (byte)i)]), out _)!;
 
     /// <summary>Runs a variable use case on a fresh context.</summary>
     protected async Task<T> VariablesAsync<T>(Func<VariableService, Task<T>> action)

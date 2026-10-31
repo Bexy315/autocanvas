@@ -23,7 +23,7 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
     private readonly SqliteTestDatabase ownDatabase = SqliteTestDatabase.Create();
 
     /// <summary>The master key test servers run with (bytes 0 to 31).</summary>
-    public const string MasterKey = "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=";
+    public static readonly string MasterKey = Convert.ToBase64String([.. Enumerable.Range(0, 32).Select(i => (byte)i)]);
 
     public AutoCanvasFactory()
     {

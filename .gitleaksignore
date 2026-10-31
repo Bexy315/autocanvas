@@ -1,3 +1,4 @@
-# Development placeholder key that was committed by mistake in PR #29 and replaced in the next
-# commit; it never protected anything. The branch is squash-merged, so main does not contain it.
+# Fixed keys for development and tests that were committed as literals in PR #29 and replaced in
+# later commits; they never protected anything. The branch is squash-merged, so main does not contain them.
 c70fa1dad1c9a5dd2d09c2940289d04dcc5bcdf0:src/AutoCanvas.Server/Properties/launchSettings.json:generic-api-key:10
+c70fa1dad1c9a5dd2d09c2940289d04dcc5bcdf0:tests/AutoCanvas.Server.Tests/AutoCanvasFactory.cs:generic-api-key:26
