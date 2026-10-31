@@ -11,8 +11,8 @@ The words MUST, SHOULD and MAY are used as in RFC 2119.
 
 :::note Specification
 
-The server implements registration, the control stream's handshake, heartbeats, offers and
-draining; steps, results and logs follow in S2. The reference runner is being built.
+The server implements registration, the control stream, offers, steps, results and cancellation;
+logs and reports follow in S2. The reference runner is being built.
 
 :::
 
@@ -101,7 +101,9 @@ server                                    runner
 - **Steps.** The server sends `RunStep` messages one at a time. For each, the runner sends
   `StepStarted`, streams logs, and sends `StepCompleted` with outcome, exit code and outputs. It
   MUST NOT start the next step before the server sends it. Steps whose condition is false are never
-  sent; step indexes can therefore skip numbers.
+  sent; step indexes can therefore skip numbers. After a reconnect the server sends the step or
+  `CompleteJob` a job may have missed again; a runner MUST ignore a `RunStep` for a step index it
+  has already started, and the server ignores a repeated `StepCompleted`.
 - **Complete.** `CompleteJob` means there are no more steps — because all ran, a step failed, or
   preparation failed. The runner collects the job's reports (also after failures), uploads them,
   removes the workspace and services, and sends `JobFinished`.

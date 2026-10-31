@@ -9,10 +9,10 @@ A **run** is one execution of an automation: its jobs, in the order and under th
 
 :::note Status
 
-Runs can be started, followed and cancelled through the HTTP API, and AutoCanvas decides which jobs
-start, are skipped or wait. Runners that execute the jobs, schedules and webhooks come in the
-following steps of this milestone; until then, jobs that should run stay *running* while they wait
-for a runner.
+Runs can be started, followed and cancelled through the HTTP API. The server hands jobs to
+[runners](runners.md) and decides every step; the reference runner, logs, reports, schedules and
+webhooks come in the following steps of this milestone. Until a runner is connected, jobs that
+should run stay *running* while they wait for one.
 
 :::
 
@@ -48,14 +48,40 @@ The run itself is **Running** until every job has finished, and then **Succeeded
 **Cancelled**.
 
 Expressions in a run read the values described in [Expressions](expressions.md): `trigger.*`,
-`run.*`, and the [variables and secrets](variables-and-secrets.md) of the instance, the
-automation's folders and its file.
+`run.*`, the [variables and secrets](variables-and-secrets.md) of the instance, the
+automation's folders and its file, the outputs of earlier steps and of the jobs a job needs.
+
+## How a job proceeds
+
+A runner takes a job, prepares its workspace, image and services, and then gets its steps **one at
+a time**. Before each step the server evaluates the step's `if` and every expression in it, with
+the outputs of the steps before it; a step whose condition is false is skipped and never sent.
+After a failed step the remaining steps are skipped, unless the failed step has
+`continue_on_error: true`. The job's result follows from its steps: it fails if a step failed
+(and may not), if the runner could not execute a step, or if preparation failed.
+
+When the job is decided, its `outputs` are evaluated and stored; jobs that need it read them as
+`${{ jobs.ID.outputs.NAME }}`. An output that was never set reads as empty.
+
+Secrets reach the runner only with the steps that use them, and the runner masks them in
+everything it sends back. The server masks them again: step and job outputs that contain a secret
+are stored with `***` in its place. Environment entries of a job that read a secret are given to
+each step instead of to the job as a whole.
+
+## Time limits
+
+A job's `timeout_minutes` (else the automation's, else 60 minutes) counts from the moment a runner
+takes it. When it is exceeded, the runner is told to stop the job and the job **fails**; if the
+runner does not report back within the lease (`Queue:LeaseDuration`), the job fails without it. A
+step's `timeout_minutes` is enforced by the runner; such a step counts as failed.
 
 ## Cancelling a run
 
-An **Operator** can cancel a running run. Every job that has not finished is cancelled; `finally`
-jobs with `on_cancel: true` still run afterwards, so the run finishes once they have. Cancelling a
-run that has already finished changes nothing.
+An **Operator** can cancel a running run. Every job that has not finished is cancelled: jobs
+waiting for a runner at once, running jobs by telling their runner to stop the current step (it
+gets a few seconds to end gracefully), collect reports and clean up. `finally` jobs with
+`on_cancel: true` still run afterwards, so the run finishes once they have. Cancelling a run that
+has already finished changes nothing.
 
 ## Who may do what
 

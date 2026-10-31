@@ -6,17 +6,36 @@ using AutoCanvas.Server.Application.Variables;
 namespace AutoCanvas.Server.Application.Runs;
 
 /// <summary>
-/// What a run's expressions read: <c>trigger.*</c>, <c>run.*</c>, <c>vars.*</c> and
-/// <c>secrets.*</c>. Step outputs and <c>steps.*</c> come with the runner (S2 step 4).
+/// What a run's expressions read: <c>trigger.*</c>, <c>run.*</c>, <c>vars.*</c>, <c>secrets.*</c>,
+/// the outputs of finished jobs (<c>jobs.ID.outputs.NAME</c>) and, inside a job attempt, the outputs
+/// of its earlier steps (<c>steps.ID.outputs.NAME</c>). <c>jobs.ID.result</c> comes from Core's
+/// planners, which know the jobs' states.
 /// </summary>
-internal sealed class RunValues(Run run, ResolvedConfiguration configuration, string status) : IValueResolver
+internal sealed class RunValues(
+    Run run,
+    ResolvedConfiguration configuration,
+    string status,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? jobOutputs = null,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? stepOutputs = null) : IValueResolver
 {
+    private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> None =
+        new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
+
+    /// <summary>The run's secrets, for masking what comes back from runners.</summary>
+    public IReadOnlyDictionary<string, string> Secrets => configuration.Secrets;
+
+    /// <summary>The same values, inside a job attempt whose steps so far published these outputs.</summary>
+    public RunValues WithSteps(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> steps) =>
+        new(run, configuration, status, jobOutputs, steps);
+
     public bool TryResolve(IReadOnlyList<string> path, out string? value)
     {
         ArgumentNullException.ThrowIfNull(path);
         value = null;
         return path switch
         {
+            ["jobs", var job, "outputs", var name] => Output(jobOutputs ?? None, job, name, out value),
+            ["steps", var step, "outputs", var name] => Output(stepOutputs ?? None, step, name, out value),
             ["vars", var name] => configuration.Variables.TryGetValue(name, out value),
             ["secrets", var name] => configuration.Secrets.TryGetValue(name, out value),
             ["run", var field] => Run(field, out value),
@@ -34,6 +53,16 @@ internal sealed class RunValues(Run run, ResolvedConfiguration configuration, st
         RunTriggerKind.Webhook => "webhook",
         _ => "automation_completed",
     };
+
+    /// <summary>
+    /// An output of a job or step. One that was not set reads as empty: what a script writes to its
+    /// output file is only known at run time, so the file's references cannot all be checked on save.
+    /// </summary>
+    private static bool Output(IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> outputs, string owner, string name, out string? value)
+    {
+        value = outputs.TryGetValue(owner, out var published) && published.TryGetValue(name, out var found) ? found : null;
+        return true;
+    }
 
     private static bool Found(string? found, out string? value)
     {

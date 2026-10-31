@@ -146,6 +146,15 @@ services:
 A service uses either a `preset`, which brings a known image, environment and readiness check, or
 an `image`. Services are removed with everything they stored when the job ends.
 
+| Preset | Image (default `version`) | Environment | Ready when |
+|---|---|---|---|
+| `postgres` | `postgres:17` | `POSTGRES_PASSWORD=postgres` | `pg_isready -U postgres` succeeds |
+| `mysql` | `mysql:8.4` | `MYSQL_ROOT_PASSWORD=mysql` | `mysqladmin ping` succeeds |
+| `redis` | `redis:7` | — | `redis-cli ping` succeeds |
+
+`version` replaces the image tag, `env` adds to or overrides the preset's environment, and `ready`
+replaces its readiness check. A service gets two minutes to become ready.
+
 ## Steps
 
 A step either runs a script or uses a node type.

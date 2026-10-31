@@ -14,6 +14,8 @@ internal sealed class JobAttemptConfiguration : IEntityTypeConfiguration<JobAtte
         builder.Property(a => a.Labels).HasMaxLength(JobAttempt.MaxRequirementLength);
         builder.Property(a => a.NodeTypes).HasMaxLength(JobAttempt.MaxRequirementLength);
         builder.Property(a => a.Error).HasMaxLength(JobAttempt.MaxErrorLength);
+        builder.Property(a => a.CancelReason).HasMaxLength(JobAttempt.MaxErrorLength);
+        builder.Property(a => a.Warnings).HasMaxLength(JobAttempt.MaxWarningsLength);
         builder.HasIndex(a => new { a.RunJobId, a.Number }).IsUnique();
         builder.HasOne(a => a.Job).WithMany().HasForeignKey(a => a.RunJobId).OnDelete(DeleteBehavior.Cascade);
 

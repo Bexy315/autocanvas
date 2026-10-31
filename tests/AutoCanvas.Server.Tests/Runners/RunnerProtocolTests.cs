@@ -281,9 +281,8 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
                 jobs:
                   test:
                     runs_on: linux
-                    services:
-                      db:
-                        preset: postgres
+                    checkout:
+                      - repository: self
                     steps:
                       - run: echo test
                 """);
@@ -348,6 +347,125 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
         await upload.RequestStream.CompleteAsync();
 
         (await Should.ThrowAsync<RpcException>(upload.ResponseAsync)).StatusCode.ShouldBe(StatusCode.Unimplemented);
+    }
+
+    [Fact]
+    public async Task A_job_runs_step_by_step_and_its_result_decides_the_run()
+    {
+        await using var factory = Factory();
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var (stream, _) = await client.ConnectAsync(await RegisterAsync(client, admin, "build-1"));
+        using (stream)
+        {
+            var run = await StartRunAsync(admin, """
+                version: 1
+                triggers:
+                  manual: true
+                jobs:
+                  build:
+                    runs_on: linux
+                    steps:
+                      - id: version
+                        run: echo tag=v7 >> $AUTOCANVAS_OUTPUT
+                      - run: echo ${{ steps.version.outputs.tag }}
+                """);
+            var job = (await stream.ReadAsync()).JobOffer.Job.JobId;
+            await stream.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await stream.SendAsync(new ConnectRequest { JobPrepared = new JobPrepared { JobId = job } });
+            var first = (await stream.ReadAsync()).RunStep;
+            await stream.SendAsync(new ConnectRequest { StepStarted = new StepStarted { JobId = job, StepIndex = 0 } });
+            await stream.SendAsync(Completed(job, 0, Protocol.Runner.V1.StepOutcome.Succeeded, ("tag", "v7")));
+            var second = (await stream.ReadAsync()).RunStep;
+            await stream.SendAsync(Completed(job, 1, Protocol.Runner.V1.StepOutcome.Succeeded));
+            var complete = (await stream.ReadAsync()).CompleteJob;
+            await stream.SendAsync(new ConnectRequest { JobFinished = new JobFinished { JobId = job } });
+
+            first.JobId.ShouldBe(job);
+            first.Step.Index.ShouldBe(0u);
+            first.Step.Id.ShouldBe("version");
+            first.Step.Script.Shell.ShouldBe("bash");
+            second.Step.Index.ShouldBe(1u);
+            second.Step.Script.Script.ShouldBe("echo v7");
+            complete.JobId.ShouldBe(job);
+            await RunStateAsync(admin, run, "Succeeded");
+        }
+    }
+
+    [Fact]
+    public async Task Cancelling_a_run_sends_cancel_job_to_the_runner_of_its_running_job()
+    {
+        await using var factory = Factory();
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var (stream, _) = await client.ConnectAsync(await RegisterAsync(client, admin, "build-1"));
+        using (stream)
+        {
+            var run = await StartRunAsync(admin, OneJob);
+            var job = (await stream.ReadAsync()).JobOffer.Job.JobId;
+            await stream.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await stream.SendAsync(new ConnectRequest { JobPrepared = new JobPrepared { JobId = job } });
+            (await stream.ReadAsync()).MessageCase.ShouldBe(ConnectResponse.MessageOneofCase.RunStep);
+
+            (await admin.PostAsync(Uri($"/api/v1/runs/{run}/cancel"), null, Cancel)).EnsureSuccessStatusCode();
+            var cancel = (await stream.ReadAsync()).CancelJob;
+            await stream.SendAsync(Completed(job, 0, Protocol.Runner.V1.StepOutcome.Cancelled));
+            await stream.SendAsync(new ConnectRequest { JobFinished = new JobFinished { JobId = job } });
+
+            cancel.JobId.ShouldBe(job);
+            cancel.Reason.ShouldBe("The run was cancelled.");
+            await EventuallyAsync(factory, Guid.Parse(job), a => a.Status == AttemptStatus.Cancelled);
+            (await stream.TryReadAsync(Quiet)).ShouldBeNull();
+        }
+    }
+
+    [Fact]
+    public async Task After_a_reconnect_the_step_the_runner_may_have_missed_is_sent_again()
+    {
+        await using var factory = Factory();
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var credential = await RegisterAsync(client, admin, "build-1");
+        string job;
+        var (first, _) = await client.ConnectAsync(credential);
+        using (first)
+        {
+            await StartRunAsync(admin, OneJob);
+            job = (await first.ReadAsync()).JobOffer.Job.JobId;
+            await first.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await first.SendAsync(new ConnectRequest { JobPrepared = new JobPrepared { JobId = job } });
+            (await first.ReadAsync()).MessageCase.ShouldBe(ConnectResponse.MessageOneofCase.RunStep);
+        }
+
+        var (second, _) = await client.ConnectAsync(credential, ProtocolClient.Hello(null, job));
+        using (second)
+        {
+            var resent = (await second.ReadAsync()).RunStep;
+
+            resent.JobId.ShouldBe(job);
+            resent.Step.Index.ShouldBe(0u);
+        }
+    }
+
+    private static ConnectRequest Completed(string job, uint index, Protocol.Runner.V1.StepOutcome outcome, params (string Name, string Value)[] outputs)
+    {
+        var completed = new StepCompleted { JobId = job, StepIndex = index, Outcome = outcome };
+        foreach (var (name, value) in outputs)
+        {
+            completed.Outputs[name] = value;
+        }
+
+        return new ConnectRequest { StepCompleted = completed };
+    }
+
+    private static async Task RunStateAsync(HttpClient client, Guid run, string state)
+    {
+        var until = DateTimeOffset.UtcNow + RunnerStream.Patience;
+        while (!string.Equals((await (await client.GetAsync(Uri($"/api/v1/runs/{run}"), Cancel)).JsonAsync()).GetProperty("state").GetString(), state, StringComparison.Ordinal))
+        {
+            DateTimeOffset.UtcNow.ShouldBeLessThan(until, $"The run did not become {state} in time.");
+            await Task.Delay(50, Cancel);
+        }
     }
 
     private static async Task<string> TokenAsync(HttpClient admin)

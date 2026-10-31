@@ -11,8 +11,9 @@ job succeeded.
 
 :::note Status
 
-The server side is in place: runners register, connect and are offered jobs. The reference runner
-that executes them, steps with their results, and logs follow in the next steps of S2. Until then
+The server side is in place: runners register, connect, are offered jobs and get their steps one
+at a time (see [How a job proceeds](runs.md#how-a-job-proceeds)). The reference runner that
+executes them, logs and reports follow in the next steps of S2. Until then
 the HTTP API below is how runners are managed; the web UI comes with S3.
 
 :::
