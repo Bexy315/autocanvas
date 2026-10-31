@@ -22,6 +22,7 @@ numbers. Results land in `BenchmarkDotNet.Artifacts/` (or the folder given with 
 | `LoadBenchmarks` | Reading automation files: parsing, validation, both. The sample has 10 or 100 jobs with 10 steps each, services, needs, conditions and expressions throughout (`SampleAutomation`). |
 | `ExpressionBenchmarks` | Parsing a condition, evaluating a parsed one, rendering a parsed template, parsing and rendering in one go. |
 | `PlannerBenchmarks` | `RunPlanner.Plan` on a run with half of its jobs done — what the server does every time a job finishes. |
+| `DispatchBenchmarks` | Dispatch latency: from saving a queued attempt to a waiting dispatcher having claimed it — save, notify, wake, claim. SQLite always; PostgreSQL when `AUTOCANVAS_BENCH_POSTGRES` holds a connection string to an empty database it may migrate, fill and drop. |
 | `ReportBenchmarks` | Reading a test report of 10,000 tests, one in ten failing with a 20-line stack trace and output, as JUnit and as TRX; and a Cobertura report of 2,000 classes with 50 lines each. |
 
 ## Baseline
@@ -44,10 +45,16 @@ Measured on 2026-10-30 with `--job short` on an Intel Core i5-13400F, Windows 11
 | Read JUnit report | 10,000 tests | 20 ms | 23 MB |
 | Read TRX report | 10,000 tests | 45 ms | 30 MB |
 | Read Cobertura report | 2,000 classes, 100,000 lines | 70–90 ms¹ | 49 MB |
+| Queue to claim, SQLite | one attempt | 2.5 ms² | — |
+| Queue to claim, PostgreSQL 17 | one attempt | 6.8 ms² | — |
 
 ¹ Measured on 2026-10-30 in two runs while the machine was busy (JUnit and TRX, unchanged since
 the baseline, measured 30–35 ms and 75–80 ms in the same runs). Re-measure on a quiet machine
 before comparing.
+
+² Measured on 2026-10-31; PostgreSQL in a local container with its data in memory. The dispatcher
+runs on the same server, so it is woken in the process; a dispatcher on another server is woken
+by `LISTEN/NOTIFY` in addition.
 
 ## Observations
 
@@ -67,5 +74,8 @@ before comparing.
 - **Coverage allocates the most per input.** Each class is materialized with all of its lines,
   and every line goes into a dictionary to merge generated classes; about 0.5 KB per line. Fine
   for typical projects; a candidate if very large monorepo reports become common.
+- **Dispatching is bounded by the database.** Queueing a job and having a waiting dispatcher claim
+  it takes a few milliseconds — two round trips to save, notify and claim — so a runner gets new
+  work right away instead of after a polling interval.
 - **Planning is cheap.** Deciding the next actions of a 100-job run takes microseconds, far below
   the database work around it.

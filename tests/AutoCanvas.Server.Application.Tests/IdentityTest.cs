@@ -1,6 +1,9 @@
 using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Identity;
+using AutoCanvas.Persistence.Postgres;
+using AutoCanvas.Persistence.Queue;
+using AutoCanvas.Persistence.Sqlite;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Automations;
 using AutoCanvas.Server.Application.Variables;
@@ -17,6 +20,8 @@ namespace AutoCanvas.Server.Application.Tests;
 /// <summary>Base for identity use case tests: a migrated database, a cheap hasher and a clock.</summary>
 public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(provider), IAsyncLifetime
 {
+    private IJobSignal? signal;
+
     protected static readonly PasswordHasher Hasher = new(new PasswordHashingOptions { Iterations = 1_000 });
 
     protected FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero));
@@ -120,13 +125,18 @@ public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(pro
         }
     }
 
+    /// <summary>The job signal of the test's database provider, shared by its use cases like a server's.</summary>
+    protected IJobSignal Signal => signal ??= Provider == DatabaseProvider.Postgres
+        ? new PostgresJobSignal(Database.ConnectionString)
+        : new SqliteJobSignal();
+
     /// <summary>Runs a run use case on a fresh context.</summary>
     protected async Task<T> RunsAsync<T>(Func<RunService, Task<T>> action)
     {
         var context = Database.CreateContext();
         await using (context)
         {
-            return await action(new RunService(context, new ConfigurationService(context, new SecretCipher(Key)), new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+            return await action(new RunService(context, Signal, new ConfigurationService(context, new SecretCipher(Key)), new AuditLog(context, new SystemAuditContext(), Clock), Clock));
         }
     }
 

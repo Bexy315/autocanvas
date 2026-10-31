@@ -3,6 +3,7 @@ using AutoCanvas.Core;
 using AutoCanvas.Core.Model;
 using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Folders;
+using AutoCanvas.Persistence.Queue;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Common;
@@ -22,16 +23,18 @@ public sealed class RunService
     private const int NumberAttempts = 3;
 
     private readonly AutoCanvasDbContext database;
+    private readonly IJobSignal signal;
     private readonly IAuditLog audit;
     private readonly TimeProvider time;
     private readonly FolderAccess access;
     private readonly RunEngine engine;
 
     /// <summary>Creates the service for one unit of work.</summary>
-    public RunService(AutoCanvasDbContext database, ConfigurationService configuration, IAuditLog audit, TimeProvider time)
+    public RunService(AutoCanvasDbContext database, IJobSignal signal, ConfigurationService configuration, IAuditLog audit, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(database);
         this.database = database;
+        this.signal = signal;
         this.audit = audit;
         this.time = time;
         access = new FolderAccess(database);
@@ -81,6 +84,9 @@ public sealed class RunService
         await engine.CancelAsync(run, jobs, cancellationToken).ConfigureAwait(false);
         audit.Record(Entry(AuditActions.RunCancelled, run));
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        // Finally jobs that run on cancel may have been queued.
+        await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
         return await GetAsync(actor, runId, cancellationToken).ConfigureAwait(false);
     }
 
@@ -220,6 +226,7 @@ public sealed class RunService
         await engine.AdvanceAsync(run, jobs, cancellationToken).ConfigureAwait(false);
         audit.Record(Entry(AuditActions.RunStarted, run));
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
         return await GetAsync(actor, run.Id, cancellationToken).ConfigureAwait(false);
     }
 

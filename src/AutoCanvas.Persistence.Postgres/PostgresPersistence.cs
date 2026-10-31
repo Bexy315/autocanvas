@@ -18,6 +18,7 @@ public static class PostgresPersistence
     public static IServiceCollection AddAutoCanvasPostgres(this IServiceCollection services, string connectionString)
     {
         services.AddSingleton<IJobClaimer, PostgresJobClaimer>();
+        services.AddSingleton<IJobSignal>(new PostgresJobSignal(connectionString));
         return services.AddDbContext<AutoCanvasDbContext, PostgresAutoCanvasDbContext>(options => options.UseAutoCanvasPostgres(connectionString));
     }
 }
