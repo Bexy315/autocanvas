@@ -68,6 +68,7 @@ public abstract class ReportIngestionTests(DatabaseProvider provider) : Identity
     private readonly IJobClaimer claimer = provider == DatabaseProvider.Postgres ? new PostgresJobClaimer() : new SqliteJobClaimer();
     private readonly Guid runner = Guid.CreateVersion7();
     private Actor owner = null!;
+    private Guid automation;
 
     [Fact]
     public async Task Test_reports_are_stored_with_their_counts_and_masked_texts()
@@ -197,13 +198,111 @@ public abstract class ReportIngestionTests(DatabaseProvider provider) : Identity
         (await ListAsync(owner, Guid.CreateVersion7())).ShouldFail(UseCaseErrorKind.NotFound);
     }
 
+    [Fact]
+    public async Task The_tests_of_a_report_come_by_page_and_by_outcome()
+    {
+        var (run, attempt) = await StartAsync();
+        var id = await UploadAsync(attempt, ReportFormat.JUnit, "Unit tests", "reports/junit.xml", JUnit);
+        var (otherRun, _) = await NextRunAsync();
+
+        var first = (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, null, new PageRequest(2), Cancel))).ShouldSucceed();
+        var rest = (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, null, new PageRequest(2, first.Next), Cancel))).ShouldSucceed();
+        var failed = (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, "FAILED", new PageRequest(), Cancel))).ShouldSucceed();
+        var detail = (await ReadReportsAsync(r => r.GetAsync(owner, run, id, Cancel))).ShouldSucceed();
+        var stranger = await ActorAsync("stranger");
+
+        first.Items.Select(c => c.Name).ShouldBe(["sums", "pays"]);
+        first.Next.ShouldBe("1");
+        rest.Items.ShouldHaveSingleItem().Name.ShouldBe("later");
+        rest.Next.ShouldBeNull();
+        var test = failed.Items.ShouldHaveSingleItem();
+        test.FullName.ShouldBe("shop.CartTest.pays");
+        test.Message.ShouldBe("token *** was refused");
+        test.StackTrace.ShouldBe("stack");
+        test.Group.ShouldBe("Cart");
+        detail.Report.Id.ShouldBe(id);
+        detail.Packages.ShouldBeEmpty();
+        (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, "broken", new PageRequest(), Cancel))).ShouldFail(UseCaseErrorKind.Validation);
+        (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, "7", new PageRequest(), Cancel))).ShouldFail(UseCaseErrorKind.Validation);
+        (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, null, new PageRequest(Cursor: "x"), Cancel))).ShouldFail(UseCaseErrorKind.Validation);
+        (await ReadReportsAsync(r => r.TestsAsync(owner, run, id, null, new PageRequest(0), Cancel))).ShouldFail(UseCaseErrorKind.Validation);
+        (await ReadReportsAsync(r => r.TestsAsync(owner, otherRun, id, null, new PageRequest(), Cancel))).ShouldFail(UseCaseErrorKind.NotFound);
+        (await ReadReportsAsync(r => r.GetAsync(stranger, run, id, Cancel))).ShouldFail(UseCaseErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task Coverage_comes_by_package_and_class()
+    {
+        var (run, attempt) = await StartAsync();
+        var id = await UploadAsync(attempt, ReportFormat.Cobertura, "cobertura", "coverage.xml", """
+            <coverage><packages>
+              <package name="shop"><classes><class name="Cart" filename="cart.py"><lines><line number="1" hits="1"/></lines></class></classes></package>
+              <package name="web"><classes>
+                <class name="Page" filename="page.py"><lines><line number="1" hits="0"/><line number="2" hits="0"/></lines></class>
+                <class name="Form" filename="form.py"><lines><line number="4" hits="1"/></lines></class>
+              </classes></package>
+            </packages></coverage>
+            """);
+
+        var detail = (await ReadReportsAsync(r => r.GetAsync(owner, run, id, Cancel))).ShouldSucceed();
+        var web = (await ReadReportsAsync(r => r.ClassesAsync(owner, run, id, 1, new PageRequest(1), Cancel))).ShouldSucceed();
+        var all = (await ReadReportsAsync(r => r.ClassesAsync(owner, run, id, null, new PageRequest(), Cancel))).ShouldSucceed();
+
+        detail.Packages.Select(p => (p.Index, p.Name, p.Coverage.LinesValid)).ShouldBe([(0, "shop", 1), (1, "web", 3)]);
+        web.Items.ShouldHaveSingleItem().Name.ShouldBe("Form");
+        var rest = (await ReadReportsAsync(r => r.ClassesAsync(owner, run, id, 1, new PageRequest(1, web.Next), Cancel))).ShouldSucceed();
+        var page = rest.Items.ShouldHaveSingleItem();
+        page.Name.ShouldBe("Page");
+        page.Package.ShouldBe(1);
+        page.Uncovered.ShouldBe("1-2");
+        page.Coverage.LineRate.ShouldBe(0);
+        rest.Next.ShouldBeNull();
+        all.Items.Select(c => c.Name).ShouldBe(["Cart", "Form", "Page"]);
+        (await ReadReportsAsync(r => r.ClassesAsync(owner, run, id, null, new PageRequest(Cursor: "-1"), Cancel))).ShouldFail(UseCaseErrorKind.Validation);
+        (await ReadReportsAsync(r => r.ClassesAsync(owner, run, Guid.CreateVersion7(), null, new PageRequest(), Cancel))).ShouldFail(UseCaseErrorKind.NotFound);
+    }
+
+    [Fact]
+    public async Task The_history_of_a_test_follows_it_across_runs()
+    {
+        var (_, first) = await StartAsync();
+        await UploadAsync(first, ReportFormat.JUnit, "Unit tests", "reports/junit.xml", JUnit);
+        await DispatchAsync(d => d.FinishAsync(first, runner, AttemptOutcome.Succeeded, null, Cancel));
+        var (secondRun, second) = await NextRunAsync();
+        await UploadAsync(second, ReportFormat.JUnit, "Unit tests", "reports/junit.xml", """<testsuite><testcase classname="shop.CartTest" name="pays" time="2"/></testsuite>""");
+        var stranger = await ActorAsync("stranger");
+
+        var history = (await HistoryAsync(owner, automation, "shop.CartTest.pays", null)).ShouldSucceed();
+        var newest = (await HistoryAsync(owner, automation, "shop.CartTest.pays", 1)).ShouldSucceed();
+
+        history.Entries.Select(e => (e.RunNumber, e.Outcome)).ShouldBe([(2, TestCaseOutcome.Passed), (1, TestCaseOutcome.Failed)]);
+        (history.Passed, history.Failed, history.Skipped).ShouldBe((1, 1, 0));
+        history.Entries[0].RunId.ShouldBe(secondRun);
+        history.Entries[0].AttemptId.ShouldBe(second);
+        history.Entries[0].Attempt.ShouldBe(1);
+        history.Entries[0].JobKey.ShouldBe("test");
+        history.Entries[0].DurationMs.ShouldBe(2000);
+        history.Entries[1].Message.ShouldBe("token *** was refused");
+        newest.Entries.ShouldHaveSingleItem().RunNumber.ShouldBe(2);
+        (await HistoryAsync(owner, automation, "shop.CartTest.unknown", null)).ShouldSucceed().Entries.ShouldBeEmpty();
+        (await HistoryAsync(owner, automation, "", null)).ShouldFail(UseCaseErrorKind.Validation);
+        (await HistoryAsync(owner, automation, "x", 0)).ShouldFail(UseCaseErrorKind.Validation);
+        (await HistoryAsync(stranger, automation, "shop.CartTest.pays", null)).ShouldFail(UseCaseErrorKind.NotFound);
+        (await HistoryAsync(owner, Guid.CreateVersion7(), "shop.CartTest.pays", null)).ShouldFail(UseCaseErrorKind.NotFound);
+    }
+
     private async Task<(Guid Run, Guid Attempt)> StartAsync()
     {
         var unique = Guid.CreateVersion7().ToString("N")[^8..];
         owner = await ActorAsync("owner" + unique);
         var folder = (await FoldersAsync(f => f.CreateAsync(owner, new NewFolder("reports" + unique), Cancel))).ShouldSucceed().Id;
         (await SecretsAsync(s => s.SetAsync(owner, ConfigurationScope.Folder(folder), "TOKEN", "s3cret-token", Cancel))).ShouldSucceed();
-        var automation = (await AutomationsAsync(a => a.CreateAsync(owner, folder, "flow", Yaml, null, Cancel))).ShouldSucceed().Id;
+        automation = (await AutomationsAsync(a => a.CreateAsync(owner, folder, "flow", Yaml, null, Cancel))).ShouldSucceed().Id;
+        return await NextRunAsync();
+    }
+
+    private async Task<(Guid Run, Guid Attempt)> NextRunAsync()
+    {
         var run = (await RunsAsync(r => r.StartAsync(owner, automation, Cancel))).ShouldSucceed().Id;
         var attempt = (await DispatchAsync(d => d.ClaimAsync(runner, Linux, Linux, runsContainers: true, Cancel))).ShouldNotBeNull();
         (await DispatchAsync(d => d.AcceptAsync(attempt, runner, Cancel))).ShouldBeTrue();
@@ -237,6 +336,24 @@ public abstract class ReportIngestionTests(DatabaseProvider provider) : Identity
         await using (context)
         {
             return await new RunReportService(context).ListAsync(actor, run, Cancel);
+        }
+    }
+
+    private async Task<T> ReadReportsAsync<T>(Func<RunReportService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new RunReportService(context));
+        }
+    }
+
+    private async Task<UseCaseResult<TestHistoryView>> HistoryAsync(Actor actor, Guid automationId, string name, int? limit)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await new TestHistoryService(context).HistoryAsync(actor, automationId, name, limit, Cancel);
         }
     }
 

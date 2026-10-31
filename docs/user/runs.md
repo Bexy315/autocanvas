@@ -137,6 +137,8 @@ that is only possible once its automations have been deleted or moved.
 | `GET /api/v1/runs/{id}/attempts/{attemptId}/log` | a part of an attempt's log |
 | `GET /api/v1/runs/{id}/attempts/{attemptId}/log/stream` | follow an attempt's log live |
 | `GET /api/v1/runs/{id}/reports` | the run's test and coverage reports with their totals (see [Reports](reports.md#reading-reports)) |
+| `GET /api/v1/runs/{id}/reports/{reportId}/tests` | the tests of a report |
+| `GET /api/v1/automations/{id}/tests/history?name=…` | the history of a test (see [Reports](reports.md#the-history-of-a-test)) |
 | `POST /api/v1/runs/{id}/cancel` | cancel a run |
 
 ```json
