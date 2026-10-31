@@ -3591,6 +3591,245 @@
           }
         }
       }
+    },
+    "/api/v1/automations/{automationId}/runs": {
+      "post": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Start a run by hand",
+        "description": "Runs the automation's current version. Needs Operator; the automation must allow it (`triggers: manual: true`), and with `concurrency: single` no other run may be active (409).",
+        "operationId": "StartRun",
+        "parameters": [
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "List an automation's runs",
+        "description": "Newest first, one page at a time. Needs Viewer.",
+        "operationId": "ListRuns",
+        "parameters": [
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfRunSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Get a run",
+        "description": "With its jobs in the order of the automation file. Needs Viewer; also works after the automation was deleted.",
+        "operationId": "GetRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Cancel a run",
+        "description": "Stops every unfinished job; `finally` jobs with `on_cancel: true` still run. Needs Operator. Cancelling a finished or already cancelled run changes nothing.",
+        "operationId": "CancelRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4747,6 +4986,30 @@
         },
         "description": "One page of a list."
       },
+      "PageOfRunSummary": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
       "PageOfUserView": {
         "required": [
           "items",
@@ -4834,6 +5097,275 @@
           }
         },
         "description": "A password chosen for a user by an admin; the user must change it at the next sign-in."
+      },
+      "RunJobStatus": {
+        "enum": [
+          "Pending",
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Cancelled",
+          "Skipped"
+        ],
+        "description": "A job's status; the same values as the job status of the automation engine."
+      },
+      "RunJobView": {
+        "required": [
+          "key",
+          "name",
+          "status",
+          "activatedCase",
+          "reason",
+          "attempts",
+          "startedAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The job's id in the automation file."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its display name."
+          },
+          "status": {
+            "description": "Pending, Running, Succeeded, Failed, Cancelled or Skipped.",
+            "$ref": "#/components/schemas/RunJobStatus"
+          },
+          "activatedCase": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a switch job: the case it chose."
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it was skipped, or what a switch decided."
+          },
+          "attempts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How many attempts it has had.",
+            "format": "int32"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it started.",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it finished.",
+            "format": "date-time"
+          }
+        },
+        "description": "A job of a run."
+      },
+      "RunState": {
+        "enum": [
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "description": "Where a run stands; the same values as the run status of the automation engine."
+      },
+      "RunSummary": {
+        "required": [
+          "id",
+          "number",
+          "automationId",
+          "automationName",
+          "state",
+          "trigger",
+          "triggeredByName",
+          "createdAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The run's id.",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Counts the automation's runs from 1.",
+            "format": "int32"
+          },
+          "automationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The automation, unless it has been deleted since.",
+            "format": "uuid"
+          },
+          "automationName": {
+            "type": "string",
+            "description": "The automation's name when the run started."
+          },
+          "state": {
+            "description": "Running, Succeeded, Failed or Cancelled.",
+            "$ref": "#/components/schemas/RunState"
+          },
+          "trigger": {
+            "description": "What started the run.",
+            "$ref": "#/components/schemas/RunTriggerKind"
+          },
+          "triggeredByName": {
+            "type": "string",
+            "description": "Who or what started it."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it started.",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it finished.",
+            "format": "date-time"
+          }
+        },
+        "description": "A run as listed."
+      },
+      "RunTriggerKind": {
+        "enum": [
+          "Manual",
+          "Schedule",
+          "Webhook",
+          "AutomationCompleted"
+        ],
+        "description": "What started a run; readable as `trigger.event`."
+      },
+      "RunView": {
+        "required": [
+          "id",
+          "number",
+          "automationId",
+          "automationName",
+          "automationVersion",
+          "folderId",
+          "state",
+          "trigger",
+          "triggeredByName",
+          "cancelRequested",
+          "cancelledByName",
+          "createdAt",
+          "finishedAt",
+          "jobs"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The run's id.",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Counts the automation's runs from 1.",
+            "format": "int32"
+          },
+          "automationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The automation, unless it has been deleted since.",
+            "format": "uuid"
+          },
+          "automationName": {
+            "type": "string",
+            "description": "The automation's name when the run started."
+          },
+          "automationVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The version that runs.",
+            "format": "int32"
+          },
+          "folderId": {
+            "type": "string",
+            "description": "The folder the run belongs to.",
+            "format": "uuid"
+          },
+          "state": {
+            "description": "Running, Succeeded, Failed or Cancelled.",
+            "$ref": "#/components/schemas/RunState"
+          },
+          "trigger": {
+            "description": "What started the run.",
+            "$ref": "#/components/schemas/RunTriggerKind"
+          },
+          "triggeredByName": {
+            "type": "string",
+            "description": "Who or what started it."
+          },
+          "cancelRequested": {
+            "type": "boolean",
+            "description": "Whether someone asked to cancel it."
+          },
+          "cancelledByName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who asked to cancel it."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it started.",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it finished.",
+            "format": "date-time"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunJobView"
+            },
+            "description": "Its jobs in the order of the automation file."
+          }
+        },
+        "description": "A run with its jobs."
       },
       "SaveAutomationRequest": {
         "required": [
@@ -5316,6 +5848,9 @@
     },
     {
       "name": "Variables and secrets"
+    },
+    {
+      "name": "Runs"
     }
   ]
 }

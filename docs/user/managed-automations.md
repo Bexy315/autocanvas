@@ -51,7 +51,8 @@ lists is the `name:` from the file, or the name when the file has none; the desc
 
 Deleting an automation removes it **with all its versions**; this cannot be undone. The
 [audit log](../technical/audit.md) keeps who deleted which automation and when, but not its content.
-A folder can only be deleted once it holds no automations and no subfolders.
+Its [runs](runs.md) stay readable: each keeps its own copy of the file it ran. A folder can only be
+deleted once it holds no automations and no subfolders; the runs left in it go with it.
 
 ## Using the API
 
