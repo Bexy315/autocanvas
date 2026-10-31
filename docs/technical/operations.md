@@ -104,6 +104,9 @@ On its first start the server records which key it uses (by an id derived from t
 reveals nothing about it). If it is later started with another key, it stops with a message naming
 both key ids, instead of failing runs later.
 
+For local development, `dotnet run` uses a key of 32 zero bytes from `launchSettings.json`. It
+protects nothing; never use it for an installation.
+
 ### Rotating the key
 
 Rotate the key when it may have leaked, or as a routine:

@@ -7,7 +7,7 @@
       "applicationUrl": "http://localhost:5080",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "AUTOCANVAS_MASTER_KEY": "PQFRQxSyVCd36U7H+f6Q5BucN+u5HMIrNITw8DNjhTA="
+        "AUTOCANVAS_MASTER_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
       }
     }
   }

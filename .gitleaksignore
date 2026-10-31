@@ -1,0 +1,3 @@
+# Development placeholder key that was committed by mistake in PR #29 and replaced in the next
+# commit; it never protected anything. The branch is squash-merged, so main does not contain it.
+c70fa1dad1c9a5dd2d09c2940289d04dcc5bcdf0:src/AutoCanvas.Server/Properties/launchSettings.json:generic-api-key:10
