@@ -6,6 +6,7 @@ using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Protocol.Runner.V1;
 using AutoCanvas.TestSupport;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,21 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
             runs_on: linux
             steps:
               - run: echo build
+        """;
+
+    private const string WithReports = """
+        version: 1
+        triggers:
+          manual: true
+        jobs:
+          build:
+            runs_on: linux
+            steps:
+              - run: dotnet test
+            reports:
+              - format: junit
+                path: reports/*.xml
+                name: Unit tests
         """;
 
     private const string TwoJobs = """
@@ -338,15 +354,20 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
     }
 
     [Fact]
-    public async Task Reports_are_not_accepted_yet()
+    public async Task An_upload_needs_a_credential_and_a_header()
     {
         await using var factory = Factory();
         using var client = new ProtocolClient(factory);
         var credential = await RegisterAsync(client, await factory.SignedInAsync("root", isAdmin: true), "build-1");
-        using var upload = new RunnerService.RunnerServiceClient(client.Channel).UploadReport(ProtocolClient.Authorization(credential), cancellationToken: Cancel);
-        await upload.RequestStream.CompleteAsync();
+        var service = new RunnerService.RunnerServiceClient(client.Channel);
 
-        (await Should.ThrowAsync<RpcException>(upload.ResponseAsync)).StatusCode.ShouldBe(StatusCode.Unimplemented);
+        var empty = await Should.ThrowAsync<RpcException>(UploadAsync(service, credential, null));
+        var anonymous = await Should.ThrowAsync<RpcException>(UploadAsync(service, "acr_unknown", Header(Guid.CreateVersion7().ToString())));
+        var nameless = await Should.ThrowAsync<RpcException>(UploadAsync(service, credential, new ReportHeader { JobId = "not-an-id", Format = ReportFormat.Junit }));
+
+        empty.StatusCode.ShouldBe(StatusCode.InvalidArgument);
+        anonymous.StatusCode.ShouldBe(StatusCode.Unauthenticated);
+        nameless.StatusCode.ShouldBe(StatusCode.InvalidArgument);
     }
 
     [Fact]
@@ -533,6 +554,104 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
             (await admin.GetAsync(Uri($"/api/v1/runs/{run}/attempts/{job}/log?limit=5000"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await admin.GetAsync(Uri($"/api/v1/runs/{run}/jobs/nope"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
         }
+    }
+
+    [Fact]
+    public async Task Reports_are_uploaded_in_parts_once_and_read_with_the_run()
+    {
+        await using var factory = Factory();
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var credential = await RegisterAsync(client, admin, "build-1");
+        var (stream, _) = await client.ConnectAsync(credential);
+        using (stream)
+        {
+            var run = await StartRunAsync(admin, WithReports);
+            var job = (await stream.ReadAsync()).JobOffer.Job.JobId;
+            await stream.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await EventuallyAsync(factory, Guid.Parse(job), a => a.Status == AttemptStatus.Running);
+            var service = new RunnerService.RunnerServiceClient(client.Channel);
+            const string Xml = """<testsuite name="s"><testcase classname="C" name="a"/><testcase classname="C" name="b"><failure message="no"/></testcase></testsuite>""";
+
+            var id = await UploadAsync(service, credential, Header(job), Xml[..20], Xml[20..60], Xml[60..]);
+            var again = await UploadAsync(service, credential, Header(job), Xml);
+            var withoutHeader = await Should.ThrowAsync<RpcException>(UploadAsync(service, credential, null, Xml));
+            var undeclared = await Should.ThrowAsync<RpcException>(UploadAsync(service, credential, Header(job, "Other"), Xml));
+
+            await stream.SendAsync(new ConnectRequest { JobPrepared = new JobPrepared { JobId = job } });
+            (await stream.ReadAsync()).MessageCase.ShouldBe(ConnectResponse.MessageOneofCase.RunStep);
+            await stream.SendAsync(Completed(job, 0, Protocol.Runner.V1.StepOutcome.Succeeded));
+            (await stream.ReadAsync()).MessageCase.ShouldBe(ConnectResponse.MessageOneofCase.CompleteJob);
+            await stream.SendAsync(new ConnectRequest { JobFinished = new JobFinished { JobId = job } });
+            await EventuallyAsync(factory, Guid.Parse(job), a => a.Status == AttemptStatus.Succeeded);
+            var late = await Should.ThrowAsync<RpcException>(UploadAsync(service, credential, Header(job, path: "reports/late.xml"), Xml));
+
+            again.ShouldBe(id);
+            withoutHeader.StatusCode.ShouldBe(StatusCode.InvalidArgument);
+            undeclared.StatusCode.ShouldBe(StatusCode.InvalidArgument);
+            late.StatusCode.ShouldBe(StatusCode.FailedPrecondition);
+            var reports = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports"), Cancel)).JsonAsync();
+            reports.GetProperty("tests").GetProperty("failed").GetInt32().ShouldBe(1);
+            var report = reports.GetProperty("reports").EnumerateArray().ShouldHaveSingleItem();
+            report.GetProperty("id").GetString().ShouldBe(id);
+            report.GetProperty("path").GetString().ShouldBe("reports/junit.xml");
+            var detail = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/jobs/build"), Cancel)).JsonAsync();
+            detail.GetProperty("attempts")[0].GetProperty("reports")[0].GetProperty("tests").GetProperty("total").GetInt32().ShouldBe(2);
+        }
+    }
+
+    [Fact]
+    public async Task A_report_larger_than_the_limit_is_refused()
+    {
+        await using var factory = Factory().With("Reports:MaxBytesPerFile", "1048576");
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var credential = await RegisterAsync(client, admin, "build-1");
+        var (stream, _) = await client.ConnectAsync(credential);
+        using (stream)
+        {
+            var run = await StartRunAsync(admin, WithReports);
+            var job = (await stream.ReadAsync()).JobOffer.Job.JobId;
+            await stream.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await EventuallyAsync(factory, Guid.Parse(job), a => a.Status == AttemptStatus.Running);
+            var service = new RunnerService.RunnerServiceClient(client.Channel);
+            var part = "<testsuite>" + new string(' ', 600 * 1024);
+
+            var refused = await Should.ThrowAsync<RpcException>(UploadAsync(service, credential, Header(job), part, new string(' ', 600 * 1024)));
+
+            refused.StatusCode.ShouldBe(StatusCode.ResourceExhausted);
+            var reports = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports"), Cancel)).JsonAsync();
+            reports.GetProperty("reports").GetArrayLength().ShouldBe(0);
+        }
+    }
+
+    private static ReportHeader Header(string job, string name = "Unit tests", string path = "reports/junit.xml") =>
+        new() { JobId = job, Format = ReportFormat.Junit, Name = name, Path = path, Size = 100 };
+
+    /// <summary>Uploads a report as a runner does: the header, then the content in the given parts.</summary>
+    private static async Task<string> UploadAsync(RunnerService.RunnerServiceClient service, string credential, ReportHeader? header, params string[] parts)
+    {
+        using var call = service.UploadReport(ProtocolClient.Authorization(credential), cancellationToken: Cancel);
+        try
+        {
+            if (header is not null)
+            {
+                await call.RequestStream.WriteAsync(new UploadReportRequest { Header = header }, Cancel);
+            }
+
+            foreach (var part in parts)
+            {
+                await call.RequestStream.WriteAsync(new UploadReportRequest { Content = ByteString.CopyFromUtf8(part) }, Cancel);
+            }
+
+            await call.RequestStream.CompleteAsync();
+        }
+        catch (RpcException)
+        {
+            // The server answered before the upload was complete; the response says why.
+        }
+
+        return (await call.ResponseAsync).ReportId;
     }
 
     private static ConnectRequest Log(string job, ulong sequence, uint? step, params string[] lines)

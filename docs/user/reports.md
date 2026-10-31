@@ -8,10 +8,10 @@ A job can publish the test results and code coverage its steps produce. AutoCanv
 also when a step failed, which is exactly when they matter — and shows every test of the run with
 its outcome, duration, message and output, and how much of the code the tests reached.
 
-:::note Specification
+:::note Status
 
-Reading reports is built (`AutoCanvas.Reports`); showing them on a run comes with the server and the
-web UI. Until then this page describes formats and configuration.
+The server stores the reports of every job and shows their totals through the API. Reading single
+tests, coverage per class and the history of a test follow in the next step; the web UI later.
 
 :::
 
@@ -127,11 +127,38 @@ such as `10-11, 19, 45`. A few details:
 - Lines that tools repeat under each method are counted once.
 - Files without coverable lines, such as an empty `__init__.py`, are left out.
 
+## Reading reports
+
+After the steps, the runner uploads every file that matches a report's `path`. The server reads each
+file while it arrives and keeps what it found — the file itself is not kept. Texts are masked with
+the run's secrets like the log. Reports never change a job's result: a failing test usually fails
+its step already, and a file that cannot be read shows why on the run.
+
+Reports are read with Viewer, like the run:
+
+- `GET /api/v1/runs/{id}/reports` lists every report of the run — per job and attempt, with its
+  counts or coverage totals, or the reason it could not be read — and totals over the run. A retried
+  job counts once in the totals, with the latest attempt that uploaded reports.
+- `GET /api/v1/runs/{id}/jobs/{key}` shows the same summaries with each attempt of the job.
+
+```json
+{
+  "tests": { "total": 412, "passed": 409, "failed": 2, "skipped": 1, "durationMs": 81234 },
+  "coverage": { "linesCovered": 5120, "linesValid": 6200, "branchesCovered": 900, "branchesValid": 1300, "lineRate": 0.8258, "branchRate": 0.6923 },
+  "reports": [
+    { "jobKey": "test", "name": "Unit tests", "format": "junit", "kind": "Tests", "path": "reports/junit.xml", "tests": { "total": 412, "passed": 409, "failed": 2, "skipped": 1, "durationMs": 81234 }, "error": null, "warnings": [], "truncated": false }
+  ]
+}
+```
+
 ## Limits
 
 A report file keeps the details of at most 100,000 tests, a coverage file of at most 50,000 classes;
 the counts and totals still include everything, and the run shows a warning. Long texts are shortened: names to 1,000 characters, messages to 4,000,
 stack traces to 8,000 and output to 4,000.
+
+A job uploads at most `Reports:MaxFilesPerJob` files (100 by default), each at most
+`Reports:MaxBytesPerFile` (50 MiB by default); see [Operations](../technical/operations.md).
 
 A file that is not a report of its declared format — not XML, or a different root element — is
 reported on the run with the reason; it does not fail the job.

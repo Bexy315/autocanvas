@@ -10,7 +10,7 @@ A **run** is one execution of an automation: its jobs, in the order and under th
 :::note Status
 
 Runs can be started, followed and cancelled through the HTTP API. The server hands jobs to
-[runners](runners.md), decides every step and keeps the jobs' logs; the reference runner, reports,
+[runners](runners.md), decides every step and keeps the jobs' logs and [reports](reports.md); the reference runner,
 schedules and webhooks come in the following steps of this milestone. Until a runner is connected, jobs that
 should run stay *running* while they wait for one.
 
@@ -136,6 +136,7 @@ that is only possible once its automations have been deleted or moved.
 | `GET /api/v1/runs/{id}/jobs/{key}` | one job with its outputs, attempts and steps |
 | `GET /api/v1/runs/{id}/attempts/{attemptId}/log` | a part of an attempt's log |
 | `GET /api/v1/runs/{id}/attempts/{attemptId}/log/stream` | follow an attempt's log live |
+| `GET /api/v1/runs/{id}/reports` | the run's test and coverage reports with their totals (see [Reports](reports.md#reading-reports)) |
 | `POST /api/v1/runs/{id}/cancel` | cancel a run |
 
 ```json

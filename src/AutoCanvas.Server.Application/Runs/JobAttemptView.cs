@@ -1,4 +1,5 @@
 using AutoCanvas.Persistence.Runs;
+using AutoCanvas.Server.Application.Reports;
 
 namespace AutoCanvas.Server.Application.Runs;
 
@@ -14,6 +15,7 @@ namespace AutoCanvas.Server.Application.Runs;
 /// <param name="Error">Why it failed or was cancelled.</param>
 /// <param name="Warnings">Problems the runner had collecting reports or cleaning up.</param>
 /// <param name="Steps">Its steps, as far as it got.</param>
+/// <param name="Reports">The report files it uploaded, with their totals.</param>
 public sealed record JobAttemptView(
     Guid Id,
     int Number,
@@ -25,4 +27,5 @@ public sealed record JobAttemptView(
     DateTimeOffset? FinishedAt,
     string? Error,
     IReadOnlyList<string> Warnings,
-    IReadOnlyList<JobStepView> Steps);
+    IReadOnlyList<JobStepView> Steps,
+    IReadOnlyList<ReportSummaryView> Reports);

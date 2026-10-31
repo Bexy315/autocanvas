@@ -1,7 +1,9 @@
 using AutoCanvas.Protocol.Runner.V1;
 using AppLogLine = AutoCanvas.Server.Application.Runs.LogLine;
+using AppReportFormat = AutoCanvas.Reports.ReportFormat;
 using CoreStepOutcome = AutoCanvas.Core.Orchestration.StepOutcome;
 using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Server.Application.Reports;
 using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
 using Google.Protobuf.WellKnownTypes;
@@ -171,6 +173,22 @@ internal static class ProtocolMapping
                     _ => LogSource.Stdout,
                 },
                 l.Text))]);
+    }
+
+    /// <summary>The header of a report upload; <see langword="null"/> without a job id or a format.</summary>
+    public static ReportFile? ToReportFile(ReportHeader header)
+    {
+        ArgumentNullException.ThrowIfNull(header);
+        AppReportFormat? format = header.Format switch
+        {
+            ReportFormat.Junit => AppReportFormat.JUnit,
+            ReportFormat.Trx => AppReportFormat.Trx,
+            ReportFormat.Cobertura => AppReportFormat.Cobertura,
+            _ => null,
+        };
+        return ToId(header.JobId) is { } attempt && format is { } known
+            ? new ReportFile(attempt, known, header.Name, header.Path, (long)Math.Min(header.Size, long.MaxValue))
+            : null;
     }
 
     /// <summary>Ids in messages are attempt or run UUIDs; anything else names nothing.</summary>

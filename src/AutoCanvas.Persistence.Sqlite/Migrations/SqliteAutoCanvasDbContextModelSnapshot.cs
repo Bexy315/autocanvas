@@ -550,6 +550,290 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.Report", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("attempt_id");
+
+                    b.Property<Guid?>("AutomationId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("automation_id");
+
+                    b.Property<int?>("BranchesCovered")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("branches_covered");
+
+                    b.Property<int?>("BranchesValid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("branches_valid");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("error");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("format");
+
+                    b.Property<string>("JobKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("job_key");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("kind");
+
+                    b.Property<int?>("LinesCovered")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lines_covered");
+
+                    b.Property<int?>("LinesValid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lines_valid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("path");
+
+                    b.Property<long>("ReceivedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("received_at");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("run_id");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("size");
+
+                    b.Property<long?>("TestsDurationMs")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("tests_duration_ms");
+
+                    b.Property<int?>("TestsFailed")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("tests_failed");
+
+                    b.Property<int?>("TestsPassed")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("tests_passed");
+
+                    b.Property<int?>("TestsSkipped")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("tests_skipped");
+
+                    b.Property<int?>("TestsTotal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("tests_total");
+
+                    b.Property<bool>("Truncated")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("truncated");
+
+                    b.Property<string>("Warnings")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("warnings");
+
+                    b.HasKey("Id")
+                        .HasName("pk_reports");
+
+                    b.HasIndex("RunId")
+                        .HasDatabaseName("ix_reports_run_id");
+
+                    b.HasIndex("AttemptId", "Name", "Path")
+                        .IsUnique()
+                        .HasDatabaseName("ix_reports_attempt_id_name_path");
+
+                    b.ToTable("reports", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.ReportCoverageClass", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("report_id");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("ordinal");
+
+                    b.Property<int>("BranchesCovered")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("branches_covered");
+
+                    b.Property<int>("BranchesValid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("branches_valid");
+
+                    b.Property<string>("File")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("file");
+
+                    b.Property<int>("LinesCovered")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lines_covered");
+
+                    b.Property<int>("LinesValid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lines_valid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<int>("PackageOrdinal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("package_ordinal");
+
+                    b.Property<string>("Uncovered")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("uncovered");
+
+                    b.HasKey("ReportId", "Ordinal")
+                        .HasName("pk_report_coverage_classes");
+
+                    b.ToTable("report_coverage_classes", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.ReportCoveragePackage", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("report_id");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("ordinal");
+
+                    b.Property<int>("BranchesCovered")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("branches_covered");
+
+                    b.Property<int>("BranchesValid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("branches_valid");
+
+                    b.Property<int>("LinesCovered")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lines_covered");
+
+                    b.Property<int>("LinesValid")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("lines_valid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.HasKey("ReportId", "Ordinal")
+                        .HasName("pk_report_coverage_packages");
+
+                    b.ToTable("report_coverage_packages", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.ReportTestCase", b =>
+                {
+                    b.Property<Guid>("ReportId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("report_id");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("ordinal");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(2001)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("full_name");
+
+                    b.Property<string>("Group")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("group");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NameHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name_hash");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("outcome");
+
+                    b.Property<string>("Output")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("output");
+
+                    b.Property<string>("StackTrace")
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("stack_trace");
+
+                    b.Property<string>("Suite")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("suite");
+
+                    b.HasKey("ReportId", "Ordinal")
+                        .HasName("pk_report_test_cases");
+
+                    b.HasIndex("NameHash")
+                        .HasDatabaseName("ix_report_test_cases_name_hash");
+
+                    b.ToTable("report_test_cases", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.Runner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1333,6 +1617,54 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasConstraintName("fk_sessions_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.Report", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runs.JobAttempt", "Attempt")
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_reports_job_attempts_attempt_id");
+
+                    b.Navigation("Attempt");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.ReportCoverageClass", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Reports.Report", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_coverage_classes_reports_report_id");
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.ReportCoveragePackage", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Reports.Report", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_coverage_packages_reports_report_id");
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Reports.ReportTestCase", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Reports.Report", "Report")
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_report_test_cases_reports_report_id");
+
+                    b.Navigation("Report");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>
