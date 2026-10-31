@@ -24,8 +24,17 @@ persistence wiring and CLI subcommands. Business rules belong in application ser
   (`IValidateOptions<T>` + `ValidateOnStart`). New settings and short environment names go into
   `docs/technical/operations.md`; aliases live only in `AutoCanvasEnvironmentSource.Aliases`.
 - **Time comes from `TimeProvider`**, never `DateTime.UtcNow`; tests use `FakeTimeProvider` from
-  `AutoCanvasFactory.Clock`.
+  `AutoCanvasFactory.Clock`. One exception: the **interval** of a background service ticks on the
+  wall clock (`new PeriodicTimer(interval)`), while what it decides uses `TimeProvider`. Tests move
+  their fake clock ahead by days, and a timer on that clock replays every skipped tick.
+- **Background services** (`Configuration/*Service.cs`) wait for `ApplicationStarted` before their
+  first run — a start that fails must not leave them working on the database — skip their work
+  while migrations are pending, create a scope per run, and log failures instead of throwing.
+  `AuditRetentionService` and `QueueSweepService` are the templates.
 - **Tests** host the server with `AutoCanvasFactory` (in memory, `Testing` environment) and assert
   on HTTP responses, not on internals. Tests that run `ServerCommandLine` in-process belong to the
   `[Collection(CommandLineTests.Name)]` collection: a command's host could otherwise be picked up
-  by a factory running in parallel.
+  by a factory running in parallel. Tests of a start that must **fail** use
+  `ServerStart.FailsAsync`, which runs the server through the command line: with
+  `WebApplicationFactory` the failed host is disposed while the factory still reads from it, and the
+  test sometimes sees an `ObjectDisposedException` instead of the real error.
