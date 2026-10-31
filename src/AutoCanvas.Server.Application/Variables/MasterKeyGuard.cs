@@ -33,7 +33,7 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
         return string.Equals(cipher.Decrypt(CheckScope, CheckName, check.Ciphertext), CheckText, StringComparison.Ordinal)
             ? Done.Result
             : UseCase.Failure<Done>(UseCaseError.Conflict(
-                $"The configured master key ({cipher.Key.Id}) is not the one this database's secrets are encrypted with ({check.KeyId}). " +
+                $"The configured master key ({cipher.Key.Id}) is not the one the secrets in this database are encrypted with ({check.KeyId}). " +
                 "Configure that key; to change keys, use 'admin rotate-master-key'."));
     }
 

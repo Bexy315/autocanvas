@@ -2475,6 +2475,887 @@
           }
         }
       }
+    },
+    "/api/v1/variables": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "List instance variables",
+        "description": "By name; everyone signed in reads them with their values; only admins change them.",
+        "operationId": "ListInstanceVariables",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VariableView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/variables/{name}": {
+      "put": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Set a instance variable",
+        "description": "Creates it (201) or replaces its value (200); names are unique regardless of case. Everyone signed in reads them with their values; only admins change them.",
+        "operationId": "SetInstanceVariable",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Delete a instance variable",
+        "operationId": "DeleteInstanceVariable",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "List instance secrets",
+        "description": "Names only, by name; everyone signed in sees their names; only admins change them. Secret values are never returned.",
+        "operationId": "ListInstanceSecrets",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SecretView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/secrets/{name}": {
+      "put": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Set a instance secret",
+        "description": "Creates it (201) or replaces its value (200). The value is encrypted and cannot be read back. Everyone signed in sees their names; only admins change them.",
+        "operationId": "SetInstanceSecret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Delete a instance secret",
+        "operationId": "DeleteInstanceSecret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/variables": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "List folder variables",
+        "description": "By name; Viewers see names, Operators also values, Editors change them.",
+        "operationId": "ListFolderVariables",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VariableView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/variables/{name}": {
+      "put": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Set a folder variable",
+        "description": "Creates it (201) or replaces its value (200); names are unique regardless of case. Viewers see names, Operators also values, Editors change them.",
+        "operationId": "SetFolderVariable",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Delete a folder variable",
+        "operationId": "DeleteFolderVariable",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/secrets": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "List folder secrets",
+        "description": "Names only, by name; Viewers see names; Editors change them. Secret values are never returned.",
+        "operationId": "ListFolderSecrets",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SecretView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/secrets/{name}": {
+      "put": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Set a folder secret",
+        "description": "Creates it (201) or replaces its value (200). The value is encrypted and cannot be read back. Viewers see names; Editors change them.",
+        "operationId": "SetFolderSecret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Delete a folder secret",
+        "operationId": "DeleteFolderSecret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/configuration": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Explain a folder's variables and secrets",
+        "description": "Every name that reaches the folder, each with all its definitions from the instance down and the one that wins. Variable values for Operators; never secret values. Needs Viewer.",
+        "operationId": "ExplainFolderConfiguration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/secrets": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "List automation secrets",
+        "description": "Names only, by name; roles of its folder: Viewers see names, Editors change them. Secret values are never returned.",
+        "operationId": "ListAutomationSecrets",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SecretView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/secrets/{name}": {
+      "put": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Set a automation secret",
+        "description": "Creates it (201) or replaces its value (200). The value is encrypted and cannot be read back. Roles of its folder: Viewers see names, Editors change them.",
+        "operationId": "SetAutomationSecret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetValueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretView"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecretView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Delete a automation secret",
+        "operationId": "DeleteAutomationSecret",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/configuration": {
+      "get": {
+        "tags": [
+          "Variables and secrets"
+        ],
+        "summary": "Explain an automation's variables and secrets",
+        "description": "Every name a run of the automation reads, each with all its definitions (instance, folders, the automation's secrets and the variables in its file) and the one that wins. Variable values for Operators; never secret values. Needs Viewer.",
+        "operationId": "ExplainAutomationConfiguration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2719,6 +3600,102 @@
           }
         },
         "description": "A new password for the signed-in user."
+      },
+      "ConfigurationEntry": {
+        "required": [
+          "name",
+          "definitions",
+          "winner"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name as written where it wins."
+          },
+          "definitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationSource"
+            },
+            "description": "Every definition in resolution order: instance, folders from the top, automation."
+          },
+          "winner": {
+            "description": "The nearest definition, the last of Definitions.",
+            "$ref": "#/components/schemas/ConfigurationSource"
+          }
+        },
+        "description": "One name, everywhere it is defined, and which definition a run reads."
+      },
+      "ConfigurationScopeKind": {
+        "enum": [
+          "Instance",
+          "Folder",
+          "Automation"
+        ],
+        "description": "The kinds of places variables and secrets are defined, in the order they resolve."
+      },
+      "ConfigurationSource": {
+        "required": [
+          "kind",
+          "folderId",
+          "folderName",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "Instance, a folder, or the automation (its secrets, or `variables:` in its file).",
+            "$ref": "#/components/schemas/ConfigurationScopeKind"
+          },
+          "folderId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The folder, for folder definitions.",
+            "format": "uuid"
+          },
+          "folderName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The folder's name, for display."
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The variable's value, for callers with the Operator role; never set for secrets."
+          }
+        },
+        "description": "One place that defines a name."
+      },
+      "ConfigurationView": {
+        "required": [
+          "variables",
+          "secrets"
+        ],
+        "type": "object",
+        "properties": {
+          "variables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationEntry"
+            },
+            "description": "Every variable name that reaches it."
+          },
+          "secrets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationEntry"
+            },
+            "description": "Every secret name that reaches it, without values."
+          }
+        },
+        "description": "What a folder or an automation can read, and from where; never a secret value."
       },
       "CreateAutomationRequest": {
         "required": [
@@ -3512,6 +4489,30 @@
         },
         "description": "A new version of an automation."
       },
+      "SecretView": {
+        "required": [
+          "name",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name as written."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When it was last set.",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": "string",
+            "description": "Who set it last."
+          }
+        },
+        "description": "A secret as listed in its scope. There is deliberately no value: nobody reads it back."
+      },
       "ServerInfo": {
         "required": [
           "product",
@@ -3624,6 +4625,19 @@
           }
         },
         "description": "Whether grants from above apply to a folder."
+      },
+      "SetValueRequest": {
+        "required": [
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "At most 64 KiB. Variables may be empty; secrets may not. A secret's value is never shown again."
+          }
+        },
+        "description": "The value of a variable or secret to create or replace."
       },
       "SignInRequest": {
         "required": [
@@ -3874,6 +4888,38 @@
           }
         },
         "description": "A user as administrators and the user themselves see it; never the password hash."
+      },
+      "VariableView": {
+        "required": [
+          "name",
+          "value",
+          "updatedAt",
+          "updatedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name as written."
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The value; empty for callers without the Operator role, who see only names."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When it was last set.",
+            "format": "date-time"
+          },
+          "updatedByName": {
+            "type": "string",
+            "description": "Who set it last."
+          }
+        },
+        "description": "A variable as listed in its scope."
       }
     }
   },
@@ -3898,6 +4944,9 @@
     },
     {
       "name": "Automations"
+    },
+    {
+      "name": "Variables and secrets"
     }
   ]
 }

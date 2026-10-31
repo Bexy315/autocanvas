@@ -23,6 +23,9 @@ roles on a folder — directly, through groups, and from folders above — the h
 
 Admins have every role on every folder.
 
+What the roles mean for variables and secrets, and how folders pass them down, is described in
+[Variables and secrets](variables-and-secrets.md).
+
 ## Inheritance and restricted folders
 
 A role on a folder also applies to all folders below it. To keep part of a tree away from people

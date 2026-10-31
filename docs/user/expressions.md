@@ -17,8 +17,8 @@ any text value — scripts, node inputs, environment variables, outputs — and 
 
 | Context | Values |
 |---|---|
-| `vars.NAME` | Variables of the automation and its folders. Names are not case-sensitive. |
-| `secrets.NAME` | Secrets of the automation and its folders. Masked in logs. Names are not case-sensitive. |
+| `vars.NAME` | Variables of the instance, the automation's folders and its file; see [Variables and secrets](variables-and-secrets.md). Names are not case-sensitive. |
+| `secrets.NAME` | Secrets of the instance, the automation's folders and the automation; see [Variables and secrets](variables-and-secrets.md). Masked in logs. Names are not case-sensitive. |
 | `steps.ID.outputs.NAME` | Outputs of an earlier step of the same job, by the step's `id`. |
 | `jobs.JOB.outputs.NAME` | Outputs a job published under its `outputs`. |
 | `jobs.JOB.result` | `success`, `failure`, `cancelled` or `skipped`. |
