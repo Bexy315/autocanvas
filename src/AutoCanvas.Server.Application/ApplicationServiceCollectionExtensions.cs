@@ -5,6 +5,7 @@ using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Database;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
+using AutoCanvas.Server.Application.Reports;
 using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,6 +52,18 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AuditQueryService>();
         services.AddScoped<AuditRetention>();
 
+        AddRuns(services);
+
+        services.AddOptions<RunnerOptions>();
+        services.AddScoped<RunnerRegistrationService>();
+        services.AddScoped<RunnerService>();
+        services.AddScoped<RunnerConnectionService>();
+        return services;
+    }
+
+    /// <summary>Runs, the job queue, logs and reports.</summary>
+    private static void AddRuns(IServiceCollection services)
+    {
         services.AddScoped<RunService>();
         services.AddOptions<QueueOptions>();
         services.AddScoped<JobDispatcher>();
@@ -60,11 +73,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<LogSignal>();
         services.AddScoped<LogIngestion>();
         services.AddScoped<RunLogService>();
-
-        services.AddOptions<RunnerOptions>();
-        services.AddScoped<RunnerRegistrationService>();
-        services.AddScoped<RunnerService>();
-        services.AddScoped<RunnerConnectionService>();
-        return services;
+        services.AddOptions<ReportOptions>();
+        services.AddScoped<ReportIngestion>();
+        services.AddScoped<RunReportService>();
     }
 }

@@ -507,11 +507,15 @@
           "Microsoft.EntityFrameworkCore.Sqlite": "[10.0.14, )"
         }
       },
+      "autocanvas.reports": {
+        "type": "Project"
+      },
       "autocanvas.server.application": {
         "type": "Project",
         "dependencies": {
           "AutoCanvas.Core": "[1.0.0, )",
-          "AutoCanvas.Persistence": "[1.0.0, )"
+          "AutoCanvas.Persistence": "[1.0.0, )",
+          "AutoCanvas.Reports": "[1.0.0, )"
         }
       },
       "autocanvas.testsupport": {

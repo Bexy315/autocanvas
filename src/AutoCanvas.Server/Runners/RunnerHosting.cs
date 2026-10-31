@@ -1,3 +1,4 @@
+using AutoCanvas.Server.Application.Reports;
 using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Configuration;
@@ -35,6 +36,10 @@ internal static class RunnerHosting
             .BindConfiguration(LogOptions.SectionName)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<LogOptions>, LogOptionsValidator>();
+        services.AddOptions<ReportOptions>()
+            .BindConfiguration(ReportOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ReportOptions>, ReportOptionsValidator>();
         services.AddSingleton<RunnerSessions>();
         services.AddHostedService(provider => provider.GetRequiredService<RunnerSessions>());
         services.AddSingleton<RunnerAuthInterceptor>();

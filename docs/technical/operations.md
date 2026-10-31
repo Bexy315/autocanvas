@@ -46,6 +46,8 @@ setting and what is expected, instead of failing later on first use.
 | `Runners:Urls` | `http://localhost:5081` | Addresses of the runner endpoint, HTTP/2 only; separate several with `;` (see [Runners](#runners)) |
 | `Runners:HeartbeatInterval` | `00:00:20` | How often runners send a heartbeat; at least one second and at most half of `Queue:LeaseDuration` |
 | `Logs:MaxBytesPerJob` | `67108864` (64 MiB) | Log text one job attempt may store, 1 MiB to 1 GiB; later lines are dropped (see [Runs](../user/runs.md#logs)) |
+| `Reports:MaxBytesPerFile` | `52428800` (50 MiB) | Largest report file a runner may upload, 1 MiB to 1 GiB (see [Reports](../user/reports.md#limits)) |
+| `Reports:MaxFilesPerJob` | `100` | Report files one job attempt may upload, 1 to 1000 |
 | `Queue:LeaseDuration` | `00:01:00` | How long a runner holds a job after its last heartbeat (10 seconds to 1 hour); then an offered job goes back to the queue and a running one fails as if the runner were gone |
 | `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
 | `Secrets:MasterKey` or `Secrets:MasterKeyFile` | none — **required** | The master key, or a file holding it; exactly one of them (see [Master key](#master-key)) |

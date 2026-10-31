@@ -4035,6 +4035,49 @@
         }
       }
     },
+    "/api/v1/runs/{id}/reports": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "List a run's test and coverage reports",
+        "description": "Every report file of every job attempt, with its totals or why it could not be read, and totals over each job's latest attempt that uploaded reports. Needs Viewer.",
+        "operationId": "ListRunReports",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReportsView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runner-registration-tokens": {
       "post": {
         "tags": [
@@ -4815,6 +4858,74 @@
         },
         "description": "What a folder or an automation can read, and from where; never a secret value."
       },
+      "CoverageTotalsView": {
+        "required": [
+          "linesCovered",
+          "linesValid",
+          "branchesCovered",
+          "branchesValid"
+        ],
+        "type": "object",
+        "properties": {
+          "linesCovered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Lines run at least once.",
+            "format": "int32"
+          },
+          "linesValid": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Lines that can be run.",
+            "format": "int32"
+          },
+          "branchesCovered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Branches taken at least once.",
+            "format": "int32"
+          },
+          "branchesValid": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Branches that exist.",
+            "format": "int32"
+          },
+          "lineRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "description": "Share of lines covered, from 0 to 1; `null` without lines.",
+            "format": "double"
+          },
+          "branchRate": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "description": "Share of branches covered, from 0 to 1; `null` without branches.",
+            "format": "double"
+          }
+        },
+        "description": "Covered and coverable lines and branches."
+      },
       "CreateAutomationRequest": {
         "required": [
           "name",
@@ -5402,7 +5513,8 @@
           "finishedAt",
           "error",
           "warnings",
-          "steps"
+          "steps",
+          "reports"
         ],
         "type": "object",
         "properties": {
@@ -5480,6 +5592,13 @@
               "$ref": "#/components/schemas/JobStepView"
             },
             "description": "Its steps, as far as it got."
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportSummaryView"
+            },
+            "description": "The report files it uploaded, with their totals."
           }
         },
         "description": "One try to run a job."
@@ -6073,6 +6192,119 @@
         },
         "description": "A new key for an automation in its folder."
       },
+      "ReportKind": {
+        "enum": [
+          "Tests",
+          "Coverage"
+        ],
+        "description": "What a report holds."
+      },
+      "ReportSummaryView": {
+        "required": [
+          "id",
+          "jobKey",
+          "attemptId",
+          "name",
+          "format",
+          "kind",
+          "path",
+          "size",
+          "receivedAt",
+          "tests",
+          "coverage",
+          "error",
+          "warnings",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The report's id.",
+            "format": "uuid"
+          },
+          "jobKey": {
+            "type": "string",
+            "description": "The job."
+          },
+          "attemptId": {
+            "type": "string",
+            "description": "The attempt that uploaded it.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Its label in the automation."
+          },
+          "format": {
+            "type": "string",
+            "description": "`junit`, `trx` or `cobertura`."
+          },
+          "kind": {
+            "description": "Tests or Coverage.",
+            "$ref": "#/components/schemas/ReportKind"
+          },
+          "path": {
+            "type": "string",
+            "description": "The file's path in the workspace."
+          },
+          "size": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its size in bytes, as the runner reported it.",
+            "format": "int64"
+          },
+          "receivedAt": {
+            "type": "string",
+            "description": "When the server stored it.",
+            "format": "date-time"
+          },
+          "tests": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Counts of a test report that was read.",
+                "$ref": "#/components/schemas/TestTotalsView"
+              }
+            ]
+          },
+          "coverage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Totals of a coverage report that was read.",
+                "$ref": "#/components/schemas/CoverageTotalsView"
+              }
+            ]
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why the file could not be read."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What was read, but not completely."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "Details were cut at the limits; the totals count everything."
+          }
+        },
+        "description": "A report file of a job attempt with its totals."
+      },
       "ResetPasswordRequest": {
         "required": [
           "password"
@@ -6366,6 +6598,46 @@
           }
         },
         "description": "A registered runner as administrators see it."
+      },
+      "RunReportsView": {
+        "required": [
+          "tests",
+          "coverage",
+          "reports"
+        ],
+        "type": "object",
+        "properties": {
+          "tests": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Counts over the test reports of each job's latest attempt that uploaded any, so that a retried\njob counts once; `null` without test reports.",
+                "$ref": "#/components/schemas/TestTotalsView"
+              }
+            ]
+          },
+          "coverage": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Totals over the coverage reports, chosen the same way.",
+                "$ref": "#/components/schemas/CoverageTotalsView"
+              }
+            ]
+          },
+          "reports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportSummaryView"
+            },
+            "description": "Every report of every attempt, by job and then as received."
+          }
+        },
+        "description": "The reports of a run."
       },
       "RunState": {
         "enum": [
@@ -6765,6 +7037,64 @@
         },
         "description": "A successful sign-in. The session itself travels in an HttpOnly cookie, never in the body."
       },
+      "TestTotalsView": {
+        "required": [
+          "total",
+          "passed",
+          "failed",
+          "skipped",
+          "durationMs"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "All tests.",
+            "format": "int32"
+          },
+          "passed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Tests that passed.",
+            "format": "int32"
+          },
+          "failed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Tests that failed.",
+            "format": "int32"
+          },
+          "skipped": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Tests that did not run.",
+            "format": "int32"
+          },
+          "durationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Sum of the tests' durations in milliseconds.",
+            "format": "int64"
+          }
+        },
+        "description": "Counts of tests, over every test even when a report's details were cut."
+      },
       "TokenView": {
         "required": [
           "id",
@@ -7062,6 +7392,9 @@
     },
     {
       "name": "Runs"
+    },
+    {
+      "name": "Reports"
     },
     {
       "name": "Runners"

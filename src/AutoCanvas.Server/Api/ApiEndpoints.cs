@@ -50,6 +50,7 @@ internal static class ApiEndpoints
         api.MapVariableEndpoints();
         api.MapAuditEndpoints();
         api.MapRunEndpoints();
+        api.MapReportEndpoints();
         api.MapRunnerEndpoints();
 
         return endpoints;

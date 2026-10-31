@@ -2,6 +2,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
+using AutoCanvas.Persistence.Reports;
 using AutoCanvas.Persistence.Runners;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Persistence.Variables;
@@ -78,6 +79,18 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Log lines of job attempts, in the chunks runners sent them in.</summary>
     public DbSet<LogChunk> LogChunks => Set<LogChunk>();
 
+    /// <summary>Report files of job attempts, read and stored normalized.</summary>
+    public DbSet<Report> Reports => Set<Report>();
+
+    /// <summary>The tests of test reports.</summary>
+    public DbSet<ReportTestCase> ReportTestCases => Set<ReportTestCase>();
+
+    /// <summary>The packages of coverage reports.</summary>
+    public DbSet<ReportCoveragePackage> ReportCoveragePackages => Set<ReportCoveragePackage>();
+
+    /// <summary>The classes of coverage reports.</summary>
+    public DbSet<ReportCoverageClass> ReportCoverageClasses => Set<ReportCoverageClass>();
+
     /// <summary>Registered runners.</summary>
     public DbSet<Runner> Runners => Set<Runner>();
 
@@ -119,6 +132,10 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new JobAttemptConfiguration());
         modelBuilder.ApplyConfiguration(new JobStepConfiguration());
         modelBuilder.ApplyConfiguration(new LogChunkConfiguration());
+        modelBuilder.ApplyConfiguration(new ReportConfiguration());
+        modelBuilder.ApplyConfiguration(new ReportTestCaseConfiguration());
+        modelBuilder.ApplyConfiguration(new ReportCoveragePackageConfiguration());
+        modelBuilder.ApplyConfiguration(new ReportCoverageClassConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
     }

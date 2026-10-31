@@ -1,9 +1,8 @@
 using System.Text.Json;
 using AutoCanvas.Persistence;
-using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Server.Application.Common;
-using AutoCanvas.Server.Application.Folders;
+using AutoCanvas.Server.Application.Reports;
 using Microsoft.EntityFrameworkCore;
 
 namespace AutoCanvas.Server.Application.Runs;
@@ -22,12 +21,12 @@ public sealed class RunLogService(AutoCanvasDbContext database)
 
     private const int MaxMissing = 100;
 
-    private readonly FolderAccess access = new(database);
+    private readonly RunAccess access = new(database);
 
     /// <summary>A job of the run with its outputs and attempts.</summary>
     public async Task<UseCaseResult<RunJobDetailView>> GetJobAsync(Actor actor, Guid runId, string jobKey, CancellationToken cancellationToken)
     {
-        if (await RunAsync(actor, runId, cancellationToken).ConfigureAwait(false) is { } denied)
+        if (await access.ViewAsync(actor, runId, cancellationToken).ConfigureAwait(false) is { } denied)
         {
             return UseCase.Failure<RunJobDetailView>(denied);
         }
@@ -42,6 +41,7 @@ public sealed class RunLogService(AutoCanvasDbContext database)
         var ids = attempts.Select(a => a.Id).ToList();
         var steps = await database.JobSteps.AsNoTracking().Where(s => ids.Contains(s.AttemptId)).ToListAsync(cancellationToken).ConfigureAwait(false);
         var runnerIds = attempts.Select(a => a.RunnerId).OfType<Guid>().Distinct().ToList();
+        var reports = await database.Reports.AsNoTracking().Where(r => ids.Contains(r.AttemptId)).OrderBy(r => r.ReceivedAt).ToListAsync(cancellationToken).ConfigureAwait(false);
         var runners = await database.Runners.AsNoTracking().Where(r => runnerIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken).ConfigureAwait(false);
         return UseCase.Success(new RunJobDetailView(
             job.Key,
@@ -63,7 +63,8 @@ public sealed class RunLogService(AutoCanvasDbContext database)
                 a.Error,
                 a.Warnings is null ? [] : JsonSerializer.Deserialize<string[]>(a.Warnings) ?? [],
                 [.. steps.Where(s => s.AttemptId == a.Id).OrderBy(s => s.Index).Select(s => new JobStepView(
-                    s.Index, s.StepId, s.Name, s.Status, s.Reason, s.ExitCode, RunOutputs.Read(s.Outputs), s.Error, s.StartedAt, s.FinishedAt))]))]));
+                    s.Index, s.StepId, s.Name, s.Status, s.Reason, s.ExitCode, RunOutputs.Read(s.Outputs), s.Error, s.StartedAt, s.FinishedAt))],
+                [.. reports.Where(r => r.AttemptId == a.Id).Select(ReportSummaryView.Of)]))]));
     }
 
     /// <summary>The chunks of an attempt's log after <paramref name="after"/> (from the start when <see langword="null"/>).</summary>
@@ -74,7 +75,7 @@ public sealed class RunLogService(AutoCanvasDbContext database)
             return UseCase.Failure<LogPage>(UseCaseError.Invalid("limit", $"limit must be between 1 and {MaxChunks}."));
         }
 
-        if (await RunAsync(actor, runId, cancellationToken).ConfigureAwait(false) is { } denied)
+        if (await access.ViewAsync(actor, runId, cancellationToken).ConfigureAwait(false) is { } denied)
         {
             return UseCase.Failure<LogPage>(denied);
         }
@@ -118,19 +119,4 @@ public sealed class RunLogService(AutoCanvasDbContext database)
             finished && !more,
             attempt.LogTruncated));
     }
-
-    private async Task<UseCaseError?> RunAsync(Actor actor, Guid runId, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(actor);
-        var folder = await database.Runs.AsNoTracking().Where(r => r.Id == runId).Select(r => (Guid?)r.FolderId).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
-        if (folder is null)
-        {
-            return NotFound;
-        }
-
-        var allowed = await access.RequireAsync(actor, folder.Value, FolderRole.Viewer, track: false, cancellationToken).ConfigureAwait(false);
-        return allowed.Error is { } error ? (error.Kind == UseCaseErrorKind.NotFound ? NotFound : error) : null;
-    }
-
-    private static UseCaseError NotFound => UseCaseError.NotFound("The run does not exist.");
 }

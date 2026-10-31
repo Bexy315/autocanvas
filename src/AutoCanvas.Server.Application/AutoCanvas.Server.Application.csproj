@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../AutoCanvas.Core/AutoCanvas.Core.csproj" />
     <ProjectReference Include="../AutoCanvas.Persistence/AutoCanvas.Persistence.csproj" />
+    <ProjectReference Include="../AutoCanvas.Reports/AutoCanvas.Reports.csproj" />
   </ItemGroup>
 
   <ItemGroup>

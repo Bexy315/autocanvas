@@ -115,6 +115,9 @@
           "Microsoft.EntityFrameworkCore": "[10.0.14, )"
         }
       },
+      "autocanvas.reports": {
+        "type": "Project"
+      },
       "EFCore.NamingConventions": {
         "type": "CentralTransitive",
         "requested": "[10.0.1, )",

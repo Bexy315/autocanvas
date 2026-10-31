@@ -11,8 +11,8 @@ The words MUST, SHOULD and MAY are used as in RFC 2119.
 
 :::note Specification
 
-The server implements registration, the control stream, offers, steps, results, cancellation and
-logs; reports follow in S2. The reference runner is being built.
+The server implements registration, the control stream, offers, steps, results, cancellation, logs
+and reports. The reference runner is being built.
 
 :::
 
@@ -152,6 +152,16 @@ After the steps, the runner looks for files matching each `ReportSpec`'s `paths`
 the workspace) and uploads every match with `UploadReport`: first a `ReportHeader`, then the content
 in chunks of at most 1 MiB. Files not found are a warning in `JobFinished`, not a failure. Reports
 are uploaded before `JobFinished`.
+
+- The header's `name` and `format` MUST be those of a `ReportSpec` of the job, and `path` MUST be set.
+- A file is stored once per job, name and path: uploading it again (after a reconnect, say) returns
+  the stored `report_id` without reading the content again.
+- A file that is not a report of its format is stored with the reason and still answered with a
+  `report_id`; it is not an error of the upload.
+- Errors: `INVALID_ARGUMENT` without a header first or for a report the job does not declare,
+  `NOT_FOUND` for a job the runner does not hold, `FAILED_PRECONDITION` once the job has finished,
+  `RESOURCE_EXHAUSTED` for a file above the server's size limit or beyond its number of files per
+  job. A runner SHOULD not retry these; other errors MAY be retried.
 
 ## Versioning
 

@@ -96,6 +96,14 @@ public abstract class RunApiTests(DatabaseProvider provider) : DatabaseTest(prov
     public async Task The_log_limit_must_be_sensible(string bytes) =>
         (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, ("Logs:MaxBytesPerJob", bytes))).ShouldContain("Logs:MaxBytesPerJob");
 
+    [Theory]
+    [InlineData("Reports:MaxBytesPerFile", "1000")]
+    [InlineData("Reports:MaxBytesPerFile", "2000000000")]
+    [InlineData("Reports:MaxFilesPerJob", "0")]
+    [InlineData("Reports:MaxFilesPerJob", "1001")]
+    public async Task Report_limits_must_be_sensible(string key, string value) =>
+        (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, (key, value))).ShouldContain(key);
+
     private static async Task<Guid> AutomationAsync(HttpClient client, string yaml)
     {
         var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" }, Cancel)).JsonAsync());

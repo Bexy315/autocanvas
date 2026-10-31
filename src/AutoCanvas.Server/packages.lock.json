@@ -153,11 +153,15 @@
           "Grpc.Core.Api": "[2.84.0, )"
         }
       },
+      "autocanvas.reports": {
+        "type": "Project"
+      },
       "autocanvas.server.application": {
         "type": "Project",
         "dependencies": {
           "AutoCanvas.Core": "[1.0.0, )",
-          "AutoCanvas.Persistence": "[1.0.0, )"
+          "AutoCanvas.Persistence": "[1.0.0, )",
+          "AutoCanvas.Reports": "[1.0.0, )"
         }
       },
       "EFCore.NamingConventions": {
