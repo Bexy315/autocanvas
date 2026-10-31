@@ -27,7 +27,17 @@ internal static class ApiResults
             _ => throw new ArgumentOutOfRangeException(nameof(error), error.Kind, "Unknown error kind."),
         };
 
-        var extensions = error.Field is null ? null : new Dictionary<string, object?>(StringComparer.Ordinal) { ["field"] = error.Field };
-        return TypedResults.Problem(error.Message, statusCode: status, title: title, type: type, extensions: extensions);
+        var extensions = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (error.Field is not null)
+        {
+            extensions["field"] = error.Field;
+        }
+
+        if (error.Diagnostics is { } diagnostics)
+        {
+            extensions["diagnostics"] = diagnostics.Select(DiagnosticView.From).ToList();
+        }
+
+        return TypedResults.Problem(error.Message, statusCode: status, title: title, type: type, extensions: extensions.Count == 0 ? null : extensions);
     }
 }

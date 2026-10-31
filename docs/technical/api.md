@@ -76,8 +76,20 @@ it; `field` names the request property at fault, when there is one:
 }
 ```
 
-Problems about automation files will carry the same diagnostics as the command line: code, message,
-line and column.
+Problems about automation files carry `diagnostics`: every problem found, with the same codes and
+messages as the command line. `line` and `column` are 1-based and absent when a problem cannot be
+pinned to a place:
+
+```json
+{
+  "detail": "The automation file has a problem; see diagnostics.",
+  "field": "yaml",
+  "diagnostics": [
+    { "severity": "Error", "code": "AC0201", "message": "There is no job 'tset'. Did you mean 'test'?",
+      "path": "jobs.image.needs[0]", "line": 39, "column": 13 }
+  ]
+}
+```
 
 ### Unauthorized
 

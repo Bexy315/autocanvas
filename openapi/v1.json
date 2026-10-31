@@ -1792,10 +1792,916 @@
           }
         }
       }
+    },
+    "/api/v1/folders/{folderId}/automations": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "List the automations in a folder",
+        "description": "Ordered by name, one page at a time. Needs Viewer on the folder; subfolders are listed separately.",
+        "operationId": "ListAutomations",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAutomationSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Create an automation",
+        "description": "Saves the file as version 1. Needs Editor on the folder. An invalid file is refused with every problem in `diagnostics`.",
+        "operationId": "CreateAutomation",
+        "parameters": [
+          {
+            "name": "folderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAutomationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Get an automation",
+        "description": "With the file of the current version, its warnings and the caller's role. The ETag header is the version number, for If-Match.",
+        "operationId": "GetAutomation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Save a new version",
+        "description": "Needs Editor. The file must be valid (else `diagnostics` lists every problem) and differ from the current version. Send If-Match with the ETag to avoid overwriting someone else's change (412).",
+        "operationId": "SaveAutomation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAutomationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Rename an automation",
+        "description": "Changes its key in the folder; the versions stay. Needs Editor.",
+        "operationId": "RenameAutomation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameAutomationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Delete an automation",
+        "description": "With all its versions; this cannot be undone. Needs Editor. The audit log keeps who deleted what.",
+        "operationId": "DeleteAutomation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/yaml": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Download the automation file",
+        "description": "The current version exactly as saved, as `text/yaml` with the automation's name as file name.",
+        "operationId": "GetAutomationYaml",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/move": {
+      "post": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Move an automation to another folder",
+        "description": "Needs Editor on both folders, and the name must be free in the new one. Rights change with the place.",
+        "operationId": "MoveAutomation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveAutomationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/versions": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "List the versions of an automation",
+        "description": "Newest first, one page at a time, with message and author.",
+        "operationId": "ListAutomationVersions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAutomationVersionSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{id}/versions/{number}": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Get one version of an automation",
+        "description": "With its file. To restore it, save that file again as a new version.",
+        "operationId": "GetAutomationVersion",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationVersionView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AutomationSummary": {
+        "required": [
+          "id",
+          "name",
+          "title",
+          "description",
+          "currentVersion",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The automation's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The automation's key in its folder."
+          },
+          "title": {
+            "type": "string",
+            "description": "`name:` from the file, or the key."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "`description:` from the file."
+          },
+          "currentVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Number of the newest version.",
+            "format": "int32"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When anything about it last changed.",
+            "format": "date-time"
+          }
+        },
+        "description": "An automation as listed in its folder."
+      },
+      "AutomationVersionSummary": {
+        "required": [
+          "number",
+          "message",
+          "createdAt",
+          "createdById",
+          "createdByName"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "1 for the first version, counting up.",
+            "format": "int32"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What changed, in the author's words."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was saved.",
+            "format": "date-time"
+          },
+          "createdById": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The author, unless the user has been deleted since.",
+            "format": "uuid"
+          },
+          "createdByName": {
+            "type": "string",
+            "description": "The author's user name at the time."
+          }
+        },
+        "description": "A saved version as listed in the history."
+      },
+      "AutomationVersionView": {
+        "required": [
+          "number",
+          "message",
+          "createdAt",
+          "createdById",
+          "createdByName",
+          "yaml"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "1 for the first version, counting up.",
+            "format": "int32"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What changed, in the author's words."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was saved.",
+            "format": "date-time"
+          },
+          "createdById": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The author, unless the user has been deleted since.",
+            "format": "uuid"
+          },
+          "createdByName": {
+            "type": "string",
+            "description": "The author's user name at the time."
+          },
+          "yaml": {
+            "type": "string",
+            "description": "The automation file as saved; save it again to restore this version."
+          }
+        },
+        "description": "A saved version with its content."
+      },
+      "AutomationView": {
+        "required": [
+          "id",
+          "folderId",
+          "name",
+          "title",
+          "description",
+          "currentVersion",
+          "yaml",
+          "warnings",
+          "myRole",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The automation's id.",
+            "format": "uuid"
+          },
+          "folderId": {
+            "type": "string",
+            "description": "The folder it lives in.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The automation's key in its folder."
+          },
+          "title": {
+            "type": "string",
+            "description": "`name:` from the file, or the key."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "`description:` from the file."
+          },
+          "currentVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Number of the newest version; the ETag of the API.",
+            "format": "int32"
+          },
+          "yaml": {
+            "type": "string",
+            "description": "The automation file of the newest version."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticView"
+            },
+            "description": "Things in the file that work but deserve a look."
+          },
+          "myRole": {
+            "description": "The caller's role on the automation's folder.",
+            "$ref": "#/components/schemas/FolderRole"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the automation was created.",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "When anything about it last changed.",
+            "format": "date-time"
+          }
+        },
+        "description": "An automation with the content of its newest version."
+      },
       "ChangePasswordRequest": {
         "required": [
           "currentPassword",
@@ -1813,6 +2719,31 @@
           }
         },
         "description": "A new password for the signed-in user."
+      },
+      "CreateAutomationRequest": {
+        "required": [
+          "name",
+          "yaml"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The key in the folder, like a file name: 1 to 100 characters, no slash; unique in the folder regardless of case."
+          },
+          "yaml": {
+            "type": "string",
+            "description": "The automation file; it must be valid, else the problem lists every diagnostic."
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What this first version is, in your words."
+          }
+        },
+        "description": "An automation to create in a folder."
       },
       "CreatedToken": {
         "required": [
@@ -1937,6 +2868,63 @@
           }
         },
         "description": "A user to create. The user must change the password at the first sign-in."
+      },
+      "DiagnosticSeverity": {
+        "enum": [
+          "Error",
+          "Warning"
+        ],
+        "description": "How serious a Diagnostic is."
+      },
+      "DiagnosticView": {
+        "required": [
+          "severity",
+          "code",
+          "message",
+          "path",
+          "line",
+          "column"
+        ],
+        "type": "object",
+        "properties": {
+          "severity": {
+            "description": "Errors keep the file from being saved; warnings do not.",
+            "$ref": "#/components/schemas/DiagnosticSeverity"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable identifier such as `AC0103`; the user guide explains each one."
+          },
+          "message": {
+            "type": "string",
+            "description": "What is wrong and how to fix it."
+          },
+          "path": {
+            "type": "string",
+            "description": "Where in the document, such as `jobs.build.needs[0]`; empty for the whole file."
+          },
+          "line": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "1-based line in the file, when the problem can be pinned to one.",
+            "format": "int32"
+          },
+          "column": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "1-based column in the file, when the problem can be pinned to one.",
+            "format": "int32"
+          }
+        },
+        "description": "A problem in an automation file, as the API reports it."
       },
       "FolderCrumb": {
         "required": [
@@ -2289,6 +3277,20 @@
         },
         "description": "The signed-in user's own account with their groups."
       },
+      "MoveAutomationRequest": {
+        "required": [
+          "folderId"
+        ],
+        "type": "object",
+        "properties": {
+          "folderId": {
+            "type": "string",
+            "description": "The folder to move it to; needs Editor there as well as on the current folder.",
+            "format": "uuid"
+          }
+        },
+        "description": "Where to move an automation."
+      },
       "MoveFolderRequest": {
         "required": [
           "parentId"
@@ -2305,6 +3307,54 @@
           }
         },
         "description": "Where to move a folder."
+      },
+      "PageOfAutomationSummary": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationSummary"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
+      "PageOfAutomationVersionSummary": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationVersionSummary"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
       },
       "PageOfFolderSummary": {
         "required": [
@@ -2416,6 +3466,19 @@
           }
         }
       },
+      "RenameAutomationRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "1 to 100 characters, no slash; unique in the folder regardless of case."
+          }
+        },
+        "description": "A new key for an automation in its folder."
+      },
       "ResetPasswordRequest": {
         "required": [
           "password"
@@ -2428,6 +3491,26 @@
           }
         },
         "description": "A password chosen for a user by an admin; the user must change it at the next sign-in."
+      },
+      "SaveAutomationRequest": {
+        "required": [
+          "yaml"
+        ],
+        "type": "object",
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "description": "The whole automation file; it must be valid and differ from the current version."
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What changed, in your words."
+          }
+        },
+        "description": "A new version of an automation."
       },
       "ServerInfo": {
         "required": [
@@ -2812,6 +3895,9 @@
     },
     {
       "name": "Folders"
+    },
+    {
+      "name": "Automations"
     }
   ]
 }

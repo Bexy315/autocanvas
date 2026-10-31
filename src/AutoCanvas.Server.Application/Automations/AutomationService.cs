@@ -95,7 +95,7 @@ public sealed class AutomationService
             .Where(v => v.AutomationId == id && v.Number == automation.CurrentVersion)
             .Select(v => v.Yaml)
             .FirstAsync(cancellationToken).ConfigureAwait(false);
-        var warnings = AutomationLoader.Load(yaml).Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Warning).ToList();
+        var warnings = AutomationLoader.Load(yaml).Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Warning).Select(DiagnosticView.From).ToList();
         return UseCase.Success(new AutomationView(
             automation.Id,
             automation.FolderId,
