@@ -123,6 +123,8 @@ public abstract class AdminCommandTests(DatabaseProvider provider) : DatabaseTes
     }
 }
 
+[Collection(CommandLineTests.Name)]
 public sealed class AdminCommandTestsOnSqlite() : AdminCommandTests(DatabaseProvider.Sqlite);
 
+[Collection(CommandLineTests.Name)]
 public sealed class AdminCommandTestsOnPostgres() : AdminCommandTests(DatabaseProvider.Postgres);

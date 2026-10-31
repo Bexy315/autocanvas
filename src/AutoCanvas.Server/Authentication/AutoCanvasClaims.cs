@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Identity;
 
 namespace AutoCanvas.Server.Authentication;
@@ -51,6 +52,10 @@ internal static class AutoCanvasClaims
 
     public static Guid? GetSessionId(this ClaimsPrincipal principal) =>
         principal.FindFirstValue(SessionId) is { } id ? Guid.Parse(id, CultureInfo.InvariantCulture) : null;
+
+    /// <summary>The signed-in user as actor of folder use cases.</summary>
+    public static Actor ToActor(this ClaimsPrincipal principal) =>
+        new(principal.GetUserId(), principal.HasClaim(Admin, "true"));
 
     public static bool UsesSession(this ClaimsPrincipal principal) =>
         string.Equals(principal.FindFirstValue(Method), SessionMethod, StringComparison.Ordinal);

@@ -128,6 +128,8 @@ while the list changes, so items are neither skipped nor repeated.
 
 ## Concurrency
 
-*From S1 step 5.* Resources that people edit (folders, automations) return an `ETag` header. Send
-it back as `If-Match` when changing the resource; if someone else changed it in between, the server
-answers with [precondition failed](#precondition-failed) instead of overwriting their change.
+Resources that people edit return their version as an `ETag` header (`"3"`); folders do so today,
+automations will from S1 step 6. Send it back as `If-Match` when changing the resource. If someone
+else changed it in between, the server answers [412 precondition failed](#precondition-failed)
+instead of overwriting their change; read it again and repeat yours. `If-Match` is optional:
+without it (or with `*`) the change applies unconditionally. Weak ETags (`W/"3"`) are accepted.
