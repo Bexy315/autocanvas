@@ -19,3 +19,5 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0012](0012-folder-permissions.md) | Permissions through roles on a folder tree | Accepted |
 | [0013](0013-secrets-at-rest.md) | Encrypt secrets with AES-GCM under a master key | Accepted |
 | [0014](0014-data-access-with-ef-core.md) | Data access with EF Core, one project per database provider | Proposed |
+| [0015](0015-runs-queue-and-logs.md) | Store runs with a copy of their definition, queue jobs per provider, keep logs as chunks in the database | Proposed |
+| [0016](0016-built-in-node-types-first.md) | Ship a few built-in node types; decide on plugins after 0.1 | Proposed |
