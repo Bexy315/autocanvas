@@ -45,6 +45,7 @@ setting and what is expected, instead of failing later on first use.
 | `Bootstrap:AdminUserName`, `Bootstrap:AdminPassword` | none | Create this admin on start while there is no account at all; set both or neither (see [Users and groups](../user/accounts.md#the-first-admin)) |
 | `Runners:Urls` | `http://localhost:5081` | Addresses of the runner endpoint, HTTP/2 only; separate several with `;` (see [Runners](#runners)) |
 | `Runners:HeartbeatInterval` | `00:00:20` | How often runners send a heartbeat; at least one second and at most half of `Queue:LeaseDuration` |
+| `Logs:MaxBytesPerJob` | `67108864` (64 MiB) | Log text one job attempt may store, 1 MiB to 1 GiB; later lines are dropped (see [Runs](../user/runs.md#logs)) |
 | `Queue:LeaseDuration` | `00:01:00` | How long a runner holds a job after its last heartbeat (10 seconds to 1 hour); then an offered job goes back to the queue and a running one fails as if the runner were gone |
 | `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
 | `Secrets:MasterKey` or `Secrets:MasterKeyFile` | none — **required** | The master key, or a file holding it; exactly one of them (see [Master key](#master-key)) |
@@ -162,6 +163,11 @@ The session cookie is marked `Secure` when the server sees an HTTPS request or w
 `Server:PublicUrl` starts with `https://`. Behind a proxy that ends TLS, set `Server:PublicUrl` to
 the public HTTPS address. Sign-in attempts are limited per client address; until forwarded headers
 are supported (S4), all requests through one proxy count as one address.
+
+Following a log live (`…/log/stream`) is a long-lived HTTP response of Server-Sent Events; a proxy
+in front of the API must not buffer it (nginx: the server sends `X-Accel-Buffering: no`; others:
+turn response buffering off for that path) and must allow it to stay open — the server sends a
+comment every 15 seconds while nothing happens.
 
 A proxy in front of the runner endpoint must forward gRPC: HTTP/2 to the server, with trailers, and
 without buffering or timing out long-lived streams. With nginx this is `grpc_pass`, with Caddy

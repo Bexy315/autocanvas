@@ -3778,6 +3778,210 @@
         }
       }
     },
+    "/api/v1/runs/{id}/jobs/{key}": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Get a job of a run",
+        "description": "With its outputs and every attempt with its steps, as far as they got. Needs Viewer.",
+        "operationId": "GetRunJob",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunJobDetailView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/attempts/{attemptId}/log": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Read a job attempt's log",
+        "description": "The chunks after `after` (the start if omitted), at most `limit` (default 100, at most 1000). Read on with `next` until `isComplete`; `missing` lists chunks that never arrived. Needs Viewer.",
+        "operationId": "GetJobLog",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/attempts/{attemptId}/log/stream": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Follow a job attempt's log live",
+        "description": "Server-Sent Events: one `chunk` event per chunk (its `id` is the sequence; reconnecting with `Last-Event-ID` or `after` continues there), then an `end` event once the attempt has finished. Needs Viewer.",
+        "operationId": "FollowJobLog",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{id}/cancel": {
       "post": {
         "tags": [
@@ -4156,6 +4360,17 @@
   },
   "components": {
     "schemas": {
+      "AttemptStatus": {
+        "enum": [
+          "Queued",
+          "Offered",
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Cancelled"
+        ],
+        "description": "Where an attempt stands."
+      },
       "AuditActorKind": {
         "enum": [
           "System",
@@ -5175,7 +5390,327 @@
           }
         }
       },
+      "JobAttemptView": {
+        "required": [
+          "id",
+          "number",
+          "status",
+          "runnerId",
+          "runnerName",
+          "queuedAt",
+          "startedAt",
+          "finishedAt",
+          "error",
+          "warnings",
+          "steps"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The attempt's id; its log is read by it.",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Attempt number, from 1.",
+            "format": "int32"
+          },
+          "status": {
+            "description": "Queued, Offered, Running, Succeeded, Failed or Cancelled.",
+            "$ref": "#/components/schemas/AttemptStatus"
+          },
+          "runnerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The runner that holds or held it.",
+            "format": "uuid"
+          },
+          "runnerName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "That runner's name, while it exists."
+          },
+          "queuedAt": {
+            "type": "string",
+            "description": "When it was queued.",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When a runner accepted it.",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it ended.",
+            "format": "date-time"
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed or was cancelled."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Problems the runner had collecting reports or cleaning up."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobStepView"
+            },
+            "description": "Its steps, as far as it got."
+          }
+        },
+        "description": "One try to run a job."
+      },
+      "JobStepStatus": {
+        "enum": [
+          "Sent",
+          "Running",
+          "Succeeded",
+          "Failed",
+          "Cancelled",
+          "TimedOut",
+          "Errored",
+          "Skipped"
+        ],
+        "description": "Where a step of a job attempt stands."
+      },
+      "JobStepView": {
+        "required": [
+          "index",
+          "stepId",
+          "name",
+          "status",
+          "reason",
+          "exitCode",
+          "outputs",
+          "error",
+          "startedAt",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its position in the job, from 0.",
+            "format": "int32"
+          },
+          "stepId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its id in the automation, if it has one."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its display name."
+          },
+          "status": {
+            "description": "Sent, Running, Succeeded, Failed, Cancelled, TimedOut, Errored or Skipped.",
+            "$ref": "#/components/schemas/JobStepStatus"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it was skipped."
+          },
+          "exitCode": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "Exit code of a script step.",
+            "format": "int32"
+          },
+          "outputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Its outputs, masked."
+          },
+          "error": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What went wrong."
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it started, by the runner's clock.",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it ended, by the runner's clock.",
+            "format": "date-time"
+          }
+        },
+        "description": "A step of a job attempt, as far as it got."
+      },
       "JsonElement": {},
+      "LogChunkView": {
+        "required": [
+          "sequence",
+          "stepIndex",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its position in the log; numbers that are missing were never received.",
+            "format": "int64"
+          },
+          "stepIndex": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "The step that wrote it; `null` for preparation and cleanup.",
+            "format": "int32"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogLine"
+            },
+            "description": "Its lines, masked."
+          }
+        },
+        "description": "A chunk of a job's log."
+      },
+      "LogLine": {
+        "required": [
+          "time",
+          "source",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "time": {
+            "type": "string",
+            "description": "When it was written, by the runner's clock.",
+            "format": "date-time"
+          },
+          "source": {
+            "description": "Where it came from: standard output, standard error or the runner itself.",
+            "$ref": "#/components/schemas/LogSource"
+          },
+          "text": {
+            "type": "string",
+            "description": "The text without its line ending, masked."
+          }
+        },
+        "description": "One line of a job's log."
+      },
+      "LogPage": {
+        "required": [
+          "attemptId",
+          "chunks",
+          "next",
+          "missing",
+          "isComplete",
+          "isTruncated"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "description": "The attempt.",
+            "format": "uuid"
+          },
+          "chunks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogChunkView"
+            },
+            "description": "The chunks after the requested sequence, in order."
+          },
+          "next": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Pass as `after` to read on; the last sequence returned, or the requested one.",
+            "format": "int64"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            },
+            "description": "Sequences before the last one returned that never arrived (at most 100)."
+          },
+          "isComplete": {
+            "type": "boolean",
+            "description": "The attempt has finished and nothing follows these chunks."
+          },
+          "isTruncated": {
+            "type": "boolean",
+            "description": "The log reached its limit and later lines were dropped."
+          }
+        },
+        "description": "A part of a job attempt's log."
+      },
+      "LogSource": {
+        "enum": [
+          "Stdout",
+          "Stderr",
+          "System"
+        ],
+        "description": "Where a log line came from."
+      },
       "MeView": {
         "required": [
           "user",
@@ -5550,6 +6085,71 @@
           }
         },
         "description": "A password chosen for a user by an admin; the user must change it at the next sign-in."
+      },
+      "RunJobDetailView": {
+        "required": [
+          "key",
+          "name",
+          "status",
+          "reason",
+          "outputs",
+          "startedAt",
+          "finishedAt",
+          "attempts"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The job's id in the automation file."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its display name."
+          },
+          "status": {
+            "description": "Pending, Running, Succeeded, Failed, Cancelled or Skipped.",
+            "$ref": "#/components/schemas/RunJobStatus"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it was skipped, or what a switch decided."
+          },
+          "outputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What it published under `outputs`, masked."
+          },
+          "startedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it started.",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it finished.",
+            "format": "date-time"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobAttemptView"
+            },
+            "description": "Its attempts, first first."
+          }
+        },
+        "description": "A job of a run with its outputs and every attempt."
       },
       "RunJobStatus": {
         "enum": [

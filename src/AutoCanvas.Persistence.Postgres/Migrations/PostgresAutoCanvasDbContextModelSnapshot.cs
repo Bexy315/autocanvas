@@ -719,6 +719,14 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lease_expires_at");
 
+                    b.Property<long>("LogBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("log_bytes");
+
+                    b.Property<bool>("LogTruncated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("log_truncated");
+
                     b.Property<bool>("NeedsContainer")
                         .HasColumnType("boolean")
                         .HasColumnName("needs_container");
@@ -861,6 +869,44 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasDatabaseName("ix_job_steps_attempt_id_index");
 
                     b.ToTable("job_steps", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.LogChunk", b =>
+                {
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("attempt_id");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    b.Property<int>("ByteCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("byte_count");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_count");
+
+                    b.Property<string>("Lines")
+                        .IsRequired()
+                        .HasMaxLength(1048576)
+                        .HasColumnType("character varying(1048576)")
+                        .HasColumnName("lines");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<int?>("StepIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("step_index");
+
+                    b.HasKey("AttemptId", "Sequence")
+                        .HasName("pk_log_chunks");
+
+                    b.ToTable("log_chunks", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runs.Run", b =>
@@ -1323,6 +1369,18 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_job_steps_job_attempts_attempt_id");
+
+                    b.Navigation("Attempt");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.LogChunk", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runs.JobAttempt", "Attempt")
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_log_chunks_job_attempts_attempt_id");
 
                     b.Navigation("Attempt");
                 });

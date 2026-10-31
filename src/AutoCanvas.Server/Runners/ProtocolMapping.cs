@@ -1,4 +1,5 @@
 using AutoCanvas.Protocol.Runner.V1;
+using AppLogLine = AutoCanvas.Server.Application.Runs.LogLine;
 using CoreStepOutcome = AutoCanvas.Core.Orchestration.StepOutcome;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Runners;
@@ -152,6 +153,24 @@ internal static class ProtocolMapping
             completed.Outputs.ToDictionary(o => o.Key, o => o.Value, StringComparer.Ordinal),
             string.IsNullOrEmpty(completed.Error) ? null : completed.Error,
             completed.FinishedAt?.ToDateTimeOffset());
+    }
+
+    /// <summary>A chunk of log lines, as the application reads it.</summary>
+    public static ReceivedLogChunk ToChunk(LogChunk chunk)
+    {
+        ArgumentNullException.ThrowIfNull(chunk);
+        return new ReceivedLogChunk(
+            (long)Math.Min(chunk.Sequence, long.MaxValue),
+            chunk.SourceCase == LogChunk.SourceOneofCase.StepIndex ? (int)Math.Min(chunk.StepIndex, int.MaxValue) : null,
+            [.. chunk.Lines.Select(l => new AppLogLine(
+                l.Time?.ToDateTimeOffset() ?? DateTimeOffset.UnixEpoch,
+                l.Stream switch
+                {
+                    Protocol.Runner.V1.LogStream.Stderr => LogSource.Stderr,
+                    Protocol.Runner.V1.LogStream.System => LogSource.System,
+                    _ => LogSource.Stdout,
+                },
+                l.Text))]);
     }
 
     /// <summary>Ids in messages are attempt or run UUIDs; anything else names nothing.</summary>

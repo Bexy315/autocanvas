@@ -56,6 +56,10 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<JobDispatcher>();
         services.AddScoped<JobOfferBuilder>();
         services.AddScoped<JobProgress>();
+        services.AddOptions<LogOptions>();
+        services.AddSingleton<LogSignal>();
+        services.AddScoped<LogIngestion>();
+        services.AddScoped<RunLogService>();
 
         services.AddOptions<RunnerOptions>();
         services.AddScoped<RunnerRegistrationService>();

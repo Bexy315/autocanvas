@@ -11,8 +11,8 @@ The words MUST, SHOULD and MAY are used as in RFC 2119.
 
 :::note Specification
 
-The server implements registration, the control stream, offers, steps, results and cancellation;
-logs and reports follow in S2. The reference runner is being built.
+The server implements registration, the control stream, offers, steps, results, cancellation and
+logs; reports follow in S2. The reference runner is being built.
 
 :::
 

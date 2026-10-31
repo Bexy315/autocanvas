@@ -42,6 +42,29 @@ internal static class RunEndpoints
             .WithDescription("With its jobs in the order of the automation file. Needs Viewer; also works after the automation was deleted.")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
+        runs.MapGet("/{id:guid}/jobs/{key}", GetJobAsync)
+            .WithName("GetRunJob")
+            .Produces<RunJobDetailView>()
+            .WithSummary("Get a job of a run")
+            .WithDescription("With its outputs and every attempt with its steps, as far as they got. Needs Viewer.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        runs.MapGet("/{id:guid}/attempts/{attemptId:guid}/log", ReadLogAsync)
+            .WithName("GetJobLog")
+            .Produces<LogPage>()
+            .WithSummary("Read a job attempt's log")
+            .WithDescription("The chunks after `after` (the start if omitted), at most `limit` (default 100, at most 1000). Read on with `next` until `isComplete`; `missing` lists chunks that never arrived. Needs Viewer.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        runs.MapGet("/{id:guid}/attempts/{attemptId:guid}/log/stream", LogStreamEndpoint.FollowAsync)
+            .WithName("FollowJobLog")
+            .Produces(StatusCodes.Status200OK, contentType: "text/event-stream")
+            .WithSummary("Follow a job attempt's log live")
+            .WithDescription("Server-Sent Events: one `chunk` event per chunk (its `id` is the sequence; reconnecting with `Last-Event-ID` or `after` continues there), then an `end` event once the attempt has finished. Needs Viewer.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
         runs.MapPost("/{id:guid}/cancel", CancelAsync)
             .WithName("CancelRun")
             .Produces<RunView>()
@@ -56,6 +79,12 @@ internal static class RunEndpoints
 
     private static async Task<IResult> ListAsync(Guid automationId, int? limit, string? cursor, HttpContext context, RunService runs, CancellationToken cancellationToken) =>
         ApiResults.Ok(await runs.ListAsync(context.User.ToActor(), automationId, new PageRequest(limit, cursor), cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> GetJobAsync(Guid id, string key, HttpContext context, RunLogService logs, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await logs.GetJobAsync(context.User.ToActor(), id, key, cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> ReadLogAsync(Guid id, Guid attemptId, long? after, int? limit, HttpContext context, RunLogService logs, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await logs.ReadAsync(context.User.ToActor(), id, attemptId, after, limit, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> GetAsync(Guid id, HttpContext context, RunService runs, CancellationToken cancellationToken) =>
         ApiResults.Ok(await runs.GetAsync(context.User.ToActor(), id, cancellationToken).ConfigureAwait(false));

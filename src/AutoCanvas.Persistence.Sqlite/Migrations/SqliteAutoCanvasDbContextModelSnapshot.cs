@@ -714,6 +714,14 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("lease_expires_at");
 
+                    b.Property<long>("LogBytes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("log_bytes");
+
+                    b.Property<bool>("LogTruncated")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("log_truncated");
+
                     b.Property<bool>("NeedsContainer")
                         .HasColumnType("INTEGER")
                         .HasColumnName("needs_container");
@@ -856,6 +864,44 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasDatabaseName("ix_job_steps_attempt_id_index");
 
                     b.ToTable("job_steps", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.LogChunk", b =>
+                {
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("attempt_id");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sequence");
+
+                    b.Property<int>("ByteCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("byte_count");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("line_count");
+
+                    b.Property<string>("Lines")
+                        .IsRequired()
+                        .HasMaxLength(1048576)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("lines");
+
+                    b.Property<long>("ReceivedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("received_at");
+
+                    b.Property<int?>("StepIndex")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("step_index");
+
+                    b.HasKey("AttemptId", "Sequence")
+                        .HasName("pk_log_chunks");
+
+                    b.ToTable("log_chunks", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runs.Run", b =>
@@ -1318,6 +1364,18 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_job_steps_job_attempts_attempt_id");
+
+                    b.Navigation("Attempt");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.LogChunk", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runs.JobAttempt", "Attempt")
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_log_chunks_job_attempts_attempt_id");
 
                     b.Navigation("Attempt");
                 });

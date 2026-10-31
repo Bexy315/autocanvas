@@ -90,6 +90,12 @@ public abstract class RunApiTests(DatabaseProvider provider) : DatabaseTest(prov
         (await ada.GetAsync(Uri($"/api/v1/automations/{automation}/runs?cursor=x"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    [Theory]
+    [InlineData("0")]
+    [InlineData("2000000000")]
+    public async Task The_log_limit_must_be_sensible(string bytes) =>
+        (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, ("Logs:MaxBytesPerJob", bytes))).ShouldContain("Logs:MaxBytesPerJob");
+
     private static async Task<Guid> AutomationAsync(HttpClient client, string yaml)
     {
         var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" }, Cancel)).JsonAsync());

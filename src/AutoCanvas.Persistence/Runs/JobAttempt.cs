@@ -75,6 +75,12 @@ public sealed class JobAttempt
     /// <summary>Problems the runner had collecting reports or cleaning up, as a JSON array.</summary>
     public string? Warnings { get; set; }
 
+    /// <summary>Bytes of log text stored for the attempt, counted against the log limit.</summary>
+    public long LogBytes { get; set; }
+
+    /// <summary>The log reached its limit; later lines were dropped.</summary>
+    public bool LogTruncated { get; set; }
+
     /// <summary>Navigation to the job.</summary>
     public RunJob? Job { get; init; }
 }
