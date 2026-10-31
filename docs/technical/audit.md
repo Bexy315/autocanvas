@@ -56,6 +56,11 @@ feature that records them is built.
 | `automation.renamed` | an editor | automation | `from`, `to` |
 | `automation.moved` | an editor | automation | `fromFolderId`, `toFolderId` |
 | `automation.deleted` | an editor | automation | `name`, `versions` |
+| `variable.set` | an editor, or an admin for the instance | variable | `scope`, `name` — never the value |
+| `variable.deleted` | an editor, or an admin for the instance | variable | `scope`, `name` |
+| `secret.set` | an editor, or an admin for the instance | secret | `scope`, `name` — never the value |
+| `secret.deleted` | an editor, or an admin for the instance | secret | `scope`, `name` |
+| `secrets.master_key_rotated` | the command line | — | `fromKeyId`, `toKeyId`, `secrets` |
 
 Every folder action carries the folder in the *folder* field, so a folder's owners can read its
 part of the log.

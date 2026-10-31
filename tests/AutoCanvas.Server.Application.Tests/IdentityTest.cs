@@ -3,6 +3,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Identity;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Automations;
+using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
@@ -72,6 +73,49 @@ public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(pro
         await using (context)
         {
             return await action(new AutomationService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+        }
+    }
+
+    /// <summary>The master key the tests encrypt secrets with.</summary>
+    protected static MasterKey Key { get; } = MasterKey.Parse("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=", out _)!;
+
+    /// <summary>Runs a variable use case on a fresh context.</summary>
+    protected async Task<T> VariablesAsync<T>(Func<VariableService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new VariableService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+        }
+    }
+
+    /// <summary>Runs a secret use case on a fresh context.</summary>
+    protected async Task<T> SecretsAsync<T>(Func<SecretService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new SecretService(context, new SecretCipher(Key), new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+        }
+    }
+
+    /// <summary>Runs a configuration query on a fresh context, with the given key or the tests' key.</summary>
+    protected async Task<T> ConfigurationAsync<T>(Func<ConfigurationService, Task<T>> action, MasterKey? key = null)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new ConfigurationService(context, new SecretCipher(key ?? Key)));
+        }
+    }
+
+    /// <summary>Runs the master key guard on a fresh context, with the given key or the tests' key.</summary>
+    protected async Task<T> GuardAsync<T>(Func<MasterKeyGuard, Task<T>> action, MasterKey? key = null)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new MasterKeyGuard(context, new SecretCipher(key ?? Key), new AuditLog(context, new SystemAuditContext(), Clock)));
         }
     }
 

@@ -76,9 +76,15 @@ locks themselves out by accident; admins can repair any other lock-out.
 
 ## Secrets
 
-*Planned, S1.* AES-256-GCM per value under a master key held outside the database, bound to scope
-and name; write-only through the API; redacted from logs; master key rotation by command
-([ADR-0013](../adr/0013-secrets-at-rest.md)).
+Secret values are encrypted with AES-256-GCM, one random nonce per value, under a master key held
+outside the database ([ADR-0013](../adr/0013-secrets-at-rest.md)). The associated data binds each
+ciphertext to its scope and name, so a value copied to another row or renamed does not decrypt. The
+server refuses to start without the key or with a different key than the database was set up with.
+No use case returns a secret value, not even to admins, and the audit log records only names; the
+values are decrypted only to resolve them for runs. A restricted folder also cuts the inheritance
+of variables and secrets from the folders above it. `SecretRedactor` in Core replaces known secret
+values in text before it is stored (used for run logs in S2). The key is rotated offline with
+`admin rotate-master-key` ([Operations](operations.md#master-key)).
 
 ## Audit
 

@@ -95,4 +95,19 @@ public static class AuditActions
 
     /// <summary>An automation was deleted with all its versions; details: <c>name</c>, <c>versions</c>.</summary>
     public const string AutomationDeleted = "automation.deleted";
+
+    /// <summary>A variable of the instance or a folder was created or replaced; details: <c>scope</c>, <c>name</c>. Never the value.</summary>
+    public const string VariableSet = "variable.set";
+
+    /// <summary>A variable was deleted; details: <c>scope</c>, <c>name</c>.</summary>
+    public const string VariableDeleted = "variable.deleted";
+
+    /// <summary>A secret was created or replaced; details: <c>scope</c>, <c>name</c>. Never the value.</summary>
+    public const string SecretSet = "secret.set";
+
+    /// <summary>A secret was deleted; details: <c>scope</c>, <c>name</c>.</summary>
+    public const string SecretDeleted = "secret.deleted";
+
+    /// <summary>Every secret was re-encrypted under a new master key; details: <c>fromKeyId</c>, <c>toKeyId</c>, <c>secrets</c>.</summary>
+    public const string MasterKeyRotated = "secrets.master_key_rotated";
 }
