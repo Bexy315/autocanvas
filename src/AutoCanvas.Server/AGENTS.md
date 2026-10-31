@@ -26,4 +26,6 @@ persistence wiring and CLI subcommands. Business rules belong in application ser
 - **Time comes from `TimeProvider`**, never `DateTime.UtcNow`; tests use `FakeTimeProvider` from
   `AutoCanvasFactory.Clock`.
 - **Tests** host the server with `AutoCanvasFactory` (in memory, `Testing` environment) and assert
-  on HTTP responses, not on internals.
+  on HTTP responses, not on internals. Tests that run `ServerCommandLine` in-process belong to the
+  `[Collection(CommandLineTests.Name)]` collection: a command's host could otherwise be picked up
+  by a factory running in parallel.

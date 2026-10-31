@@ -1079,6 +1079,719 @@
           }
         }
       }
+    },
+    "/api/v1/folders": {
+      "get": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "List where I can start",
+        "description": "The topmost folders the caller may view, each with the names of the folders above it. For admins: the top-level folders.",
+        "operationId": "ListFolderEntryPoints",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FolderView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Create a folder",
+        "description": "At the top level anyone may create a folder and becomes its Owner; a subfolder needs Editor on the parent and inherits from it.",
+        "operationId": "CreateFolder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}": {
+      "get": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Get a folder",
+        "description": "With the caller's role and the folders above it. The ETag header is the folder's version, for If-Match.",
+        "operationId": "GetFolder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Rename or describe a folder",
+        "description": "Needs Editor. Send If-Match with the ETag to avoid overwriting someone else's change (412).",
+        "operationId": "UpdateFolder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Delete a folder",
+        "description": "Needs Owner, and the folder must be empty (409 otherwise). Its grants go with it.",
+        "operationId": "DeleteFolder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/children": {
+      "get": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "List subfolders",
+        "description": "Ordered by name, one page at a time. Restricted subfolders appear only to callers with a role on them.",
+        "operationId": "ListFolderChildren",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfFolderSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/move": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Move a folder",
+        "description": "With everything below it. Needs Editor on the folder and on the new parent, or Owner to move it to the top level. Rights change with the place.",
+        "operationId": "MoveFolder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveFolderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/restriction": {
+      "put": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Restrict a folder or lift that",
+        "description": "Needs Owner. In a restricted folder, grants from above no longer apply; the caller keeps access through an explicit Owner grant.",
+        "operationId": "SetFolderRestriction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRestrictionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/grants": {
+      "get": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "List the grants on a folder",
+        "description": "Roles given directly on this folder, users first. Needs Owner.",
+        "operationId": "ListFolderGrants",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GrantView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Grant a role on a folder",
+        "description": "To a user or a group; replaces the role they had on this folder. Needs Owner.",
+        "operationId": "SetFolderGrant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/grants/{grantId}": {
+      "delete": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Remove a grant",
+        "description": "Needs Owner. Removing your own Owner grant can lock you out; an admin can repair that.",
+        "operationId": "RemoveFolderGrant",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "grantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1118,6 +1831,34 @@
           }
         },
         "description": "A new API token. string CreatedToken.Token is shown this once and cannot be retrieved again."
+      },
+      "CreateFolderRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name: 1 to 100 characters, no slash; unique among its siblings regardless of case."
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The folder to create it in (needs Editor there); omitted or null for the top level, where the creator becomes Owner.",
+            "format": "uuid"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the folder is for."
+          }
+        },
+        "description": "A folder to create."
       },
       "CreateGroupRequest": {
         "required": [
@@ -1196,6 +1937,186 @@
           }
         },
         "description": "A user to create. The user must change the password at the first sign-in."
+      },
+      "FolderCrumb": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The folder's id, or `null` when the caller may not open it.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The folder's name."
+          }
+        },
+        "description": "A folder above the current one, for orientation."
+      },
+      "FolderRole": {
+        "enum": [
+          "None",
+          "Viewer",
+          "Operator",
+          "Editor",
+          "Owner"
+        ],
+        "description": "Roles on a folder (ADR-0012), each including the ones before it. The numeric order is the\r\norder of power; the database stores the names."
+      },
+      "FolderSummary": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "isRestricted",
+          "myRole"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The folder's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The folder's name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the folder is for."
+          },
+          "isRestricted": {
+            "type": "boolean",
+            "description": "Whether grants from above stop applying here."
+          },
+          "myRole": {
+            "description": "The caller's role on this folder.",
+            "$ref": "#/components/schemas/FolderRole"
+          }
+        },
+        "description": "A subfolder as listed under its parent."
+      },
+      "FolderView": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "parentId",
+          "isRestricted",
+          "path",
+          "myRole",
+          "createdAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The folder's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The folder's name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the folder is for."
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The folder above; `null` at the top level.",
+            "format": "uuid"
+          },
+          "isRestricted": {
+            "type": "boolean",
+            "description": "Whether grants from above stop applying here."
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderCrumb"
+            },
+            "description": "The folders above, from the top level down (names; ids only where the caller may open them)."
+          },
+          "myRole": {
+            "description": "The caller's role on this folder.",
+            "$ref": "#/components/schemas/FolderRole"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the folder was created.",
+            "format": "date-time"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Changes with every change of the folder; the ETag of the API.",
+            "format": "int32"
+          }
+        },
+        "description": "A folder as the caller sees it."
+      },
+      "GrantView": {
+        "required": [
+          "id",
+          "subjectType",
+          "subjectId",
+          "subjectName",
+          "role",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The grant's id.",
+            "format": "uuid"
+          },
+          "subjectType": {
+            "type": "string",
+            "description": "`user` or `group`."
+          },
+          "subjectId": {
+            "type": "string",
+            "description": "The user or group.",
+            "format": "uuid"
+          },
+          "subjectName": {
+            "type": "string",
+            "description": "The user name or group name."
+          },
+          "role": {
+            "description": "The role.",
+            "$ref": "#/components/schemas/FolderRole"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the grant was first made.",
+            "format": "date-time"
+          }
+        },
+        "description": "A role granted directly on a folder."
       },
       "GroupDetails": {
         "required": [
@@ -1368,6 +2289,47 @@
         },
         "description": "The signed-in user's own account with their groups."
       },
+      "MoveFolderRequest": {
+        "required": [
+          "parentId"
+        ],
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The new parent (needs Editor there), or null for the top level (needs Owner of the folder).",
+            "format": "uuid"
+          }
+        },
+        "description": "Where to move a folder."
+      },
+      "PageOfFolderSummary": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderSummary"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
       "PageOfGroupView": {
         "required": [
           "items",
@@ -1538,6 +2500,48 @@
         },
         "description": "One of the user's sessions, so they can recognize and end the ones they do not know."
       },
+      "SetGrantRequest": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "description": "Viewer, Operator, Editor or Owner.",
+            "$ref": "#/components/schemas/FolderRole"
+          },
+          "userId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user; give either this or groupId.",
+            "format": "uuid"
+          },
+          "groupId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The group; give either this or userId.",
+            "format": "uuid"
+          }
+        },
+        "description": "A role for one user or one group on a folder; replaces the role they had there."
+      },
+      "SetRestrictionRequest": {
+        "required": [
+          "isRestricted"
+        ],
+        "type": "object",
+        "properties": {
+          "isRestricted": {
+            "type": "boolean",
+            "description": "True to stop inheritance at this folder; false to lift that."
+          }
+        },
+        "description": "Whether grants from above apply to a folder."
+      },
       "SignInRequest": {
         "required": [
           "userName",
@@ -1627,6 +2631,26 @@
           }
         },
         "description": "An API token as listed: everything except the secret, which is shown only once."
+      },
+      "UpdateFolderRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new name."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new description; an empty string removes it."
+          }
+        },
+        "description": "Changes to a folder; omitted properties stay as they are."
       },
       "UpdateGroupRequest": {
         "type": "object",
@@ -1785,6 +2809,9 @@
     },
     {
       "name": "Groups"
+    },
+    {
+      "name": "Folders"
     }
   ]
 }

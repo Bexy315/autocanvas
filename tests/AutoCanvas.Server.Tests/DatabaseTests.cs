@@ -71,6 +71,7 @@ public abstract class DatabaseTests(DatabaseProvider provider) : DatabaseTest(pr
     }
 }
 
+[Collection(CommandLineTests.Name)]
 public sealed class DatabaseTestsOnSqlite() : DatabaseTests(DatabaseProvider.Sqlite)
 {
     [Fact]
@@ -105,4 +106,5 @@ public sealed class DatabaseTestsOnSqlite() : DatabaseTests(DatabaseProvider.Sql
     }
 }
 
+[Collection(CommandLineTests.Name)]
 public sealed class DatabaseTestsOnPostgres() : DatabaseTests(DatabaseProvider.Postgres);

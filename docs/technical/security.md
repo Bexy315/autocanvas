@@ -64,9 +64,15 @@ The `acp_` prefix lets secret scanners recognize leaked tokens.
 
 ## Authorization
 
-*Planned, S1.* Roles granted on folders to users and groups, inherited down the tree, cut by
-restricted folders; instance admins see everything ([ADR-0012](../adr/0012-folder-permissions.md)).
-Every endpoint declares the role it needs; lists only contain what the caller may see.
+Roles (Viewer, Operator, Editor, Owner) are granted on folders to users and groups, inherited
+down the tree and cut by restricted folders; instance admins have every role
+([ADR-0012](../adr/0012-folder-permissions.md), user guide *Folders and permissions*). The rule is
+one pure function; the use cases evaluate it for every request against the folder chain and the
+caller's own and group grants, so nothing is cached that could go stale. Folders a caller may not
+view answer *not found*, like folders that do not exist, and lists contain only what the caller
+may view. Above a visible folder, callers see only the names of the folders, for orientation.
+Whoever restricts or moves a folder keeps their own role through an explicit grant, so nobody
+locks themselves out by accident; admins can repair any other lock-out.
 
 ## Secrets
 

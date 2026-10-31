@@ -3,6 +3,7 @@ using AutoCanvas.Server.Database;
 
 namespace AutoCanvas.Server.Tests;
 
+[Collection(CommandLineTests.Name)]
 public sealed class DatabaseOptionsTests
 {
     [Theory]
