@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
+using AutoCanvas.Core.Secrets;
 using AutoCanvas.Persistence.Queue;
 using AutoCanvas.Protocol.Runner.V1;
 using AutoCanvas.Server.Application.Runners;
@@ -37,6 +38,9 @@ internal sealed partial class RunnerSession(
 
     // Attempts this stream has told to stop, so that CancelJob goes out once per stream.
     private readonly ConcurrentDictionary<Guid, bool> cancelSent = new();
+
+    // What masks each attempt's log lines, built once per attempt and stream.
+    private readonly ConcurrentDictionary<Guid, SecretRedactor> redactors = new();
     private RunnerCapabilities capabilities = null!;
     private volatile bool draining;
 
@@ -179,9 +183,11 @@ internal sealed partial class RunnerSession(
                 case ConnectRequest.MessageOneofCase.JobFinished:
                     await FinishedAsync(message.JobFinished, cancellationToken).ConfigureAwait(false);
                     break;
+                case ConnectRequest.MessageOneofCase.LogChunk:
+                    await LogAsync(message.LogChunk, cancellationToken).ConfigureAwait(false);
+                    break;
                 default:
-                    // Logs are stored from S2 step 5 on; messages this server does not know are
-                    // ignored (protocol versioning).
+                    // Messages this server does not know are ignored (protocol versioning).
                     break;
             }
         }
@@ -282,9 +288,36 @@ internal sealed partial class RunnerSession(
         }
 
         cancelSent.TryRemove(attemptId, out _);
+        redactors.TryRemove(attemptId, out _);
 
         // The runner has room again.
         Wake();
+    }
+
+    /// <summary>Stores a chunk of log lines; repeats after a reconnect and chunks of other runners' jobs are dropped.</summary>
+    private async Task LogAsync(LogChunk chunk, CancellationToken cancellationToken)
+    {
+        if (ProtocolMapping.ToId(chunk.JobId) is not { } attemptId)
+        {
+            return;
+        }
+
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var logs = scope.ServiceProvider.GetRequiredService<LogIngestion>();
+            if (!redactors.TryGetValue(attemptId, out var redactor))
+            {
+                if (await logs.RedactorAsync(attemptId, cancellationToken).ConfigureAwait(false) is not { } built)
+                {
+                    return;
+                }
+
+                redactor = redactors.GetOrAdd(attemptId, built);
+            }
+
+            await logs.AppendAsync(attemptId, runnerId, ProtocolMapping.ToChunk(chunk), redactor, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Runs a progress use case in its own scope and sends the instruction it returns.</summary>

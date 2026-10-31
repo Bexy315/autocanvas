@@ -75,6 +75,9 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>The steps of job attempts, as far as they got.</summary>
     public DbSet<JobStep> JobSteps => Set<JobStep>();
 
+    /// <summary>Log lines of job attempts, in the chunks runners sent them in.</summary>
+    public DbSet<LogChunk> LogChunks => Set<LogChunk>();
+
     /// <summary>Registered runners.</summary>
     public DbSet<Runner> Runners => Set<Runner>();
 
@@ -115,6 +118,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RunJobConfiguration());
         modelBuilder.ApplyConfiguration(new JobAttemptConfiguration());
         modelBuilder.ApplyConfiguration(new JobStepConfiguration());
+        modelBuilder.ApplyConfiguration(new LogChunkConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
     }

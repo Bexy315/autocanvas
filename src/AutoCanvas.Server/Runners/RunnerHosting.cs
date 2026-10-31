@@ -1,4 +1,5 @@
 using AutoCanvas.Server.Application.Runners;
+using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +30,11 @@ internal static class RunnerHosting
             .BindConfiguration(RunnerOptions.SectionName)
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<RunnerOptions>, RunnerOptionsValidator>();
+        // Runners send the logs; the limit applies to what they send.
+        services.AddOptions<LogOptions>()
+            .BindConfiguration(LogOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<LogOptions>, LogOptionsValidator>();
         services.AddSingleton<RunnerSessions>();
         services.AddHostedService(provider => provider.GetRequiredService<RunnerSessions>());
         services.AddSingleton<RunnerAuthInterceptor>();

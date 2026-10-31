@@ -447,6 +447,147 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
         }
     }
 
+    [Fact]
+    public async Task Logs_arrive_masked_once_and_are_read_and_followed_live()
+    {
+        await using var factory = Factory();
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var folder = await FolderAsync(admin);
+        (await admin.PutAsJsonAsync($"/api/v1/folders/{folder}/secrets/TOKEN", new { value = "s3cret-token" }, Cancel)).EnsureSuccessStatusCode();
+        var (stream, _) = await client.ConnectAsync(await RegisterAsync(client, admin, "build-1"));
+        using (stream)
+        {
+            var run = await StartRunAsync(admin, OneJob, folder);
+            var job = (await stream.ReadAsync()).JobOffer.Job.JobId;
+            await stream.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await stream.SendAsync(Log(job, 0, null, "Pulling image"));
+            await stream.SendAsync(Log(job, 0, null, "Pulling image"));
+            await stream.SendAsync(new ConnectRequest { JobPrepared = new JobPrepared { JobId = job } });
+            (await stream.ReadAsync()).MessageCase.ShouldBe(ConnectResponse.MessageOneofCase.RunStep);
+
+            using var follow = factory.CreateApiClient();
+            await follow.SignInAsync("root");
+            using var request = new HttpRequestMessage(HttpMethod.Get, Uri($"/api/v1/runs/{run}/attempts/{job}/log/stream"));
+            using var response = await follow.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, Cancel);
+            response.Content.Headers.ContentType!.MediaType.ShouldBe("text/event-stream");
+            using var events = new StreamReader(await response.Content.ReadAsStreamAsync(Cancel));
+            var first = await EventAsync(events);
+
+            await stream.SendAsync(Log(job, 1, 0, "the token is s3cret-token"));
+            var second = await EventAsync(events);
+            await stream.SendAsync(Completed(job, 0, Protocol.Runner.V1.StepOutcome.Succeeded));
+            (await stream.ReadAsync()).MessageCase.ShouldBe(ConnectResponse.MessageOneofCase.CompleteJob);
+            await stream.SendAsync(new ConnectRequest { JobFinished = new JobFinished { JobId = job } });
+            var end = await EventAsync(events);
+
+            first.Event.ShouldBe("chunk");
+            first.Id.ShouldBe("0");
+            first.Data.GetProperty("lines")[0].GetProperty("text").GetString().ShouldBe("Pulling image");
+            second.Id.ShouldBe("1");
+            second.Data.GetProperty("stepIndex").GetInt32().ShouldBe(0);
+            second.Data.GetProperty("lines")[0].GetProperty("text").GetString().ShouldBe("the token is ***");
+            end.Event.ShouldBe("end");
+            await ShouldBeStoredAsync(admin, run, job);
+        }
+    }
+
+    /// <summary>What the logs test sent is readable as a page and the job shows its attempt.</summary>
+    private static async Task ShouldBeStoredAsync(HttpClient admin, Guid run, string job)
+    {
+        var page = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/attempts/{job}/log"), Cancel)).JsonAsync();
+        page.GetProperty("chunks").GetArrayLength().ShouldBe(2);
+        page.GetProperty("isComplete").GetBoolean().ShouldBeTrue();
+        page.GetProperty("chunks")[1].GetProperty("lines")[0].GetProperty("source").GetString().ShouldBe("Stdout");
+        var detail = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/jobs/build"), Cancel)).JsonAsync();
+        detail.GetProperty("status").GetString().ShouldBe("Succeeded");
+        var attempt = detail.GetProperty("attempts").EnumerateArray().ShouldHaveSingleItem();
+        attempt.GetProperty("id").GetString().ShouldBe(job);
+        attempt.GetProperty("runnerName").GetString().ShouldBe("build-1");
+        attempt.GetProperty("steps")[0].GetProperty("status").GetString().ShouldBe("Succeeded");
+    }
+
+    [Fact]
+    public async Task Following_a_log_starts_after_the_last_event_the_reader_saw()
+    {
+        await using var factory = Factory();
+        using var client = new ProtocolClient(factory);
+        var admin = await factory.SignedInAsync("root", isAdmin: true);
+        var (stream, _) = await client.ConnectAsync(await RegisterAsync(client, admin, "build-1"));
+        using (stream)
+        {
+            var run = await StartRunAsync(admin, OneJob);
+            var job = (await stream.ReadAsync()).JobOffer.Job.JobId;
+            await stream.SendAsync(new ConnectRequest { JobAccepted = new JobAccepted { JobId = job } });
+            await stream.SendAsync(Log(job, 0, null, "zero"));
+            await stream.SendAsync(Log(job, 1, null, "one"));
+            await EventuallyAsync(factory, Guid.Parse(job), a => a.LogBytes == 7);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, Uri($"/api/v1/runs/{run}/attempts/{job}/log/stream"));
+            request.Headers.Add("Last-Event-ID", "0");
+            using var response = await admin.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, Cancel);
+            using var events = new StreamReader(await response.Content.ReadAsStreamAsync(Cancel));
+
+            (await EventAsync(events)).Id.ShouldBe("1");
+            (await admin.GetAsync(Uri($"/api/v1/runs/{run}/attempts/{Guid.CreateVersion7()}/log/stream"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+            (await admin.GetAsync(Uri($"/api/v1/runs/{run}/attempts/{job}/log?limit=5000"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await admin.GetAsync(Uri($"/api/v1/runs/{run}/jobs/nope"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        }
+    }
+
+    private static ConnectRequest Log(string job, ulong sequence, uint? step, params string[] lines)
+    {
+        var chunk = new Protocol.Runner.V1.LogChunk { JobId = job, Sequence = sequence };
+        if (step is { } index)
+        {
+            chunk.StepIndex = index;
+        }
+        else
+        {
+            chunk.JobSetup = true;
+        }
+
+        foreach (var line in lines)
+        {
+            chunk.Lines.Add(new Protocol.Runner.V1.LogLine { Text = line, Stream = Protocol.Runner.V1.LogStream.Stdout, Time = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(DateTimeOffset.UnixEpoch) });
+        }
+
+        return new ConnectRequest { LogChunk = chunk };
+    }
+
+    /// <summary>The next Server-Sent Event, skipping comments.</summary>
+    private static async Task<(string? Id, string? Event, JsonElement Data)> EventAsync(StreamReader reader)
+    {
+        string? id = null, name = null, data = null;
+        using var patience = CancellationTokenSource.CreateLinkedTokenSource(Cancel);
+        patience.CancelAfter(RunnerStream.Patience);
+        while (await reader.ReadLineAsync(patience.Token) is { } line)
+        {
+            if (line.Length == 0 && data is not null)
+            {
+                return (id, name, JsonDocument.Parse(data).RootElement.Clone());
+            }
+
+            if (line.StartsWith("id: ", StringComparison.Ordinal))
+            {
+                id = line[4..];
+            }
+            else if (line.StartsWith("event: ", StringComparison.Ordinal))
+            {
+                name = line[7..];
+            }
+            else if (line.StartsWith("data: ", StringComparison.Ordinal))
+            {
+                data = line[6..];
+            }
+        }
+
+        throw new ShouldAssertException("The event stream ended.");
+    }
+
+    private static async Task<Guid> FolderAsync(HttpClient client) =>
+        Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" + Guid.CreateVersion7().ToString("N")[^8..] }, Cancel)).JsonAsync());
+
     private static ConnectRequest Completed(string job, uint index, Protocol.Runner.V1.StepOutcome outcome, params (string Name, string Value)[] outputs)
     {
         var completed = new StepCompleted { JobId = job, StepIndex = index, Outcome = outcome };
@@ -478,9 +619,9 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
     private static async Task<string> RegisterAsync(ProtocolClient client, HttpClient admin, string name, Capabilities? capabilities = null) =>
         (await client.RegisterAsync(await TokenAsync(admin), name, capabilities)).Credential;
 
-    private static async Task<Guid> StartRunAsync(HttpClient client, string yaml)
+    private static async Task<Guid> StartRunAsync(HttpClient client, string yaml, Guid? inFolder = null)
     {
-        var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" + Guid.CreateVersion7().ToString("N")[^8..] }, Cancel)).JsonAsync());
+        var folder = inFolder ?? await FolderAsync(client);
         var automation = Id(await (await client.PostAsJsonAsync($"/api/v1/folders/{folder}/automations", new { name = "build", yaml }, Cancel)).JsonAsync());
         var started = await client.PostAsync(Uri($"/api/v1/automations/{automation}/runs"), null, Cancel);
         started.StatusCode.ShouldBe(HttpStatusCode.Created);

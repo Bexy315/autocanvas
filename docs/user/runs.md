@@ -10,8 +10,8 @@ A **run** is one execution of an automation: its jobs, in the order and under th
 :::note Status
 
 Runs can be started, followed and cancelled through the HTTP API. The server hands jobs to
-[runners](runners.md) and decides every step; the reference runner, logs, reports, schedules and
-webhooks come in the following steps of this milestone. Until a runner is connected, jobs that
+[runners](runners.md), decides every step and keeps the jobs' logs; the reference runner, reports,
+schedules and webhooks come in the following steps of this milestone. Until a runner is connected, jobs that
 should run stay *running* while they wait for one.
 
 :::
@@ -75,6 +75,39 @@ takes it. When it is exceeded, the runner is told to stop the job and the job **
 runner does not report back within the lease (`Queue:LeaseDuration`), the job fails without it. A
 step's `timeout_minutes` is enforced by the runner; such a step counts as failed.
 
+## Logs
+
+Everything a job writes — while its runner prepares it, during each step, and while it cleans up —
+is kept as the job's **log**, per attempt. Secrets are masked twice: by the runner before it sends
+a line, and by the server before it stores it. A line longer than 16 KiB is cut, and an attempt
+keeps at most `Logs:MaxBytesPerJob` (64 MiB by default) of log text; after that the log ends with
+a note that later lines were dropped.
+
+Runners send the log in numbered chunks. A chunk that arrives twice — after the runner reconnected
+— is kept once; a chunk that never arrives leaves a gap, which the API reports as `missing`.
+
+Logs are read with Viewer, like the run:
+
+- `GET /api/v1/runs/{id}/jobs/{key}` shows a job with its outputs and every attempt with its steps;
+  each attempt's `id` names its log.
+- `GET /api/v1/runs/{id}/attempts/{attemptId}/log?after=N&limit=M` returns the chunks after
+  sequence `N` (all from the start without `after`), at most `M` of them (default 100). Read on with
+  `next` until `isComplete` is true.
+- `GET /api/v1/runs/{id}/attempts/{attemptId}/log/stream` follows the log live as
+  [Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html): a `chunk`
+  event per chunk, whose `id` is its sequence, then an `end` event once the attempt has finished.
+  A reader that reconnects sends `Last-Event-ID` (browsers do this by themselves) and continues
+  where it left off.
+
+```text
+id: 3
+event: chunk
+data: {"sequence":3,"stepIndex":0,"lines":[{"time":"2026-11-01T10:00:02Z","source":"Stdout","text":"Build succeeded"}]}
+
+event: end
+data: {"isTruncated":false,"missing":[]}
+```
+
 ## Cancelling a run
 
 An **Operator** can cancel a running run. Every job that has not finished is cancelled: jobs
@@ -100,6 +133,9 @@ that is only possible once its automations have been deleted or moved.
 | `POST /api/v1/automations/{id}/runs` | start a run by hand |
 | `GET /api/v1/automations/{id}/runs` | the automation's runs, newest first |
 | `GET /api/v1/runs/{id}` | one run with its jobs |
+| `GET /api/v1/runs/{id}/jobs/{key}` | one job with its outputs, attempts and steps |
+| `GET /api/v1/runs/{id}/attempts/{attemptId}/log` | a part of an attempt's log |
+| `GET /api/v1/runs/{id}/attempts/{attemptId}/log/stream` | follow an attempt's log live |
 | `POST /api/v1/runs/{id}/cancel` | cancel a run |
 
 ```json
