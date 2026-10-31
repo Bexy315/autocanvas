@@ -7,6 +7,7 @@ using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
+using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.TestSupport;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
@@ -116,6 +117,16 @@ public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(pro
         await using (context)
         {
             return await action(new MasterKeyGuard(context, new SecretCipher(key ?? Key), new AuditLog(context, new SystemAuditContext(), Clock)));
+        }
+    }
+
+    /// <summary>Runs a run use case on a fresh context.</summary>
+    protected async Task<T> RunsAsync<T>(Func<RunService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new RunService(context, new ConfigurationService(context, new SecretCipher(Key)), new AuditLog(context, new SystemAuditContext(), Clock), Clock));
         }
     }
 

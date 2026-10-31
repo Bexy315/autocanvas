@@ -555,6 +555,211 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.JobAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<DateTimeOffset>("NotBefore")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("not_before");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("QueuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("queued_at");
+
+                    b.Property<Guid>("RunJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_job_id");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_job_attempts");
+
+                    b.HasIndex("RunJobId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_job_attempts_run_job_id_number");
+
+                    b.HasIndex("Status", "NotBefore")
+                        .HasDatabaseName("ix_job_attempts_status_not_before");
+
+                    b.ToTable("job_attempts", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.Run", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AutomationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("automation_id");
+
+                    b.Property<string>("AutomationName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("automation_name");
+
+                    b.Property<int>("AutomationVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("automation_version");
+
+                    b.Property<bool>("CancelRequested")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cancel_requested");
+
+                    b.Property<string>("CancelledByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("cancelled_by_name");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<Guid>("FolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("folder_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("trigger");
+
+                    b.Property<string>("TriggerData")
+                        .HasColumnType("text")
+                        .HasColumnName("trigger_data");
+
+                    b.Property<Guid?>("TriggeredById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("triggered_by_id");
+
+                    b.Property<string>("TriggeredByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("triggered_by_name");
+
+                    b.Property<string>("Yaml")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("yaml");
+
+                    b.HasKey("Id")
+                        .HasName("pk_runs");
+
+                    b.HasIndex("State")
+                        .HasDatabaseName("ix_runs_state");
+
+                    b.HasIndex("AutomationId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_runs_automation_id_number");
+
+                    b.HasIndex("FolderId", "CreatedAt")
+                        .HasDatabaseName("ix_runs_folder_id_created_at");
+
+                    b.ToTable("runs", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.RunJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActivatedCase")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("activated_case");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_run_jobs");
+
+                    b.HasIndex("RunId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_run_jobs_run_id_key");
+
+                    b.ToTable("run_jobs", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Variables.MasterKeyCheck", b =>
                 {
                     b.Property<int>("Id")
@@ -823,6 +1028,50 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasConstraintName("fk_sessions_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.JobAttempt", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runs.RunJob", "Job")
+                        .WithMany()
+                        .HasForeignKey("RunJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_job_attempts_run_jobs_run_job_id");
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.Run", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Automations.Automation", "Automation")
+                        .WithMany()
+                        .HasForeignKey("AutomationId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_runs_automations_automation_id");
+
+                    b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Folder")
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_runs_folders_folder_id");
+
+                    b.Navigation("Automation");
+
+                    b.Navigation("Folder");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Runs.RunJob", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Runs.Run", "Run")
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_run_jobs_runs_run_id");
+
+                    b.Navigation("Run");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Variables.Secret", b =>
