@@ -2,6 +2,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
+using AutoCanvas.Persistence.Runners;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Persistence.Variables;
 using Microsoft.EntityFrameworkCore;
@@ -71,6 +72,12 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Every try to execute a job; queued ones are the job queue.</summary>
     public DbSet<JobAttempt> JobAttempts => Set<JobAttempt>();
 
+    /// <summary>Registered runners.</summary>
+    public DbSet<Runner> Runners => Set<Runner>();
+
+    /// <summary>One-time tokens runners register with.</summary>
+    public DbSet<RunnerRegistrationToken> RunnerRegistrationTokens => Set<RunnerRegistrationToken>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -104,5 +111,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RunConfiguration());
         modelBuilder.ApplyConfiguration(new RunJobConfiguration());
         modelBuilder.ApplyConfiguration(new JobAttemptConfiguration());
+        modelBuilder.ApplyConfiguration(new RunnerConfiguration());
+        modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
     }
 }

@@ -7,6 +7,7 @@
     <Project Path="src/AutoCanvas.Persistence/AutoCanvas.Persistence.csproj" />
     <Project Path="src/AutoCanvas.Persistence.Postgres/AutoCanvas.Persistence.Postgres.csproj" />
     <Project Path="src/AutoCanvas.Persistence.Sqlite/AutoCanvas.Persistence.Sqlite.csproj" />
+    <Project Path="src/AutoCanvas.Protocol/AutoCanvas.Protocol.csproj" />
     <Project Path="src/AutoCanvas.Reports/AutoCanvas.Reports.csproj" />
     <Project Path="src/AutoCanvas.Server/AutoCanvas.Server.csproj" />
     <Project Path="src/AutoCanvas.Server.Application/AutoCanvas.Server.Application.csproj" />

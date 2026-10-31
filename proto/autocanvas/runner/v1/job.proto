@@ -5,6 +5,8 @@ package autocanvas.runner.v1;
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 
+option csharp_namespace = "AutoCanvas.Protocol.Runner.V1";
+
 // A job offered to a runner. Everything in it is fully resolved by the server: it contains no
 // expressions. Steps are not part of the offer; the server sends them one at a time (RunStep).
 message Job {

@@ -14,4 +14,7 @@ public enum AuditActorKind
 
     /// <summary>A client that is not signed in, such as a failed sign-in attempt.</summary>
     Anonymous,
+
+    /// <summary>A registered runner, authenticated with its credential.</summary>
+    Runner,
 }

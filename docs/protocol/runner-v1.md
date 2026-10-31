@@ -11,8 +11,8 @@ The words MUST, SHOULD and MAY are used as in RFC 2119.
 
 :::note Specification
 
-The server and the reference runner implementing this protocol are being built. Until then this
-is a specification.
+The server implements registration, the control stream's handshake, heartbeats, offers and
+draining; steps, results and logs follow in S2. The reference runner is being built.
 
 :::
 
@@ -24,8 +24,10 @@ is a specification.
   condition ([ADR-0008](../adr/0008-server-resolves-steps.md)). A runner receives fully resolved
   jobs and steps, one step at a time, and never sees the automation file, variables it does not
   need, or secrets of steps it has not reached.
-- **gRPC over HTTP/2** ([ADR-0004](../adr/0004-runner-protocol-grpc-spec-first.md)). TLS is
-  required except for connections to `localhost`.
+- **gRPC over HTTP/2** ([ADR-0004](../adr/0004-runner-protocol-grpc-spec-first.md)) on a port of
+  the server's own, separate from the HTTP API (by default `5081`,
+  [ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)). It also speaks HTTP/2 without TLS
+  (prior knowledge) for local networks; TLS SHOULD be used everywhere else.
 
 ## Services
 

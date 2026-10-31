@@ -23,7 +23,8 @@ A few frequently used settings also have a short name. If both forms are set, th
 
 | Short name | Setting | Meaning |
 |---|---|---|
-| `AUTOCANVAS_URLS` | `urls` | Addresses the server listens on, e.g. `http://+:8080` |
+| `AUTOCANVAS_URLS` | `urls` | Addresses the HTTP API listens on, e.g. `http://+:8080` |
+| `AUTOCANVAS_RUNNER_URLS` | `Runners:Urls` | Addresses runners connect to, e.g. `http://+:5081` (see [Runners](#runners)) |
 | `AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME` | `Bootstrap:AdminUserName` | First admin, created on start while there is no account |
 | `AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD` | `Bootstrap:AdminPassword` | That admin's initial password; must be changed at the first sign-in |
 | `AUTOCANVAS_MASTER_KEY` | `Secrets:MasterKey` | The master key that encrypts secrets (see [Master key](#master-key)) |
@@ -42,6 +43,8 @@ setting and what is expected, instead of failing later on first use.
 | `Authentication:SessionIdleTimeout` | `7.00:00:00` | A session ends after this long without requests |
 | `Authentication:SessionLifetime` | `30.00:00:00` | A session ends this long after the sign-in, however active |
 | `Bootstrap:AdminUserName`, `Bootstrap:AdminPassword` | none | Create this admin on start while there is no account at all; set both or neither (see [Users and groups](../user/accounts.md#the-first-admin)) |
+| `Runners:Urls` | `http://localhost:5081` | Addresses of the runner endpoint, HTTP/2 only; separate several with `;` (see [Runners](#runners)) |
+| `Runners:HeartbeatInterval` | `00:00:20` | How often runners send a heartbeat; at least one second and at most half of `Queue:LeaseDuration` |
 | `Queue:LeaseDuration` | `00:01:00` | How long a runner holds a job after its last heartbeat (10 seconds to 1 hour); then an offered job goes back to the queue and a running one fails as if the runner were gone |
 | `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
 | `Secrets:MasterKey` or `Secrets:MasterKeyFile` | none — **required** | The master key, or a file holding it; exactly one of them (see [Master key](#master-key)) |
@@ -140,12 +143,29 @@ exit with `0` on success and `1` with a message on standard error otherwise.
 `admin` commands apply pending migrations first, unless `Database:MigrateOnStart` is `false`. Only
 the server itself and `admin rotate-master-key` need the master key.
 
+## Runners
+
+Runners connect to an endpoint of their own that speaks only HTTP/2 (gRPC,
+[ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)), by default `http://localhost:5081`.
+In a container, set `AUTOCANVAS_RUNNER_URLS=http://+:5081` and publish that port next to the API's.
+Without TLS, runners connect with HTTP/2 directly (fine on a local network); for an `https://`
+address, Kestrel needs a certificate as for the API. Whoever configures `Kestrel:Endpoints` directly
+takes over both endpoints and must give the runner endpoint `"Protocols": "Http2"`.
+
+Admins register runners with one-time tokens ([Runners](../user/runners.md)). When the server
+stops, connected runners are told to reconnect after five seconds; jobs they hold continue if they
+are back within `Queue:LeaseDuration`.
+
 ## Reverse proxies and HTTPS
 
 The session cookie is marked `Secure` when the server sees an HTTPS request or when
 `Server:PublicUrl` starts with `https://`. Behind a proxy that ends TLS, set `Server:PublicUrl` to
 the public HTTPS address. Sign-in attempts are limited per client address; until forwarded headers
 are supported (S4), all requests through one proxy count as one address.
+
+A proxy in front of the runner endpoint must forward gRPC: HTTP/2 to the server, with trailers, and
+without buffering or timing out long-lived streams. With nginx this is `grpc_pass`, with Caddy
+`reverse_proxy` with `transport http { versions h2c }`, with Traefik a service using `h2c`.
 
 ## Health endpoints
 

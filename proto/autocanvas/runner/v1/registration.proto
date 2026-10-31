@@ -4,6 +4,8 @@ package autocanvas.runner.v1;
 
 import "autocanvas/runner/v1/capabilities.proto";
 
+option csharp_namespace = "AutoCanvas.Protocol.Runner.V1";
+
 // Turns a one-time registration token into a long-lived runner identity. This is the only call a
 // runner makes without a runner credential.
 service RegistrationService {

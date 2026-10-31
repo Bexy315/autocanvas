@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/AutoCanvas.Protocol/AutoCanvas.Protocol.csproj" />
     <ProjectReference Include="../AutoCanvas.TestSupport/AutoCanvas.TestSupport.csproj" />
   </ItemGroup>
 </Project>

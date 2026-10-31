@@ -7,6 +7,8 @@ import "autocanvas/runner/v1/job.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
+option csharp_namespace = "AutoCanvas.Protocol.Runner.V1";
+
 // The connection between a registered runner and the server. Every call carries the runner
 // credential as "authorization: Bearer <credential>" metadata.
 service RunnerService {

@@ -56,14 +56,14 @@ internal sealed class RunEngine(AutoCanvasDbContext database, ConfigurationServi
         return jobs;
     }
 
-    private static AutomationDefinition Load(Run run) =>
+    internal static AutomationDefinition Load(Run run) =>
         AutomationLoader.Load(run.Yaml).Definition
             ?? throw new InvalidOperationException($"Run {run.Id} carries an automation file that does not load; only valid files are saved.");
 
     private static CoreRunState State(Run run, IReadOnlyList<RunJob> jobs) =>
         new(jobs.ToDictionary(j => j.Key, j => new JobState(ToCore(j.Status), j.ActivatedCase, Math.Max(1, j.AttemptCount)), StringComparer.Ordinal), run.CancelRequested);
 
-    private async Task<RunValues> ValuesAsync(Run run, AutomationDefinition automation, IReadOnlyList<RunJob> jobs, CancellationToken cancellationToken)
+    internal async Task<RunValues> ValuesAsync(Run run, AutomationDefinition automation, IReadOnlyList<RunJob> jobs, CancellationToken cancellationToken)
     {
         var resolved = await configuration.ResolveForRunAsync(run.FolderId, run.AutomationId, automation.Variables, cancellationToken).ConfigureAwait(false);
         var status = RunOutcome.Describe(RunOutcome.OfMainJobs(automation, State(run, jobs)));

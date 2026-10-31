@@ -8,7 +8,8 @@ namespace AutoCanvas.Server.Authentication;
 /// <summary>
 /// Authenticates requests by an API token (<c>Authorization: Bearer acp_…</c>) or, without one, by
 /// the session cookie (ADR-0011). Requests without credentials stay anonymous; the authorization
-/// result handler turns that into problem details.
+/// result handler turns that into problem details. gRPC calls are left alone: they come from
+/// runners, which authenticate with their own credential (ADR-0017).
 /// </summary>
 internal sealed class AutoCanvasAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -24,6 +25,11 @@ internal sealed class AutoCanvasAuthenticationHandler(
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        if (Request.ContentType?.StartsWith("application/grpc", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return AuthenticateResult.NoResult();
+        }
+
         var authorization = Request.Headers.Authorization.ToString();
         if (authorization.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
         {

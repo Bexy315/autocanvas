@@ -3830,6 +3830,328 @@
           }
         }
       }
+    },
+    "/api/v1/runner-registration-tokens": {
+      "post": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "Create a runner registration token",
+        "description": "A one-time token for a runner's register command. The token is in this response only; the server keeps its hash.",
+        "operationId": "CreateRunnerRegistrationToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegistrationTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedRegistrationToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "List runner registration tokens",
+        "description": "Newest first, used and expired ones included, without their secrets.",
+        "operationId": "ListRunnerRegistrationTokens",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationTokenView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runner-registration-tokens/{id}": {
+      "delete": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "Delete a runner registration token",
+        "description": "An unused token can no longer be used. A runner that registered with it stays registered.",
+        "operationId": "DeleteRunnerRegistrationToken",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runners": {
+      "get": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "List runners",
+        "description": "Ordered by name, one page at a time, with what each announced and whether it is online.",
+        "operationId": "ListRunners",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfRunnerView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runners/{id}": {
+      "get": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "Get a runner",
+        "description": "The ETag header is the runner's version, for If-Match.",
+        "operationId": "GetRunner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunnerView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "Rename, pause or resume a runner",
+        "description": "A paused runner stays connected and finishes its jobs but is offered no new ones. Send If-Match with the ETag to avoid overwriting someone else's change (412).",
+        "operationId": "UpdateRunner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRunnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunnerView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Runners"
+        ],
+        "summary": "Delete a runner",
+        "description": "Revokes its credential and tells a connected runner not to reconnect. Jobs it still held are offered again or fail, as their retry settings say.",
+        "operationId": "DeleteRunner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3839,7 +4161,8 @@
           "System",
           "User",
           "Token",
-          "Anonymous"
+          "Anonymous",
+          "Runner"
         ],
         "description": "Who made an audited change."
       },
@@ -4302,6 +4625,24 @@
         },
         "description": "An automation to create in a folder."
       },
+      "CreatedRegistrationToken": {
+        "required": [
+          "token",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The secret to pass to the runner's `register` command."
+          },
+          "details": {
+            "description": "The token as it will be listed.",
+            "$ref": "#/components/schemas/RegistrationTokenView"
+          }
+        },
+        "description": "A new runner registration token. string CreatedRegistrationToken.Token is shown this once."
+      },
       "CreatedToken": {
         "required": [
           "token",
@@ -4367,6 +4708,27 @@
           }
         },
         "description": "A group to create."
+      },
+      "CreateRegistrationTokenRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the token is for, such as the machine the runner will run on."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the token stops working if unused; at most 30 days away. Default: in 24 hours.",
+            "format": "date-time"
+          }
+        },
+        "description": "A runner registration token to create."
       },
       "CreateTokenRequest": {
         "required": [
@@ -4986,6 +5348,30 @@
         },
         "description": "One page of a list."
       },
+      "PageOfRunnerView": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunnerView"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
       "PageOfRunSummary": {
         "required": [
           "items",
@@ -5071,6 +5457,73 @@
             ]
           }
         }
+      },
+      "RegistrationTokenView": {
+        "required": [
+          "id",
+          "description",
+          "hint",
+          "createdAt",
+          "createdBy",
+          "expiresAt",
+          "usedAt",
+          "runnerId",
+          "isUsable"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The token's id.",
+            "format": "uuid"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the token is for."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The start and last characters, to recognize the token."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was created.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "The administrator who created it."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When it stops working if unused.",
+            "format": "date-time"
+          },
+          "usedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When a runner registered with it; it cannot be used again.",
+            "format": "date-time"
+          },
+          "runnerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The runner that registered with it, while that runner exists.",
+            "format": "uuid"
+          },
+          "isUsable": {
+            "type": "boolean",
+            "description": "Whether a runner can still register with it: not used and not expired."
+          }
+        },
+        "description": "A runner registration token as listed: everything except the secret."
       },
       "RenameAutomationRequest": {
         "required": [
@@ -5175,6 +5628,144 @@
           }
         },
         "description": "A job of a run."
+      },
+      "RunnerCapabilities": {
+        "required": [
+          "labels",
+          "executor",
+          "os",
+          "arch",
+          "nodeTypes",
+          "maxConcurrentJobs",
+          "runnerVersion",
+          "shells"
+        ],
+        "type": "object",
+        "properties": {
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels matched against a job's `runs_on`."
+          },
+          "executor": {
+            "description": "How the runner executes steps.",
+            "$ref": "#/components/schemas/RunnerExecutor"
+          },
+          "os": {
+            "type": "string",
+            "description": "Operating system, such as `linux`."
+          },
+          "arch": {
+            "type": "string",
+            "description": "CPU architecture, such as `amd64`."
+          },
+          "nodeTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Node types the runner implements."
+          },
+          "maxConcurrentJobs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How many jobs it runs at the same time.",
+            "format": "int32"
+          },
+          "runnerVersion": {
+            "type": "string",
+            "description": "Implementation and version, such as `autocanvas-runner-dotnet/0.1.0`."
+          },
+          "shells": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Shells available for script steps."
+          }
+        },
+        "description": "What a runner announced it can do, at registration and again on every connect. The server\noffers it only jobs whose labels, node types and executor it has."
+      },
+      "RunnerExecutor": {
+        "enum": [
+          "Container",
+          "Host"
+        ],
+        "description": "Where a runner executes steps."
+      },
+      "RunnerView": {
+        "required": [
+          "id",
+          "name",
+          "credentialHint",
+          "capabilities",
+          "isPaused",
+          "isOnline",
+          "lastSeenAt",
+          "createdAt",
+          "createdBy",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The runner's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Its display name."
+          },
+          "credentialHint": {
+            "type": "string",
+            "description": "The start and last characters of its credential."
+          },
+          "capabilities": {
+            "description": "What it announced on its last connect.",
+            "$ref": "#/components/schemas/RunnerCapabilities"
+          },
+          "isPaused": {
+            "type": "boolean",
+            "description": "Whether it is kept from taking new jobs."
+          },
+          "isOnline": {
+            "type": "boolean",
+            "description": "Whether it was heard from within the last two heartbeat intervals."
+          },
+          "lastSeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was last heard from.",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it registered.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Who created the token it registered with."
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Raised with every change; the API's ETag.",
+            "format": "int32"
+          }
+        },
+        "description": "A registered runner as administrators see it."
       },
       "RunState": {
         "enum": [
@@ -5667,6 +6258,26 @@
         },
         "description": "Changes to a group; omitted properties stay as they are."
       },
+      "UpdateRunnerRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new display name, unique regardless of case."
+          },
+          "isPaused": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "True pauses the runner: it finishes its jobs but is offered no new ones. False resumes it."
+          }
+        },
+        "description": "Changes to a runner; omitted fields stay as they are."
+      },
       "UpdateUserRequest": {
         "type": "object",
         "properties": {
@@ -5851,6 +6462,9 @@
     },
     {
       "name": "Runs"
+    },
+    {
+      "name": "Runners"
     }
   ]
 }

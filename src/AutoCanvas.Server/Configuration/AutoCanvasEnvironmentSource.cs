@@ -20,6 +20,7 @@ internal sealed class AutoCanvasEnvironmentSource(
     public static IReadOnlyDictionary<string, string> Aliases { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["AUTOCANVAS_URLS"] = "urls",
+        ["AUTOCANVAS_RUNNER_URLS"] = "Runners:Urls",
         ["AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME"] = "Bootstrap:AdminUserName",
         ["AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD"] = "Bootstrap:AdminPassword",
         ["AUTOCANVAS_MASTER_KEY"] = "Secrets:MasterKey",
