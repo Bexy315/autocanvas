@@ -44,6 +44,10 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<SecretService>();
         services.AddScoped<ConfigurationService>();
         services.AddScoped<MasterKeyGuard>();
+
+        services.AddOptions<AuditOptions>();
+        services.AddScoped<AuditQueryService>();
+        services.AddScoped<AuditRetention>();
         return services;
     }
 }
