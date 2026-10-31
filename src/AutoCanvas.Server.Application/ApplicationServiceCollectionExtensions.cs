@@ -1,6 +1,7 @@
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Automations;
+using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Database;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
@@ -36,6 +37,13 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<FolderService>();
         services.AddScoped<FolderGrantService>();
         services.AddScoped<AutomationService>();
+
+        // The master key itself is registered by the host, which reads it from its configuration.
+        services.AddSingleton(provider => new SecretCipher(provider.GetRequiredService<MasterKey>()));
+        services.AddScoped<VariableService>();
+        services.AddScoped<SecretService>();
+        services.AddScoped<ConfigurationService>();
+        services.AddScoped<MasterKeyGuard>();
         return services;
     }
 }

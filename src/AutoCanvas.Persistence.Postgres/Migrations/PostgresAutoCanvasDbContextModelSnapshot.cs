@@ -555,6 +555,162 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Variables.MasterKeyCheck", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Ciphertext")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ciphertext");
+
+                    b.Property<string>("KeyId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("key_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_master_key_checks");
+
+                    b.ToTable("master_key_checks", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Variables.Secret", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AutomationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("automation_id");
+
+                    b.Property<string>("Ciphertext")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ciphertext");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("folder_id");
+
+                    b.Property<string>("KeyId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("key_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("scope");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedByName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("updated_by_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_secrets");
+
+                    b.HasIndex("AutomationId")
+                        .HasDatabaseName("ix_secrets_automation_id");
+
+                    b.HasIndex("FolderId")
+                        .HasDatabaseName("ix_secrets_folder_id");
+
+                    b.HasIndex("Scope", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_secrets_scope_normalized_name");
+
+                    b.ToTable("secrets", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Variables.Variable", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("folder_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("scope");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedByName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("updated_by_name");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_variables");
+
+                    b.HasIndex("FolderId")
+                        .HasDatabaseName("ix_variables_folder_id");
+
+                    b.HasIndex("Scope", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_variables_scope_normalized_name");
+
+                    b.ToTable("variables", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Automations.Automation", b =>
                 {
                     b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Folder")
@@ -667,6 +823,36 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasConstraintName("fk_sessions_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Variables.Secret", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Automations.Automation", "Automation")
+                        .WithMany()
+                        .HasForeignKey("AutomationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_secrets_automations_automation_id");
+
+                    b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Folder")
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_secrets_folders_folder_id");
+
+                    b.Navigation("Automation");
+
+                    b.Navigation("Folder");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Variables.Variable", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Folder")
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_variables_folders_folder_id");
+
+                    b.Navigation("Folder");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Identity.Group", b =>

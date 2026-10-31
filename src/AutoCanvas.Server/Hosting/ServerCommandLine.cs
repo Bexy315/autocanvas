@@ -3,6 +3,7 @@ using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Database;
 using AutoCanvas.Server.Application.Identity;
+using AutoCanvas.Server.Application.Variables;
 using Microsoft.Extensions.Options;
 
 namespace AutoCanvas.Server.Hosting;
@@ -83,6 +84,17 @@ internal static class ServerCommandLine
             },
             cancellationToken));
 
+        return new Command("admin", "Manage accounts and the master key from the command line, e.g. to create the first admin.")
+        {
+            create,
+            ResetPasswordCommand(output, error),
+            GenerateMasterKeyCommand(output),
+            RotateMasterKeyCommand(output, error, input),
+        };
+    }
+
+    private static Command ResetPasswordCommand(TextWriter output, TextWriter error)
+    {
         var resetUserName = new Argument<string>("user-name") { Description = "The user whose password to reset." };
         var reset = new Command("reset-password", "Give a user a new one-time password, e.g. when the last admin is locked out. Ends their sessions.")
         {
@@ -108,7 +120,63 @@ internal static class ServerCommandLine
             },
             cancellationToken));
 
-        return new Command("admin", "Manage accounts from the command line, e.g. to create the first admin.") { create, reset };
+        return reset;
+    }
+
+    private static Command GenerateMasterKeyCommand(TextWriter output)
+    {
+        var generate = new Command("generate-master-key", "Print a new random master key for AUTOCANVAS_MASTER_KEY. Back it up: without it, secrets cannot be recovered.");
+        generate.SetAction(async (_, cancellationToken) =>
+        {
+            await output.WriteLineAsync(MasterKey.Generate().Text.AsMemory(), cancellationToken).ConfigureAwait(false);
+            return 0;
+        });
+        return generate;
+    }
+
+    private static Command RotateMasterKeyCommand(TextWriter output, TextWriter error, TextReader input)
+    {
+        var keyFile = new Option<FileInfo?>("--new-key-file") { Description = "A file holding the new master key." };
+        var keyStdin = new Option<bool>("--new-key-stdin") { Description = "Read the new master key from the first line of standard input." };
+        var rotate = new Command(
+            "rotate-master-key",
+            "Re-encrypt every secret under a new master key. Stop the server first; the current key comes from its usual settings. Afterwards, start the server with the new key.")
+        {
+            TreatUnmatchedTokensAsErrors = false,
+        };
+        rotate.Options.Add(keyFile);
+        rotate.Options.Add(keyStdin);
+        rotate.SetAction((parse, cancellationToken) => RunInScopeAsync(
+            [.. parse.UnmatchedTokens],
+            error,
+            migrate: true,
+            async (services, ct) =>
+            {
+                var file = parse.GetValue(keyFile);
+                var fromStdin = parse.GetValue(keyStdin);
+                if ((file is null) == !fromStdin)
+                {
+                    await error.WriteLineAsync("Give the new key with either --new-key-file or --new-key-stdin.").ConfigureAwait(false);
+                    return 1;
+                }
+
+                var text = fromStdin ? await input.ReadLineAsync(ct).ConfigureAwait(false) : await File.ReadAllTextAsync(file!.FullName, ct).ConfigureAwait(false);
+                if (MasterKey.Parse(text, out var problem) is not { } newKey)
+                {
+                    await error.WriteLineAsync($"The new key cannot be used: {problem}").ConfigureAwait(false);
+                    return 1;
+                }
+
+                var result = await services.GetRequiredService<MasterKeyGuard>().RotateAsync(newKey, ct).ConfigureAwait(false);
+                return await ReportAsync(
+                    result,
+                    output,
+                    error,
+                    $"Re-encrypted {result.Value} secret(s) with master key {newKey.Id}. Start the server with the new key; the old one no longer works.",
+                    null).ConfigureAwait(false);
+            },
+            cancellationToken));
+        return rotate;
     }
 
     private static async Task<int> ReportAsync<T>(UseCaseResult<T> result, TextWriter output, TextWriter error, string success, string? oneTimePassword)

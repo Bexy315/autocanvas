@@ -12,6 +12,8 @@ public sealed class ConfigurationTests
     [InlineData("autocanvas_server__publicurl", "Server:PublicUrl")]
     [InlineData("AUTOCANVAS_A__B__C", "A:B:C")]
     [InlineData("AUTOCANVAS_URLS", "urls")]
+    [InlineData("AUTOCANVAS_MASTER_KEY", "Secrets:MasterKey")]
+    [InlineData("AUTOCANVAS_MASTER_KEY_FILE", "Secrets:MasterKeyFile")]
     public void Variables_map_to_configuration_keys(string variable, string key) =>
         Build((variable, "value"))[key].ShouldBe("value");
 

@@ -22,7 +22,14 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
     private readonly List<Action<IApplicationBuilder>> appendedMiddleware = [];
     private readonly SqliteTestDatabase ownDatabase = SqliteTestDatabase.Create();
 
-    public AutoCanvasFactory() => UseDatabaseSettings(ownDatabase);
+    /// <summary>The master key test servers run with (bytes 0 to 31).</summary>
+    public static readonly string MasterKey = Convert.ToBase64String([.. Enumerable.Range(0, 32).Select(i => (byte)i)]);
+
+    public AutoCanvasFactory()
+    {
+        UseDatabaseSettings(ownDatabase);
+        settings["Secrets:MasterKey"] = MasterKey;
+    }
 
     /// <summary>
     /// Starts at the real time: the test client's cookie jar checks cookie expiry against the real

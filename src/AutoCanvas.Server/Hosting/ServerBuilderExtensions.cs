@@ -43,6 +43,15 @@ internal static class ServerBuilderExtensions
         services.AddAutoCanvasAuthentication();
         services.AddAutoCanvasApplication();
 
+        services.AddOptions<SecretsOptions>()
+            .BindConfiguration(SecretsOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SecretsOptions>, SecretsOptionsValidator>();
+
+        // Reading the options validates them, so a missing or broken key is reported, not null.
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<SecretsOptions>>().Value.Load(out _)!);
+        services.AddHostedService<MasterKeyCheckService>();
+
         services.AddOptions<BootstrapOptions>()
             .BindConfiguration(BootstrapOptions.SectionName)
             .ValidateOnStart();

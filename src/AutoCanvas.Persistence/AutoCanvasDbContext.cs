@@ -2,6 +2,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
+using AutoCanvas.Persistence.Variables;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -51,6 +52,15 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Every saved version of every managed automation.</summary>
     public DbSet<AutomationVersion> AutomationVersions => Set<AutomationVersion>();
 
+    /// <summary>Variables of the instance and of folders.</summary>
+    public DbSet<Variable> Variables => Set<Variable>();
+
+    /// <summary>Encrypted secrets of the instance, folders and automations.</summary>
+    public DbSet<Secret> Secrets => Set<Secret>();
+
+    /// <summary>The check that the configured master key is the one secrets were encrypted with.</summary>
+    public DbSet<MasterKeyCheck> MasterKeyChecks => Set<MasterKeyCheck>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -78,5 +88,8 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new FolderGrantConfiguration());
         modelBuilder.ApplyConfiguration(new AutomationConfiguration());
         modelBuilder.ApplyConfiguration(new AutomationVersionConfiguration());
+        modelBuilder.ApplyConfiguration(new VariableConfiguration());
+        modelBuilder.ApplyConfiguration(new SecretConfiguration());
+        modelBuilder.ApplyConfiguration(new MasterKeyCheckConfiguration());
     }
 }
