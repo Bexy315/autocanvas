@@ -597,7 +597,32 @@ public abstract class RunnerProtocolTests(DatabaseProvider provider) : DatabaseT
             report.GetProperty("path").GetString().ShouldBe("reports/junit.xml");
             var detail = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/jobs/build"), Cancel)).JsonAsync();
             detail.GetProperty("attempts")[0].GetProperty("reports")[0].GetProperty("tests").GetProperty("total").GetInt32().ShouldBe(2);
+            await ShouldReadReportAsync(admin, run, id);
         }
+    }
+
+    /// <summary>What the reports test uploaded is readable test by test, and in the history of its automation.</summary>
+    private static async Task ShouldReadReportAsync(HttpClient admin, Guid run, string id)
+    {
+        var report = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports/{id}"), Cancel)).JsonAsync();
+        var failed = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports/{id}/tests?outcome=failed"), Cancel)).JsonAsync();
+        var page = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports/{id}/tests?limit=1"), Cancel)).JsonAsync();
+        var classes = await (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports/{id}/coverage/classes"), Cancel)).JsonAsync();
+        var automation = (await (await admin.GetAsync(Uri($"/api/v1/runs/{run}"), Cancel)).JsonAsync()).GetProperty("automationId").GetString();
+        var history = await (await admin.GetAsync(Uri($"/api/v1/automations/{automation}/tests/history?name=C.b"), Cancel)).JsonAsync();
+
+        report.GetProperty("report").GetProperty("name").GetString().ShouldBe("Unit tests");
+        report.GetProperty("packages").GetArrayLength().ShouldBe(0);
+        var test = failed.GetProperty("items").EnumerateArray().ShouldHaveSingleItem();
+        test.GetProperty("fullName").GetString().ShouldBe("C.b");
+        test.GetProperty("outcome").GetString().ShouldBe("Failed");
+        page.GetProperty("next").GetString().ShouldBe("0");
+        classes.GetProperty("items").GetArrayLength().ShouldBe(0);
+        history.GetProperty("failed").GetInt32().ShouldBe(1);
+        history.GetProperty("entries")[0].GetProperty("runNumber").GetInt32().ShouldBe(1);
+        (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports/{id}/tests?outcome=green"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await admin.GetAsync(Uri($"/api/v1/runs/{run}/reports/{Guid.CreateVersion7()}"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await admin.GetAsync(Uri($"/api/v1/automations/{automation}/tests/history"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]

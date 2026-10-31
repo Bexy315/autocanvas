@@ -10,8 +10,8 @@ its outcome, duration, message and output, and how much of the code the tests re
 
 :::note Status
 
-The server stores the reports of every job and shows their totals through the API. Reading single
-tests, coverage per class and the history of a test follow in the next step; the web UI later.
+The server stores the reports of every job; tests, coverage and the history of a test are read
+through the API. The web UI comes in a later milestone.
 
 :::
 
@@ -51,7 +51,7 @@ A test that Maven Surefire rerun until it passed (`flakyFailure`) counts as pass
 as "Passed after 2 failed attempts." — a hint that the test is flaky.
 
 Each test is identified by its class (or suite) and name, for example
-`com.example.CartTest.sumsPrices`; that identity is what the history of a test will follow from
+`com.example.CartTest.sumsPrices`; that identity is what the [history of a test](#the-history-of-a-test) follows from
 run to run.
 
 ## Producing reports
@@ -140,6 +140,13 @@ Reports are read with Viewer, like the run:
   counts or coverage totals, or the reason it could not be read — and totals over the run. A retried
   job counts once in the totals, with the latest attempt that uploaded reports.
 - `GET /api/v1/runs/{id}/jobs/{key}` shows the same summaries with each attempt of the job.
+- `GET /api/v1/runs/{id}/reports/{reportId}` shows one report and, for coverage, its packages, each
+  with an `index`.
+- `GET /api/v1/runs/{id}/reports/{reportId}/tests` lists its tests in the order of the file, with
+  outcome, duration, message, stack trace and output. `outcome=failed` (or `passed`, `skipped`)
+  keeps only those; read on with `cursor` set to `next`.
+- `GET /api/v1/runs/{id}/reports/{reportId}/coverage/classes` lists its classes with the lines no
+  test reached, such as `10-11,19,45`; `package=<index>` keeps the classes of one package.
 
 ```json
 {
@@ -150,6 +157,26 @@ Reports are read with Viewer, like the run:
   ]
 }
 ```
+
+## The history of a test
+
+`GET /api/v1/automations/{id}/tests/history?name=com.example.CartTest.sumsPrices` returns the newest
+results of a test in the automation's runs — run number, job, attempt, outcome, duration and
+message — and how often it passed, failed and was skipped among them. `limit` sets how many results
+(50 by default, at most 200). A test that passes in some runs and fails in others without a change
+is a flaky test; its history shows it.
+
+```json
+{
+  "fullName": "com.example.CartTest.sumsPrices",
+  "passed": 18, "failed": 2, "skipped": 0,
+  "entries": [
+    { "runNumber": 41, "jobKey": "test", "attempt": 1, "outcome": "Passed", "durationMs": 12, "message": null, "reportedAt": "2026-11-01T10:00:00Z" }
+  ]
+}
+```
+
+The history follows the full name exactly: a renamed test starts a new history.
 
 ## Limits
 

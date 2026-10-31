@@ -76,5 +76,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddOptions<ReportOptions>();
         services.AddScoped<ReportIngestion>();
         services.AddScoped<RunReportService>();
+        services.AddScoped<TestHistoryService>();
     }
 }

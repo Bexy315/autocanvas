@@ -4078,6 +4078,311 @@
         }
       }
     },
+    "/api/v1/runs/{id}/reports/{reportId}": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Get a report of a run",
+        "description": "Its totals and, for coverage, its packages. Needs Viewer.",
+        "operationId": "GetRunReport",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDetailView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/reports/{reportId}/tests": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "List the tests of a test report",
+        "description": "In the order of the file, one page at a time; `outcome` (`passed`, `failed`, `skipped`) keeps only those. Needs Viewer.",
+        "operationId": "ListReportTests",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfTestCaseView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{id}/reports/{reportId}/coverage/classes": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "List the classes of a coverage report",
+        "description": "In the order of the file, one page at a time, with the lines no test reached; `package` (a package's `index`) keeps only its classes. Needs Viewer.",
+        "operationId": "ListReportCoverageClasses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "package",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfCoverageClassView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/{automationId}/tests/history": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Get the history of a test",
+        "description": "Its newest results in the automation's runs, by the test's full name (`name`, as `Suite.Name`); at most `limit` (default 50, at most 200). Needs Viewer.",
+        "operationId": "GetTestHistory",
+        "parameters": [
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestHistoryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runner-registration-tokens": {
       "post": {
         "tags": [
@@ -4857,6 +5162,82 @@
           }
         },
         "description": "What a folder or an automation can read, and from where; never a secret value."
+      },
+      "CoverageClassView": {
+        "required": [
+          "index",
+          "package",
+          "name",
+          "file",
+          "coverage",
+          "uncovered"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its position in the report, from 0.",
+            "format": "int32"
+          },
+          "package": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The int CoveragePackageView.Index of its package.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The class name as the tool reports it."
+          },
+          "file": {
+            "type": "string",
+            "description": "The source file."
+          },
+          "coverage": {
+            "description": "Its lines and branches.",
+            "$ref": "#/components/schemas/CoverageTotalsView"
+          },
+          "uncovered": {
+            "type": "string",
+            "description": "Lines no test reached, such as `10-11,19,45`."
+          }
+        },
+        "description": "Coverage of a class, or of a file in languages without classes."
+      },
+      "CoveragePackageView": {
+        "required": [
+          "index",
+          "name",
+          "coverage"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its position in the report, from 0; classes name their package by it.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The package name as the tool reports it."
+          },
+          "coverage": {
+            "description": "Its lines and branches, including classes cut from the details.",
+            "$ref": "#/components/schemas/CoverageTotalsView"
+          }
+        },
+        "description": "Coverage of a package: an assembly (.NET), a directory (Python, JavaScript) or a Java package."
       },
       "CoverageTotalsView": {
         "required": [
@@ -5954,6 +6335,30 @@
         },
         "description": "One page of a list."
       },
+      "PageOfCoverageClassView": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageClassView"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
       "PageOfFolderSummary": {
         "required": [
           "items",
@@ -6037,6 +6442,30 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RunSummary"
+            },
+            "description": "The items of this page, in list order."
+          },
+          "next": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Cursor of the next page; `null` on the last page."
+          }
+        },
+        "description": "One page of a list."
+      },
+      "PageOfTestCaseView": {
+        "required": [
+          "items",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestCaseView"
             },
             "description": "The items of this page, in list order."
           },
@@ -6191,6 +6620,27 @@
           }
         },
         "description": "A new key for an automation in its folder."
+      },
+      "ReportDetailView": {
+        "required": [
+          "report",
+          "packages"
+        ],
+        "type": "object",
+        "properties": {
+          "report": {
+            "description": "The report and its totals.",
+            "$ref": "#/components/schemas/ReportSummaryView"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoveragePackageView"
+            },
+            "description": "Its packages in report order; empty for test reports."
+          }
+        },
+        "description": "A report with its packages, for coverage reports."
       },
       "ReportKind": {
         "enum": [
@@ -7036,6 +7486,225 @@
           }
         },
         "description": "A successful sign-in. The session itself travels in an HttpOnly cookie, never in the body."
+      },
+      "TestCaseOutcome": {
+        "enum": [
+          "Passed",
+          "Failed",
+          "Skipped"
+        ],
+        "description": "How a stored test ended."
+      },
+      "TestCaseView": {
+        "required": [
+          "index",
+          "group",
+          "suite",
+          "name",
+          "fullName",
+          "outcome",
+          "durationMs",
+          "message",
+          "stackTrace",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "index": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its position in the report, from 0.",
+            "format": "int32"
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Assembly (TRX) or enclosing suite (JUnit), when the format says."
+          },
+          "suite": {
+            "type": "string",
+            "description": "The test class or suite."
+          },
+          "name": {
+            "type": "string",
+            "description": "The test's name within its suite."
+          },
+          "fullName": {
+            "type": "string",
+            "description": "`Suite.Name`, which the history of the test follows."
+          },
+          "outcome": {
+            "description": "Passed, Failed or Skipped.",
+            "$ref": "#/components/schemas/TestCaseOutcome"
+          },
+          "durationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How long it ran, in milliseconds.",
+            "format": "int64"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed or was skipped."
+          },
+          "stackTrace": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The failure's stack trace."
+          },
+          "output": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What it wrote to standard output and error."
+          }
+        },
+        "description": "One test of a test report."
+      },
+      "TestHistoryEntry": {
+        "required": [
+          "runId",
+          "runNumber",
+          "jobKey",
+          "attemptId",
+          "attempt",
+          "reportId",
+          "outcome",
+          "durationMs",
+          "message",
+          "reportedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "description": "The run.",
+            "format": "uuid"
+          },
+          "runNumber": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The run's number in its automation.",
+            "format": "int32"
+          },
+          "jobKey": {
+            "type": "string",
+            "description": "The job."
+          },
+          "attemptId": {
+            "type": "string",
+            "description": "The attempt.",
+            "format": "uuid"
+          },
+          "attempt": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The attempt's number, from 1.",
+            "format": "int32"
+          },
+          "reportId": {
+            "type": "string",
+            "description": "The report the result is in.",
+            "format": "uuid"
+          },
+          "outcome": {
+            "description": "Passed, Failed or Skipped.",
+            "$ref": "#/components/schemas/TestCaseOutcome"
+          },
+          "durationMs": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How long it ran, in milliseconds.",
+            "format": "int64"
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why it failed or was skipped."
+          },
+          "reportedAt": {
+            "type": "string",
+            "description": "When the report arrived.",
+            "format": "date-time"
+          }
+        },
+        "description": "One result of a test in a run."
+      },
+      "TestHistoryView": {
+        "required": [
+          "fullName",
+          "passed",
+          "failed",
+          "skipped",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "The test, `Suite.Name`."
+          },
+          "passed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How often it passed among Entries.",
+            "format": "int32"
+          },
+          "failed": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How often it failed among them.",
+            "format": "int32"
+          },
+          "skipped": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How often it did not run among them.",
+            "format": "int32"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestHistoryEntry"
+            },
+            "description": "Its results, newest first; a test reported twice in one attempt appears twice."
+          }
+        },
+        "description": "How a test went in an automation's recent runs."
       },
       "TestTotalsView": {
         "required": [
