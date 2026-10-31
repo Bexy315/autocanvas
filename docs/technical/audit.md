@@ -105,3 +105,5 @@ part of the log.
 | `group.member_added` | admin | group | `userId`, `userName` |
 | `group.member_removed` | admin | group | `userId`, `userName` |
 | `audit.pruned` | System | — | `before` (cut-off time), `deleted` (number of entries) |
+| `run.started` | an operator | run | `automation`, `number` |
+| `run.cancelled` | an operator | run | `automation`, `number` |

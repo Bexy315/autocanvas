@@ -5,6 +5,7 @@ using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Database;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
+using AutoCanvas.Server.Application.Runs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -48,6 +49,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddOptions<AuditOptions>();
         services.AddScoped<AuditQueryService>();
         services.AddScoped<AuditRetention>();
+
+        services.AddScoped<RunService>();
         return services;
     }
 }

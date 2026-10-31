@@ -57,14 +57,21 @@ public sealed class ConfigurationService(AutoCanvasDbContext database, SecretCip
     public async Task<ResolvedConfiguration?> ResolveAsync(Guid automationId, CancellationToken cancellationToken)
     {
         var automation = await LoadAsync(automationId, cancellationToken).ConfigureAwait(false);
-        if (automation is null)
-        {
-            return null;
-        }
+        return automation is null
+            ? null
+            : await ResolveForRunAsync(automation.Value.FolderId, automationId, FileVariables(automation.Value.Yaml), cancellationToken).ConfigureAwait(false);
+    }
 
-        var path = await database.Folders.AsNoTracking().Where(f => f.Id == automation.Value.FolderId).Select(f => f.Path).FirstAsync(cancellationToken).ConfigureAwait(false);
+    /// <summary>
+    /// The values a run reads, for the file the run carries (its copy, not the automation's current
+    /// version). Without <paramref name="automationId"/> (the automation was deleted) there are no
+    /// automation secrets. For the run engine only, like <see cref="ResolveAsync"/>.
+    /// </summary>
+    public async Task<ResolvedConfiguration> ResolveForRunAsync(Guid folderId, Guid? automationId, IReadOnlyDictionary<string, string> fileVariables, CancellationToken cancellationToken)
+    {
+        var path = await database.Folders.AsNoTracking().Where(f => f.Id == folderId).Select(f => f.Path).FirstAsync(cancellationToken).ConfigureAwait(false);
         var chain = await folders.ChainAsync(path, cancellationToken).ConfigureAwait(false);
-        var definitions = await DefinitionsAsync(chain, automationId, FileVariables(automation.Value.Yaml), cancellationToken).ConfigureAwait(false);
+        var definitions = await DefinitionsAsync(chain, automationId, fileVariables, cancellationToken).ConfigureAwait(false);
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, _, value) in definitions.Variables)
         {

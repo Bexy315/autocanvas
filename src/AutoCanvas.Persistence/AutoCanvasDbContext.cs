@@ -2,6 +2,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
+using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Persistence.Variables;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -61,6 +62,15 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>The check that the configured master key is the one secrets were encrypted with.</summary>
     public DbSet<MasterKeyCheck> MasterKeyChecks => Set<MasterKeyCheck>();
 
+    /// <summary>Runs of automations.</summary>
+    public DbSet<Run> Runs => Set<Run>();
+
+    /// <summary>The jobs of runs.</summary>
+    public DbSet<RunJob> RunJobs => Set<RunJob>();
+
+    /// <summary>Every try to execute a job; queued ones are the job queue.</summary>
+    public DbSet<JobAttempt> JobAttempts => Set<JobAttempt>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -91,5 +101,8 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new VariableConfiguration());
         modelBuilder.ApplyConfiguration(new SecretConfiguration());
         modelBuilder.ApplyConfiguration(new MasterKeyCheckConfiguration());
+        modelBuilder.ApplyConfiguration(new RunConfiguration());
+        modelBuilder.ApplyConfiguration(new RunJobConfiguration());
+        modelBuilder.ApplyConfiguration(new JobAttemptConfiguration());
     }
 }
