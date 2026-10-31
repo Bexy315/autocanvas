@@ -1,3 +1,4 @@
+using AutoCanvas.Server.Api.Automations;
 using AutoCanvas.Server.Api.Folders;
 using AutoCanvas.Server.Api.Identity;
 using Microsoft.OpenApi;
@@ -41,6 +42,7 @@ internal static class ApiEndpoints
         api.MapUserEndpoints();
         api.MapGroupEndpoints();
         api.MapFolderEndpoints();
+        api.MapAutomationEndpoints();
 
         return endpoints;
     }

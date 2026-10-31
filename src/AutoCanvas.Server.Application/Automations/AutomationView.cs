@@ -1,5 +1,5 @@
-using AutoCanvas.Core.Diagnostics;
 using AutoCanvas.Persistence.Folders;
+using AutoCanvas.Server.Application.Common;
 
 namespace AutoCanvas.Server.Application.Automations;
 
@@ -23,7 +23,7 @@ public sealed record AutomationView(
     string? Description,
     int CurrentVersion,
     string Yaml,
-    IReadOnlyList<Diagnostic> Warnings,
+    IReadOnlyList<DiagnosticView> Warnings,
     FolderRole MyRole,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

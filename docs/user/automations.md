@@ -21,7 +21,8 @@ the format is a specification. The machine-readable form is the JSON Schema
 - **Repository automations** are files in `.autocanvas/automations/` at the root of a repository,
   one automation per file, named `<name>.yml` or `<name>.yaml`. The file is the source of truth;
   the canvas shows them read-only.
-- **Managed automations** are created in the UI and stored by AutoCanvas.
+- **Managed automations** are created in the UI or through the API and stored by AutoCanvas in
+  folders, with every saved version kept; see [Managed automations](managed-automations.md).
 
 For editor support (completion, validation, hover help) in VS Code or any editor using the YAML
 language server, put this line at the top of the file:
