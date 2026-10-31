@@ -6,4 +6,9 @@
   <ItemGroup>
     <ProjectReference Include="../AutoCanvas.TestSupport/AutoCanvas.TestSupport.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The example automations of the schema are saved through the use case as a whole. -->
+    <Content Include="../../schema/examples/**/*" LinkBase="examples" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

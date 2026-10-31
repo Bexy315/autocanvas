@@ -90,8 +90,9 @@ public sealed class PostgresTestDatabase : TestDatabase
 
             try
             {
-                // Testcontainers' reaper removes the container when the test run ends.
-                container = new PostgreSqlBuilder(Image).Build();
+                // Testcontainers' reaper removes the container when the test run ends. The data
+                // lives in memory: faster, and no anonymous Docker volume is left behind per run.
+                container = new PostgreSqlBuilder(Image).WithTmpfsMount("/var/lib/postgresql/data").Build();
                 await container.StartAsync().ConfigureAwait(false);
                 return server = container.GetConnectionString();
             }

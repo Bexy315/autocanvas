@@ -36,7 +36,7 @@ public sealed class FolderService
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(request);
-        if ((CheckName(request.Name) ?? CheckDescription(request.Description)) is { } invalid)
+        if ((Names.Check("name", request.Name, Folder.MaxNameLength, "folder") ?? CheckDescription(request.Description)) is { } invalid)
         {
             return UseCase.Failure<FolderView>(invalid);
         }
@@ -205,7 +205,7 @@ public sealed class FolderService
     {
         ArgumentNullException.ThrowIfNull(actor);
         ArgumentNullException.ThrowIfNull(changes);
-        if (((changes.Name is null ? null : CheckName(changes.Name)) ?? CheckDescription(changes.Description)) is { } invalid)
+        if (((changes.Name is null ? null : Names.Check("name", changes.Name, Folder.MaxNameLength, "folder")) ?? CheckDescription(changes.Description)) is { } invalid)
         {
             return UseCase.Failure<FolderView>(invalid);
         }
@@ -349,9 +349,10 @@ public sealed class FolderService
         }
 
         var folder = accessible.Value!.Folder;
-        if (await database.Folders.AnyAsync(f => f.ParentId == id, cancellationToken).ConfigureAwait(false))
+        if (await database.Folders.AnyAsync(f => f.ParentId == id, cancellationToken).ConfigureAwait(false)
+            || await database.Automations.AnyAsync(a => a.FolderId == id, cancellationToken).ConfigureAwait(false))
         {
-            return UseCase.Failure<Done>(UseCaseError.Conflict("The folder is not empty. Move or delete its subfolders first."));
+            return UseCase.Failure<Done>(UseCaseError.Conflict("The folder is not empty. Move or delete its subfolders and automations first."));
         }
 
         database.Folders.Remove(folder);
@@ -401,11 +402,6 @@ public sealed class FolderService
 
         return role;
     }
-
-    private static UseCaseError? CheckName(string? name) =>
-        string.IsNullOrWhiteSpace(name) || name.Trim().Length > Folder.MaxNameLength || name.Any(char.IsControl) || name.Contains('/', StringComparison.Ordinal)
-            ? UseCaseError.Invalid("name", $"The folder name must have 1 to {Folder.MaxNameLength} characters, no slash and no control characters.")
-            : null;
 
     private static UseCaseError? CheckDescription(string? description) =>
         description is not null && description.Trim().Length > Folder.MaxDescriptionLength

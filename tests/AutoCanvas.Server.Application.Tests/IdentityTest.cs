@@ -2,6 +2,7 @@ using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Identity;
 using AutoCanvas.Server.Application.Audit;
+using AutoCanvas.Server.Application.Automations;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
@@ -61,6 +62,16 @@ public abstract class IdentityTest(DatabaseProvider provider) : DatabaseTest(pro
         await using (context)
         {
             return await action(new FolderGrantService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
+        }
+    }
+
+    /// <summary>Runs an automation use case on a fresh context.</summary>
+    protected async Task<T> AutomationsAsync<T>(Func<AutomationService, Task<T>> action)
+    {
+        var context = Database.CreateContext();
+        await using (context)
+        {
+            return await action(new AutomationService(context, new AuditLog(context, new SystemAuditContext(), Clock), Clock));
         }
     }
 

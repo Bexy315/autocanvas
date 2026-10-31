@@ -51,6 +51,11 @@ feature that records them is built.
 | `folder.deleted` | an owner | folder | `name`, `parentId` |
 | `folder.grant_set` | an owner, or the system for an actor keeping access | folder | `subjectType` (`user`/`group`), `subjectId`, `subjectName`, `role`, `previousRole` |
 | `folder.grant_removed` | an owner | folder | `subjectType`, `subjectId`, `subjectName`, `role` |
+| `automation.created` | an editor | automation | `name` |
+| `automation.saved` | an editor | automation | `version`, `message` — never the file |
+| `automation.renamed` | an editor | automation | `from`, `to` |
+| `automation.moved` | an editor | automation | `fromFolderId`, `toFolderId` |
+| `automation.deleted` | an editor | automation | `name`, `versions` |
 
 Every folder action carries the folder in the *folder* field, so a folder's owners can read its
 part of the log.
