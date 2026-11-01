@@ -67,15 +67,6 @@ public sealed class ScriptStepTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task A_node_step_is_refused_until_the_runner_implements_node_types()
-    {
-        var completed = await RunAsync(new Step { Index = 0, Node = new NodeAction { Type = "docker_build" } }, Cancel);
-
-        completed.Outcome.ShouldBe(StepOutcome.Errored);
-        completed.Error.ShouldContain("node type 'docker_build'");
-    }
-
-    [Fact]
     public async Task Outputs_and_errors_are_masked_and_a_working_directory_is_created()
     {
         var step = Script("echo token=s3cret-value >> \"$AUTOCANVAS_OUTPUT\"");
@@ -118,7 +109,7 @@ public sealed class ScriptStepTests : IAsyncDisposable
         var paths = new JobPaths(options, "job");
         Directory.CreateDirectory(paths.Workspace);
         Directory.CreateDirectory(paths.Meta);
-        var container = await runtime.StartAsync(new ContainerSpec("alpine", [], paths.Binds, new Dictionary<string, string>(StringComparer.Ordinal), new Dictionary<string, string>(StringComparer.Ordinal)), Cancel);
+        var container = await runtime.StartAsync(new ContainerSpec("alpine", JobEnvironment.Idle, paths.Binds, new Dictionary<string, string>(StringComparer.Ordinal), new Dictionary<string, string>(StringComparer.Ordinal)), Cancel);
         var log = new LogBatcher("job", outbox, TimeProvider.System);
         await using (log)
         {

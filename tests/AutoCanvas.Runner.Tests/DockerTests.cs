@@ -12,7 +12,7 @@ public sealed class DockerTests
 {
     public const string RequireVariable = "AUTOCANVAS_REQUIRE_DOCKER";
 
-    private const string Image = "alpine:3.22";
+    public const string Image = "alpine:3.22";
 
     private static CancellationToken Cancel => TestContext.Current.CancellationToken;
 
@@ -119,7 +119,7 @@ public sealed class DockerTests
     private static Dictionary<string, string> Labels() => new(StringComparer.Ordinal) { [ContainerLabels.Managed] = "true", [ContainerLabels.Job] = "docker-test" };
 
     /// <summary>A runtime on the local Docker engine with the test image pulled, or a skipped test.</summary>
-    private static async Task<DockerRuntime> DockerAsync()
+    internal static async Task<DockerRuntime> DockerAsync()
     {
         var client = new DockerClientBuilder().Build();
         try

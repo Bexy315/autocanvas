@@ -1,20 +1,26 @@
 using AutoCanvas.Core.Diagnostics;
 using AutoCanvas.Core.Model;
+using AutoCanvas.Core.Nodes;
 
 namespace AutoCanvas.Core.Validation;
 
 /// <summary>
 /// Checks that the parts of a parsed automation fit together: needs point to jobs that can be
 /// waited for, jobs do not need each other in a cycle, switch cases and step ids are unique, and
-/// every expression is valid and only reads what is available where it stands.
+/// every expression is valid and only reads what is available where it stands — and, when the
+/// host names the node types it knows, that node steps use one of them with fitting inputs.
 /// </summary>
 public static class AutomationValidator
 {
     /// <summary>Validates <paramref name="automation"/>.</summary>
     /// <param name="automation">An automation as returned by the parser.</param>
     /// <param name="locations">Source positions by document path, from <see cref="Parsing.ParseResult.Locations"/>; positions are omitted without it.</param>
+    /// <param name="nodeTypes">The node types steps may use, by name; node steps are not checked against any without it.</param>
     /// <returns>All problems found; empty if the automation is valid.</returns>
-    public static IReadOnlyList<Diagnostic> Validate(AutomationDefinition automation, IReadOnlyDictionary<string, SourceLocation>? locations = null)
+    public static IReadOnlyList<Diagnostic> Validate(
+        AutomationDefinition automation,
+        IReadOnlyDictionary<string, SourceLocation>? locations = null,
+        IReadOnlyDictionary<string, NodeType>? nodeTypes = null)
     {
         ArgumentNullException.ThrowIfNull(automation);
 
@@ -29,6 +35,10 @@ public static class AutomationValidator
             // In a cycle "which jobs finished before this one" has no answer; the cycle is reported already.
             var finished = acyclic ? FinishedBefore(job, graph) : new HashSet<string>(graph.JobIds, StringComparer.Ordinal);
             JobChecks.Check(job, finished, references, context);
+            if (nodeTypes is not null && job is StepJob steps)
+            {
+                NodeChecks.Check(steps, $"jobs.{job.Id}", nodeTypes, context);
+            }
         }
 
         return context.Diagnostics;

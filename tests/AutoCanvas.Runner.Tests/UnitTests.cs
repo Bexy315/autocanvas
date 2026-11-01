@@ -168,6 +168,22 @@ public sealed class UnitTests
     public async Task The_entry_point_runs_the_command_line() =>
         (await RunnerProgram.Main(["--help"])).ShouldBe(0);
 
+    [Fact]
+    public void A_checkout_credential_goes_to_git_as_a_header_and_is_masked()
+    {
+        var checkout = new Checkout { Url = "https://example.org/app.git", Password = "s3cret-token" };
+
+        var environment = CheckoutCommand.Environment(checkout);
+        var header = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("x-access-token:s3cret-token"));
+
+        environment["GIT_CONFIG_KEY_0"].ShouldBe("http.extraHeader");
+        environment["GIT_CONFIG_VALUE_0"].ShouldBe($"Authorization: Basic {header}");
+        CheckoutCommand.Secrets(checkout).ShouldBe(["s3cret-token", header]);
+        CheckoutCommand.Commands(checkout, "/workspace").ShouldHaveSingleItem().ShouldNotContain(a => a.Contains("s3cret", StringComparison.Ordinal));
+        CheckoutCommand.Environment(new Checkout { Url = "https://example.org/public.git" }).Keys.ShouldBe(["GIT_TERMINAL_PROMPT"]);
+        CheckoutCommand.Secrets(new Checkout()).ShouldBeEmpty();
+    }
+
     private static List<LogChunk> Drain(Outbox outbox)
     {
         var chunks = new List<LogChunk>();

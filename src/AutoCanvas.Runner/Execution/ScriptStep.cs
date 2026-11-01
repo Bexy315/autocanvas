@@ -30,11 +30,6 @@ internal sealed class ScriptStep(JobServices services, JobPaths paths, string co
         ArgumentNullException.ThrowIfNull(step);
         var redactor = new SecretRedactor(step.MaskValues);
         var index = (int)step.Index;
-        if (step.ActionCase != Step.ActionOneofCase.Script)
-        {
-            return Errored(step, redactor, $"This runner cannot run node type '{step.Node?.Type}'.");
-        }
-
         var script = step.Script;
         var directory = JobPaths.InContainer(script.WorkingDirectory);
         if (directory is null)
@@ -72,7 +67,7 @@ internal sealed class ScriptStep(JobServices services, JobPaths paths, string co
         }
     }
 
-    private static StepCompleted Errored(Step step, SecretRedactor redactor, string error)
+    internal static StepCompleted Errored(Step step, SecretRedactor redactor, string error)
     {
         var completed = new StepCompleted { JobId = string.Empty, StepIndex = step.Index, Outcome = StepOutcome.Errored, Error = redactor.Redact(error) };
         return completed;

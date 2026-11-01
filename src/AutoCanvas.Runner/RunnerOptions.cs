@@ -28,6 +28,15 @@ internal sealed class RunnerOptions
     /// <summary>The image of jobs that name none.</summary>
     public string DefaultImage { get; set; } = "ubuntu:24.04";
 
+    /// <summary>The image checkouts run git in. Pinned: a checkout is only as repeatable as its git.</summary>
+    public string GitImage { get; set; } = "alpine/git:v2.52.0";
+
+    /// <summary>Rootless BuildKit, which <c>docker_build</c> builds with. Pinned for the same reason.</summary>
+    public string BuildKitImage { get; set; } = "moby/buildkit:v0.34.0-rootless";
+
+    /// <summary>The Docker volume BuildKit keeps its cache in, shared by the builds of this runner.</summary>
+    public string BuildCacheVolume { get; set; } = "autocanvas-buildkit-cache";
+
     /// <summary>How long a stopping runner lets running jobs finish before it cancels them.</summary>
     public TimeSpan ShutdownTimeout { get; set; } = TimeSpan.FromMinutes(10);
 

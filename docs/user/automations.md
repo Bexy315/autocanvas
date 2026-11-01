@@ -183,7 +183,8 @@ A script step sets outputs by appending `name=value` lines to the file named by 
 echo "version=1.4.2" >> "$AUTOCANVAS_OUTPUT"
 ```
 
-Node steps have the outputs their node type defines; `outputs` on a node step adds more, computed
+The node types are `http_request` and `docker_build`; their inputs and outputs are in
+[Node types](nodes.md). Node steps have the outputs their node type defines; `outputs` on a node step adds more, computed
 from expressions. Steps' outputs are readable by later steps of the same job as
 `${{ steps.ID.outputs.NAME }}`.
 

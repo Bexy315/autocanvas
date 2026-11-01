@@ -12,8 +12,8 @@ The words MUST, SHOULD and MAY are used as in RFC 2119.
 :::note Specification
 
 The server implements registration, the control stream, offers, steps, results, cancellation, logs
-and reports. The reference runner (`src/AutoCanvas.Runner`) implements the runner side for script
-steps in containers; services, checkouts and node types follow.
+and reports. The reference runner (`src/AutoCanvas.Runner`) implements the runner side: jobs in
+containers with services and checkouts, script steps and the built-in node types.
 
 :::
 

@@ -49,21 +49,42 @@ internal sealed class DockerRuntime(IDockerClient docker) : IContainerRuntime, I
     public async Task<string> StartAsync(ContainerSpec spec, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(spec);
-        var created = await docker.Containers.CreateContainerAsync(
-            new CreateContainerParameters
+        var parameters = new CreateContainerParameters
+        {
+            Image = spec.Image,
+            Env = [.. spec.Env.Select(e => $"{e.Key}={e.Value}")],
+            Labels = new Dictionary<string, string>(spec.Labels, StringComparer.Ordinal),
+            HostConfig = new HostConfig
             {
-                Image = spec.Image,
-                Cmd = [.. spec.Command],
-                Env = [.. spec.Env.Select(e => $"{e.Key}={e.Value}")],
-                Labels = new Dictionary<string, string>(spec.Labels, StringComparer.Ordinal),
-                HostConfig = new HostConfig
-                {
-                    Binds = [.. spec.Binds],
-                    SecurityOpt = ["no-new-privileges"],
-                    PidsLimit = PidsLimit,
-                },
+                Binds = [.. spec.Binds],
+                SecurityOpt = [.. spec.SecurityOptions],
+                PidsLimit = PidsLimit,
             },
-            cancellationToken).ConfigureAwait(false);
+        };
+        // An empty command keeps the image's own, as services need.
+        if (spec.Command.Count > 0)
+        {
+            parameters.Cmd = [.. spec.Command];
+        }
+
+        if (spec.Entrypoint is { } entrypoint)
+        {
+            parameters.Entrypoint = [.. entrypoint];
+        }
+
+        if (spec.Network is { } network)
+        {
+            parameters.HostConfig.NetworkMode = network;
+            parameters.NetworkingConfig = new NetworkingConfig
+            {
+                EndpointsConfig = new Dictionary<string, EndpointSettings>(StringComparer.Ordinal)
+                {
+                    [network] = new EndpointSettings { Aliases = spec.NetworkAlias is { } alias ? [alias] : [] },
+                },
+            };
+        }
+
+        var created = await docker.Containers.CreateContainerAsync(parameters, cancellationToken).ConfigureAwait(false);
         await docker.Containers.StartContainerAsync(created.ID, new ContainerStartParameters(), cancellationToken).ConfigureAwait(false);
         return created.ID;
     }
@@ -124,7 +145,65 @@ internal sealed class DockerRuntime(IDockerClient docker) : IContainerRuntime, I
             await RemoveAsync(container.ID, cancellationToken).ConfigureAwait(false);
         }
 
-        return containers.Count;
+        var networks = await docker.Networks.ListNetworksAsync(
+            new NetworksListParameters
+            {
+                Filters = new Dictionary<string, IDictionary<string, bool>>(StringComparer.Ordinal)
+                {
+                    ["label"] = new Dictionary<string, bool>(StringComparer.Ordinal) { [$"{label}={value}"] = true },
+                },
+            },
+            cancellationToken).ConfigureAwait(false);
+        foreach (var network in networks)
+        {
+            await RemoveNetworkAsync(network.ID, cancellationToken).ConfigureAwait(false);
+        }
+
+        return containers.Count + networks.Count;
+    }
+
+    public async Task<string> CreateNetworkAsync(string name, IReadOnlyDictionary<string, string> labels, CancellationToken cancellationToken)
+    {
+        var created = await docker.Networks.CreateNetworkAsync(
+            new NetworksCreateParameters { Name = name, Labels = new Dictionary<string, string>(labels, StringComparer.Ordinal) },
+            cancellationToken).ConfigureAwait(false);
+        return created.ID;
+    }
+
+    public async Task RemoveNetworkAsync(string networkId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await docker.Networks.DeleteNetworkAsync(networkId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (DockerNetworkNotFoundException)
+        {
+            // Gone already.
+        }
+    }
+
+    public async Task<bool> IsRunningAsync(string containerId, CancellationToken cancellationToken)
+    {
+        var inspected = await docker.Containers.InspectContainerAsync(containerId, cancellationToken).ConfigureAwait(false);
+        return inspected.State?.Running == true;
+    }
+
+    public async Task<IReadOnlyList<string>> LogTailAsync(string containerId, int lines, CancellationToken cancellationToken)
+    {
+        var output = new List<string>();
+        using (var stream = await docker.Containers.GetContainerLogsAsync(
+            containerId,
+            new ContainerLogsParameters { ShowStdout = true, ShowStderr = true, Tail = lines.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+            cancellationToken).ConfigureAwait(false))
+        {
+            await PumpAsync(stream, line =>
+            {
+                output.Add(line.Text);
+                return Task.CompletedTask;
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        return output;
     }
 
     public void Dispose() => docker.Dispose();

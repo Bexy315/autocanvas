@@ -11,9 +11,9 @@ job succeeded.
 
 :::note Status
 
-The reference runner runs script steps in containers, with logs, outputs and reports. Services,
-checkouts and the node types `docker_build` and `http_request` follow in the next step. Runners are
-managed through the HTTP API below; the web UI comes with S3.
+The reference runner runs jobs in containers with their services, checkouts, script steps and the
+node types `docker_build` and `http_request`, with logs, outputs and reports. Runners are managed
+through the HTTP API below; the web UI comes with S3.
 
 :::
 
@@ -78,6 +78,9 @@ label) or from arguments (`--Runner:Server=…`).
 | `Runner:Labels` | `linux` | The runner's labels, a list |
 | `Runner:MaxConcurrentJobs` | `1` | Jobs at a time, 1 to 64 |
 | `Runner:DefaultImage` | `ubuntu:24.04` | The image of jobs that name none |
+| `Runner:GitImage` | `alpine/git:v2.52.0` | The image checkouts run git in |
+| `Runner:BuildKitImage` | `moby/buildkit:v0.34.0-rootless` | Rootless BuildKit, which `docker_build` builds with |
+| `Runner:BuildCacheVolume` | `autocanvas-buildkit-cache` | The Docker volume BuildKit keeps its cache in |
 | `Runner:ShutdownTimeout` | `00:10:00` | How long a stopping runner lets running jobs finish before it cancels them |
 
 ### What a job sees
@@ -89,6 +92,15 @@ label) or from arguments (`--Runner:Server=…`).
   `continue_on_error` does not cover. Use `shell: sh` for images such as Alpine.
 - **Outputs**: `AUTOCANVAS_OUTPUT` names a file outside the workspace; lines `name=value` written
   to it become the step's outputs.
+- **Services** run next to the job's container on a Docker network of the job's own, where steps
+  reach each by its name (`db`, `cache`). The runner tries a service's `ready` command every second
+  until it succeeds; a service that stops or does not get ready in time fails the job with its last
+  log lines.
+- **Checkouts** are cloned by git in a helper container before the first step, into the directory
+  each names. A `ref` that is a commit SHA is fetched as exactly that commit. Credentials reach git
+  as an HTTP header, never in the clone's `.git/config`.
+- **Node steps**: `http_request` sends from the runner itself; `docker_build` runs BuildKit in a
+  container of its own, see [Node types](nodes.md).
 - **Stopping**: when a job is cancelled or a step runs out of time, the step's shell gets
   `SIGTERM`. A step still running ten seconds later ends with a restart of the job's container,
   which ends every process in it; the workspace stays for steps that follow.

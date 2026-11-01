@@ -34,6 +34,22 @@ internal sealed partial class FakeRuntime : IContainerRuntime
 
     public int Leftovers { get; set; }
 
+    public ConcurrentQueue<string> Networks { get; } = new();
+
+    public ConcurrentQueue<string> RemovedNetworks { get; } = new();
+
+    /// <summary>Every command run outside the job's steps: git, BuildKit, ready checks.</summary>
+    public ConcurrentQueue<ExecSpec> Helpers { get; } = new();
+
+    /// <summary>The registry credentials BuildKit was given, as it saw them.</summary>
+    public ConcurrentQueue<string> DockerConfigs { get; } = new();
+
+    /// <summary>Images whose containers stop at once, as a crashing service would.</summary>
+    public HashSet<string> Crashing { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Programs (<c>git</c>, <c>buildctl-daemonless.sh</c>) that fail.</summary>
+    public HashSet<string> Failing { get; } = new(StringComparer.Ordinal);
+
     public Task PullAsync(string image, Func<string, Task> progress, CancellationToken cancellationToken)
     {
         if (Missing.Contains(image))
@@ -57,6 +73,18 @@ internal sealed partial class FakeRuntime : IContainerRuntime
     {
         var spec = containers[containerId];
         var command = exec.Command;
+        if (command[0] is "git" or "buildctl-daemonless.sh")
+        {
+            return await HelperAsync(spec, exec, output, cancellationToken);
+        }
+
+        if (spec.Command.Count == 0)
+        {
+            // A service's ready check: "false" never gets ready.
+            Helpers.Enqueue(exec);
+            return string.Equals(command[2], "false", StringComparison.Ordinal) ? 1 : 0;
+        }
+
         if (command[2].StartsWith("command -v", StringComparison.Ordinal))
         {
             return Shells.Contains(command[3]) ? 0 : 1;
@@ -108,6 +136,53 @@ internal sealed partial class FakeRuntime : IContainerRuntime
     }
 
     public Task<int> RemoveLabelledAsync(string label, string value, CancellationToken cancellationToken) => Task.FromResult(Leftovers);
+
+    public Task<string> CreateNetworkAsync(string name, IReadOnlyDictionary<string, string> labels, CancellationToken cancellationToken)
+    {
+        Networks.Enqueue(name);
+        return Task.FromResult("network-" + name);
+    }
+
+    public Task RemoveNetworkAsync(string networkId, CancellationToken cancellationToken)
+    {
+        RemovedNetworks.Enqueue(networkId);
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> IsRunningAsync(string containerId, CancellationToken cancellationToken) =>
+        Task.FromResult(!Crashing.Contains(containers[containerId].Image));
+
+    public Task<IReadOnlyList<string>> LogTailAsync(string containerId, int lines, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<string>>([$"{containers[containerId].Image} says goodbye"]);
+
+    /// <summary>git makes the target directory; BuildKit writes its metadata.</summary>
+    private async Task<long> HelperAsync(ContainerSpec spec, ExecSpec exec, Func<OutputLine, Task> output, CancellationToken cancellationToken)
+    {
+        Helpers.Enqueue(exec);
+        var command = exec.Command;
+        await output(new OutputLine(true, $"{command[0]} {command[1]}"));
+        if (Failing.Contains(command[0]))
+        {
+            return 128;
+        }
+
+        if (string.Equals(command[0], "git", StringComparison.Ordinal) && command[1] is "clone" or "init")
+        {
+            Directory.CreateDirectory(Path.Combine(Host(spec, command[^1]), ".git"));
+        }
+
+        if (string.Equals(command[0], "buildctl-daemonless.sh", StringComparison.Ordinal))
+        {
+            if (exec.Env.TryGetValue("DOCKER_CONFIG", out var config))
+            {
+                DockerConfigs.Enqueue(await File.ReadAllTextAsync(Host(spec, config + "/config.json"), cancellationToken));
+            }
+
+            await File.WriteAllTextAsync(Host(spec, command[^1]), "{\"containerimage.digest\": \"sha256:abc\"}", cancellationToken);
+        }
+
+        return 0;
+    }
 
     /// <summary>The runner's side of a path in the job's container, through its bind mounts.</summary>
     private static string Host(ContainerSpec spec, string path)

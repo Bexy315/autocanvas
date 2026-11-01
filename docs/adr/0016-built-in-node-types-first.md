@@ -34,5 +34,6 @@ decided after the first release, in its own ADR.
 - S2 stays focused on running jobs; the format does not change.
 - New node types need a runner and a server release until plugins exist; that is acceptable while
   AutoCanvas is pre-1.0.
-- The known set is one list in the server, so a later plugin system replaces where it comes from,
-  not how it is checked.
+- The known set is one list (`BuiltInNodeTypes` in Core, with each type's inputs and outputs),
+  which the server hands to the validator when an automation is saved; a later plugin system
+  replaces where the list comes from, not how it is checked.

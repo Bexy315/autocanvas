@@ -1,5 +1,6 @@
 using System.Globalization;
 using AutoCanvas.Core;
+using AutoCanvas.Core.Nodes;
 using AutoCanvas.Core.Diagnostics;
 using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Automations;
@@ -95,7 +96,7 @@ public sealed class AutomationService
             .Where(v => v.AutomationId == id && v.Number == automation.CurrentVersion)
             .Select(v => v.Yaml)
             .FirstAsync(cancellationToken).ConfigureAwait(false);
-        var warnings = AutomationLoader.Load(yaml).Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Warning).Select(DiagnosticView.From).ToList();
+        var warnings = AutomationLoader.Load(yaml, BuiltInNodeTypes.All).Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Warning).Select(DiagnosticView.From).ToList();
         return UseCase.Success(new AutomationView(
             automation.Id,
             automation.FolderId,
@@ -344,7 +345,8 @@ public sealed class AutomationService
     /// <summary>Parses and validates the file; every problem comes back with the error.</summary>
     private static UseCaseResult<Core.Model.AutomationDefinition> Load(string? yaml)
     {
-        var loaded = AutomationLoader.Load(yaml ?? string.Empty);
+        // Only node types the runners implement can be saved (ADR-0016).
+        var loaded = AutomationLoader.Load(yaml ?? string.Empty, BuiltInNodeTypes.All);
         if (loaded.Definition is { } definition)
         {
             return UseCase.Success(definition);
