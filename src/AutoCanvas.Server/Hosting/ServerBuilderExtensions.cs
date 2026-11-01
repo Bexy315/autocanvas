@@ -61,15 +61,7 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IValidateOptions<AuditOptions>, AuditOptionsValidator>();
         services.AddHostedService<AuditRetentionService>();
 
-        services.AddOptions<QueueOptions>()
-            .BindConfiguration(QueueOptions.SectionName)
-            .ValidateOnStart();
-        services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
-        services.AddHostedService<QueueSweepService>();
-        services.AddHostedService<TriggerTickService>();
-        services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.SectionName).ValidateOnStart();
-        services.AddSingleton<IValidateOptions<WebhookOptions>, WebhookOptionsValidator>();
-        services.AddHostedService<JobSignalListenerService>();
+        AddRuns(services);
         builder.AddAutoCanvasRunners();
 
         services.AddOptions<BootstrapOptions>()
@@ -79,6 +71,25 @@ internal static class ServerBuilderExtensions
         services.AddHostedService<BootstrapAdminService>();
 
         return builder;
+    }
+
+    /// <summary>Runs: their retention, the job queue and its sweeper, triggers and webhooks.</summary>
+    private static void AddRuns(IServiceCollection services)
+    {
+        services.AddOptions<RunOptions>()
+            .BindConfiguration(RunOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<RunOptions>, RunOptionsValidator>();
+        services.AddHostedService<RunRetentionService>();
+        services.AddOptions<QueueOptions>()
+            .BindConfiguration(QueueOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
+        services.AddHostedService<QueueSweepService>();
+        services.AddHostedService<TriggerTickService>();
+        services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.SectionName).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<WebhookOptions>, WebhookOptionsValidator>();
+        services.AddHostedService<JobSignalListenerService>();
     }
 
     public static WebApplication MapAutoCanvasServer(this WebApplication app)

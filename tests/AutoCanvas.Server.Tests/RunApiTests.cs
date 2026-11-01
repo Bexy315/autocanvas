@@ -141,6 +141,14 @@ public abstract class RunApiTests(DatabaseProvider provider) : DatabaseTest(prov
         (await ada.GetAsync(Uri($"/api/v1/automations/{Guid.CreateVersion7()}/triggers"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    [Theory]
+    [InlineData("Runs:RetentionDays", "-1")]
+    [InlineData("Runs:RetentionDays", "4000")]
+    [InlineData("Runs:KeepPerAutomation", "-1")]
+    [InlineData("Runs:KeepPerAutomation", "1001")]
+    public async Task Run_retention_must_be_sensible(string key, string value) =>
+        (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, (key, value))).ShouldContain(key);
+
     private static async Task<Guid> AutomationAsync(HttpClient client, string yaml)
     {
         var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" }, Cancel)).JsonAsync());

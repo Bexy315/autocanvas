@@ -1,7 +1,7 @@
 # 0017. Serve runners on their own HTTP/2 port, with their own credentials
 
-- Status: Proposed
-- Date: 2026-10-31
+- Status: Accepted
+- Date: 2026-10-31 (accepted 2026-11-01)
 
 ## Context
 

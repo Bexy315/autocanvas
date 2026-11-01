@@ -9,10 +9,11 @@ A **run** is one execution of an automation: its jobs, in the order and under th
 
 :::note Status
 
-Runs can be started, followed and cancelled through the HTTP API. The server hands jobs to
-[runners](runners.md), decides every step and keeps the jobs' logs and [reports](reports.md); the reference runner,
-schedules and webhooks come in the following steps of this milestone. Until a runner is connected, jobs that
-should run stay *running* while they wait for one.
+Runs start by hand, on a schedule, through a webhook or when another automation finishes (see
+[Triggers](triggers.md)), and are followed and cancelled through the HTTP API; the web UI comes with
+S3. The server hands jobs to [runners](runners.md), decides every step and keeps the jobs' logs and
+[reports](reports.md). Until a runner is connected, jobs that should run stay *running* while they
+wait for one.
 
 :::
 
@@ -115,6 +116,14 @@ waiting for a runner at once, running jobs by telling their runner to stop the c
 gets a few seconds to end gracefully), collect reports and clean up. `finally` jobs with
 `on_cancel: true` still run afterwards, so the run finishes once they have. Cancelling a run that
 has already finished changes nothing.
+
+## How long runs are kept
+
+Finished runs are deleted once a day when they are older than `Runs:RetentionDays` (90 days by
+default), together with their jobs, logs and reports. The newest `Runs:KeepPerAutomation` runs of
+each automation (20 by default) stay however old they are, so an automation that runs rarely keeps
+its history. Runs of a deleted automation count by age alone. Each cleanup is in the
+[audit log](../technical/audit.md) as `run.pruned`; `Runs:RetentionDays=0` keeps runs forever.
 
 ## Who may do what
 

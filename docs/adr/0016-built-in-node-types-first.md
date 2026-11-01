@@ -1,7 +1,7 @@
 # 0016. Ship a few built-in node types; decide on plugins after 0.1
 
-- Status: Proposed
-- Date: 2026-10-31
+- Status: Accepted
+- Date: 2026-10-31 (accepted 2026-11-01)
 
 ## Context
 
