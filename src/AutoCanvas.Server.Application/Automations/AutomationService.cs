@@ -8,6 +8,7 @@ using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Folders;
+using AutoCanvas.Server.Application.Triggers;
 using AutoCanvas.Server.Application.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ public sealed class AutomationService
     private readonly IAuditLog audit;
     private readonly TimeProvider time;
     private readonly FolderAccess access;
+    private readonly TriggerIndex triggers;
 
     /// <summary>Creates the service for one unit of work.</summary>
     public AutomationService(AutoCanvasDbContext database, IAuditLog audit, TimeProvider time)
@@ -33,6 +35,7 @@ public sealed class AutomationService
         this.audit = audit;
         this.time = time;
         access = new FolderAccess(database);
+        triggers = new TriggerIndex(database, access, time);
     }
 
     /// <summary>Creates an automation in a folder (Editor) with the file as version 1.</summary>
@@ -62,6 +65,12 @@ public sealed class AutomationService
             return UseCase.Failure<AutomationView>(broken);
         }
 
+        var (plan, problems) = await triggers.PrepareAsync(actor, folderId, null, loaded.Value!.Triggers, cancellationToken).ConfigureAwait(false);
+        if (problems.Count > 0)
+        {
+            return UseCase.Failure<AutomationView>(Problems(problems));
+        }
+
         var now = time.GetUtcNow();
         var automation = new Automation
         {
@@ -76,6 +85,7 @@ public sealed class AutomationService
         Describe(automation, loaded.Value!);
         database.Automations.Add(automation);
         await AddVersionAsync(actor, automation, yaml, message, now, cancellationToken).ConfigureAwait(false);
+        await triggers.ApplyAsync(automation.Id, plan, cancellationToken).ConfigureAwait(false);
         audit.Record(Entry(AuditActions.AutomationCreated, automation, ("name", automation.Name)));
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return await GetAsync(actor, automation.Id, cancellationToken).ConfigureAwait(false);
@@ -172,10 +182,17 @@ public sealed class AutomationService
             return UseCase.Failure<AutomationView>(broken);
         }
 
+        var (plan, problems) = await triggers.PrepareAsync(actor, automation.FolderId, automation.Id, loaded.Value!.Triggers, cancellationToken).ConfigureAwait(false);
+        if (problems.Count > 0)
+        {
+            return UseCase.Failure<AutomationView>(Problems(problems));
+        }
+
         var now = time.GetUtcNow();
         Describe(automation, loaded.Value!);
         automation.UpdatedAt = now;
         await AddVersionAsync(actor, automation, yaml, message, now, cancellationToken).ConfigureAwait(false);
+        await triggers.ApplyAsync(automation.Id, plan, cancellationToken).ConfigureAwait(false);
         audit.Record(Entry(AuditActions.AutomationSaved, automation, ("version", automation.CurrentVersion), ("message", message)));
         return await SaveChangesAsync(actor, id, cancellationToken).ConfigureAwait(false);
     }
@@ -244,6 +261,18 @@ public sealed class AutomationService
             return UseCase.Failure<AutomationView>(NameTaken(automation.Name));
         }
 
+        // A name alone in automation_completed means the automation's folder, which changes.
+        var current = await database.AutomationVersions.AsNoTracking()
+            .Where(v => v.AutomationId == id && v.Number == automation.CurrentVersion)
+            .Select(v => v.Yaml)
+            .FirstAsync(cancellationToken).ConfigureAwait(false);
+        var (plan, problems) = await triggers.PrepareAsync(actor, folderId, automation.Id, Load(current).Value!.Triggers, cancellationToken).ConfigureAwait(false);
+        if (problems.Count > 0)
+        {
+            return UseCase.Failure<AutomationView>(Problems(problems));
+        }
+
+        await triggers.ApplyAsync(automation.Id, plan, cancellationToken).ConfigureAwait(false);
         var from = automation.FolderId;
         automation.FolderId = folderId;
         automation.UpdatedAt = time.GetUtcNow();
@@ -359,6 +388,13 @@ public sealed class AutomationService
             "yaml",
             loaded.Diagnostics));
     }
+
+    /// <summary>The problems of the file's triggers, in the same form as the file's own.</summary>
+    private static UseCaseError Problems(IReadOnlyList<Diagnostic> problems) => new(
+        UseCaseErrorKind.Validation,
+        problems.Count == 1 ? "The automation file has a problem; see diagnostics." : $"The automation file has {problems.Count} problems; see diagnostics.",
+        "yaml",
+        problems);
 
     private static void Describe(Automation automation, Core.Model.AutomationDefinition definition)
     {

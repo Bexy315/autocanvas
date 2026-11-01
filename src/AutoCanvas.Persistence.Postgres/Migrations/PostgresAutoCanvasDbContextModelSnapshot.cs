@@ -1222,6 +1222,10 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("cancelled_by_name");
 
+                    b.Property<bool>("CompletionHandled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("completion_handled");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1278,6 +1282,9 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                     b.HasIndex("AutomationId", "Number")
                         .IsUnique()
                         .HasDatabaseName("ix_runs_automation_id_number");
+
+                    b.HasIndex("CompletionHandled", "State")
+                        .HasDatabaseName("ix_runs_completion_handled_state");
 
                     b.HasIndex("FolderId", "CreatedAt")
                         .HasDatabaseName("ix_runs_folder_id_created_at");
@@ -1352,6 +1359,85 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasDatabaseName("ix_run_jobs_run_id_key");
 
                     b.ToTable("run_jobs", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Triggers.AutomationSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AutomationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("automation_id");
+
+                    b.Property<string>("Cron")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("cron");
+
+                    b.Property<long?>("IntervalSeconds")
+                        .HasColumnType("bigint")
+                        .HasColumnName("interval_seconds");
+
+                    b.Property<DateTimeOffset?>("LastAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_at");
+
+                    b.Property<DateTimeOffset>("NextAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_at");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.Property<string>("TimeZone")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("time_zone");
+
+                    b.HasKey("Id")
+                        .HasName("pk_automation_schedules");
+
+                    b.HasIndex("AutomationId")
+                        .HasDatabaseName("ix_automation_schedules_automation_id");
+
+                    b.HasIndex("NextAt")
+                        .HasDatabaseName("ix_automation_schedules_next_at");
+
+                    b.ToTable("automation_schedules", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Triggers.CompletionTrigger", b =>
+                {
+                    b.Property<Guid>("AutomationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("automation_id");
+
+                    b.Property<string>("On")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("on");
+
+                    b.Property<Guid>("TargetFolderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_folder_id");
+
+                    b.Property<string>("TargetName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("target_name");
+
+                    b.HasKey("AutomationId")
+                        .HasName("pk_completion_triggers");
+
+                    b.HasIndex("TargetFolderId", "TargetName")
+                        .HasDatabaseName("ix_completion_triggers_target_folder_id_target_name");
+
+                    b.ToTable("completion_triggers", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Variables.MasterKeyCheck", b =>
@@ -1747,6 +1833,30 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasConstraintName("fk_run_jobs_runs_run_id");
 
                     b.Navigation("Run");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Triggers.AutomationSchedule", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Automations.Automation", "Automation")
+                        .WithMany()
+                        .HasForeignKey("AutomationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_schedules_automations_automation_id");
+
+                    b.Navigation("Automation");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Triggers.CompletionTrigger", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Automations.Automation", "Automation")
+                        .WithMany()
+                        .HasForeignKey("AutomationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_completion_triggers_automations_automation_id");
+
+                    b.Navigation("Automation");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Variables.Secret", b =>

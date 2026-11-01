@@ -1,6 +1,7 @@
 using System.Text;
 using AutoCanvas.Server.Application.Automations;
 using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Server.Application.Triggers;
 using AutoCanvas.Server.Authentication;
 using Microsoft.Net.Http.Headers;
 
@@ -51,6 +52,13 @@ internal static class AutomationEndpoints
             .Produces<string>(contentType: YamlContentType)
             .WithSummary("Download the automation file")
             .WithDescription("The current version exactly as saved, as `text/yaml` with the automation's name as file name.")
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        automations.MapGet("/{id:guid}/triggers", GetTriggersAsync)
+            .WithName("GetAutomationTriggers")
+            .Produces<AutomationTriggersView>()
+            .WithSummary("Get what starts an automation")
+            .WithDescription("From its current version: whether it starts by hand or by webhook, its schedule entries with when each fires next, and the automation it follows. Needs Viewer.")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         MapChangeEndpoints(automations);
@@ -172,4 +180,7 @@ internal static class AutomationEndpoints
 
     private static async Task<IResult> GetVersionAsync(Guid id, int number, HttpContext context, AutomationService automations, CancellationToken cancellationToken) =>
         ApiResults.Ok(await automations.GetVersionAsync(context.User.ToActor(), id, number, cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> GetTriggersAsync(Guid id, HttpContext context, AutomationTriggerService triggers, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await triggers.GetAsync(context.User.ToActor(), id, cancellationToken).ConfigureAwait(false));
 }

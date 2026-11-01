@@ -60,6 +60,12 @@ public sealed class Run
     /// <summary>When the run reached its final state.</summary>
     public DateTimeOffset? FinishedAt { get; set; }
 
+    /// <summary>
+    /// Whether the automations that start when this one finishes (<c>automation_completed</c>) have
+    /// been looked at; set once by whichever server takes the finished run first.
+    /// </summary>
+    public bool CompletionHandled { get; set; }
+
     /// <summary>Navigation to the automation.</summary>
     public Automation? Automation { get; init; }
 

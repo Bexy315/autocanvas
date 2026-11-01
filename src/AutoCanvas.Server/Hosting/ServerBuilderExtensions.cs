@@ -66,6 +66,7 @@ internal static class ServerBuilderExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
         services.AddHostedService<QueueSweepService>();
+        services.AddHostedService<TriggerTickService>();
         services.AddHostedService<JobSignalListenerService>();
         builder.AddAutoCanvasRunners();
 

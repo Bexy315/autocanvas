@@ -5,6 +5,7 @@ using AutoCanvas.Persistence.Identity;
 using AutoCanvas.Persistence.Reports;
 using AutoCanvas.Persistence.Runners;
 using AutoCanvas.Persistence.Runs;
+using AutoCanvas.Persistence.Triggers;
 using AutoCanvas.Persistence.Variables;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -91,6 +92,12 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>The classes of coverage reports.</summary>
     public DbSet<ReportCoverageClass> ReportCoverageClasses => Set<ReportCoverageClass>();
 
+    /// <summary>The schedule entries of automations, with when each fires next.</summary>
+    public DbSet<AutomationSchedule> AutomationSchedules => Set<AutomationSchedule>();
+
+    /// <summary>The automations that start when another one finishes.</summary>
+    public DbSet<CompletionTrigger> CompletionTriggers => Set<CompletionTrigger>();
+
     /// <summary>Registered runners.</summary>
     public DbSet<Runner> Runners => Set<Runner>();
 
@@ -136,6 +143,8 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ReportTestCaseConfiguration());
         modelBuilder.ApplyConfiguration(new ReportCoveragePackageConfiguration());
         modelBuilder.ApplyConfiguration(new ReportCoverageClassConfiguration());
+        modelBuilder.ApplyConfiguration(new AutomationScheduleConfiguration());
+        modelBuilder.ApplyConfiguration(new CompletionTriggerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
     }

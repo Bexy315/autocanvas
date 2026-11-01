@@ -14,6 +14,7 @@ internal sealed class ReferenceChecker(JobGraph graph, ValidationContext context
     private static readonly HashSet<string> TriggerFields = new(StringComparer.Ordinal)
     {
         "event", "branch", "ref", "tag", "sha", "short_sha", "before", "pusher", "message", "body",
+        "schedule", "scheduled_at", "automation", "run_id", "run_number", "result",
     };
 
     private static readonly HashSet<string> RunFields = new(StringComparer.Ordinal)

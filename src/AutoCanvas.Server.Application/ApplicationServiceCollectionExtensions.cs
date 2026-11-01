@@ -8,6 +8,7 @@ using AutoCanvas.Server.Application.Identity;
 using AutoCanvas.Server.Application.Reports;
 using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
+using AutoCanvas.Server.Application.Triggers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -77,5 +78,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ReportIngestion>();
         services.AddScoped<RunReportService>();
         services.AddScoped<TestHistoryService>();
+        services.AddScoped<TriggerDispatcher>();
+        services.AddScoped<AutomationTriggerService>();
     }
 }

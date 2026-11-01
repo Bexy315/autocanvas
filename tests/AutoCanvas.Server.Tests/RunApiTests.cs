@@ -104,6 +104,43 @@ public abstract class RunApiTests(DatabaseProvider provider) : DatabaseTest(prov
     public async Task Report_limits_must_be_sensible(string key, string value) =>
         (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, (key, value))).ShouldContain(key);
 
+    [Fact]
+    public async Task A_schedule_starts_runs_while_the_server_runs()
+    {
+        await using var factory = Factory();
+        var ada = await factory.SignedInAsync("ada");
+        var automation = await AutomationAsync(ada, """
+            version: 1
+            triggers:
+              schedule:
+                - interval: 10m
+            jobs:
+              compile:
+                steps:
+                  - run: echo compile
+            """);
+        var triggers = await (await ada.GetAsync(Uri($"/api/v1/automations/{automation}/triggers"), Cancel)).JsonAsync();
+
+        factory.Clock.Advance(TimeSpan.FromMinutes(11));
+        var until = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
+        JsonElement runs;
+        do
+        {
+            await Task.Delay(200, Cancel);
+            runs = await (await ada.GetAsync(Uri($"/api/v1/automations/{automation}/runs"), Cancel)).JsonAsync();
+        }
+        while (runs.GetProperty("items").GetArrayLength() == 0 && DateTimeOffset.UtcNow < until);
+
+        var schedule = triggers.GetProperty("schedules").EnumerateArray().ShouldHaveSingleItem();
+        schedule.GetProperty("schedule").GetString().ShouldBe("every 10m");
+        schedule.GetProperty("nextAt").GetDateTimeOffset().ShouldBe(factory.Clock.GetUtcNow().AddMinutes(-1));
+        triggers.GetProperty("manual").GetBoolean().ShouldBeFalse();
+        var run = runs.GetProperty("items").EnumerateArray().ShouldHaveSingleItem();
+        run.GetProperty("trigger").GetString().ShouldBe("Schedule");
+        run.GetProperty("triggeredByName").GetString().ShouldBe("schedule");
+        (await ada.GetAsync(Uri($"/api/v1/automations/{Guid.CreateVersion7()}/triggers"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     private static async Task<Guid> AutomationAsync(HttpClient client, string yaml)
     {
         var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" }, Cancel)).JsonAsync());

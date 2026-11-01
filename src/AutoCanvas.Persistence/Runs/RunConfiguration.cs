@@ -19,6 +19,9 @@ internal sealed class RunConfiguration : IEntityTypeConfiguration<Run>
         builder.HasIndex(r => new { r.FolderId, r.CreatedAt });
         builder.HasIndex(r => r.State);
 
+        // What the trigger service looks for: finished runs whose followers have not been started.
+        builder.HasIndex(r => new { r.CompletionHandled, r.State });
+
         // The run outlives its automation; deleting the folder (only possible once its automations
         // are gone) removes the runs that are left in it.
         builder.HasOne(r => r.Automation).WithMany().HasForeignKey(r => r.AutomationId).OnDelete(DeleteBehavior.SetNull);

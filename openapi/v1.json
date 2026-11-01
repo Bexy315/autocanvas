@@ -2493,6 +2493,49 @@
         }
       }
     },
+    "/api/v1/automations/{id}/triggers": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Get what starts an automation",
+        "description": "From its current version: whether it starts by hand or by webhook, its schedule entries with when each fires next, and the automation it follows. Needs Viewer.",
+        "operationId": "GetAutomationTriggers",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationTriggersView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/automations/{id}/move": {
       "post": {
         "tags": [
@@ -4874,6 +4917,44 @@
         },
         "description": "An automation as listed in its folder."
       },
+      "AutomationTriggersView": {
+        "required": [
+          "manual",
+          "webhook",
+          "schedules",
+          "follows"
+        ],
+        "type": "object",
+        "properties": {
+          "manual": {
+            "type": "boolean",
+            "description": "Whether people may start it by hand."
+          },
+          "webhook": {
+            "type": "boolean",
+            "description": "Whether a webhook call may start it."
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleView"
+            },
+            "description": "Its schedule entries with when each fires next."
+          },
+          "follows": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The automation whose finished runs start it, if any.",
+                "$ref": "#/components/schemas/CompletionView"
+              }
+            ]
+          }
+        },
+        "description": "What starts runs of an automation, as its current version says."
+      },
       "AutomationVersionSummary": {
         "required": [
           "number",
@@ -5066,6 +5147,41 @@
           }
         },
         "description": "A new password for the signed-in user."
+      },
+      "CompletionOutcome": {
+        "enum": [
+          "Success",
+          "Failure",
+          "Always"
+        ],
+        "description": "Which results of the followed automation start a run (`on`)."
+      },
+      "CompletionView": {
+        "required": [
+          "folderId",
+          "automation",
+          "on"
+        ],
+        "type": "object",
+        "properties": {
+          "folderId": {
+            "type": "string",
+            "description": "Its folder.",
+            "format": "uuid"
+          },
+          "automation": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its name; `null` while no automation has that name there."
+          },
+          "on": {
+            "description": "Which of its results start a run.",
+            "$ref": "#/components/schemas/CompletionOutcome"
+          }
+        },
+        "description": "The automation another one follows (`automation_completed`)."
       },
       "ConfigurationEntry": {
         "required": [
@@ -7299,6 +7415,55 @@
           }
         },
         "description": "A new version of an automation."
+      },
+      "ScheduleView": {
+        "required": [
+          "position",
+          "schedule",
+          "timeZone",
+          "nextAt",
+          "lastAt"
+        ],
+        "type": "object",
+        "properties": {
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its place under `schedule`, from 0.",
+            "format": "int32"
+          },
+          "schedule": {
+            "type": "string",
+            "description": "How it reads: the cron expression, or `every 5m`."
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The time zone of a cron expression; `null` for UTC."
+          },
+          "nextAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it fires next; `null` if it never fires again.",
+            "format": "date-time"
+          },
+          "lastAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it last fired.",
+            "format": "date-time"
+          }
+        },
+        "description": "One schedule entry."
       },
       "SecretView": {
         "required": [

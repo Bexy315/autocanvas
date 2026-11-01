@@ -24,6 +24,16 @@ public sealed class ValidatorTests
     }
 
     [Fact]
+    public void Runs_started_by_schedules_and_other_automations_read_their_trigger() =>
+        Validate("""
+            version: 1
+            jobs:
+              report:
+                steps:
+                  - run: echo ${{ trigger.schedule }} ${{ trigger.scheduled_at }} ${{ trigger.automation }} ${{ trigger.run_id }} ${{ trigger.run_number }} ${{ trigger.result }}
+            """).ShouldBeEmpty();
+
+    [Fact]
     public void A_coherent_automation_has_no_problems() =>
         Validate("""
             version: 1

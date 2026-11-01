@@ -46,6 +46,7 @@ EULA in version 9, so check the exact version, not only the package.
 | Microsoft.AspNetCore.OpenApi | MIT | OpenAPI document of the server's HTTP API |
 | Microsoft.AspNetCore.Mvc.Testing | MIT | Hosting the server in memory in API tests (tests only) |
 | Microsoft.Extensions.TimeProvider.Testing | MIT | Controllable clock in tests (tests only) |
+| Cronos | MIT | Cron schedules of automations: checking expressions and finding the next time, in a time zone |
 | System.CommandLine | MIT | Commands of the server and runner executables (`migrate`, `register`) |
 | Microsoft.EntityFrameworkCore (+ `.Sqlite`, `.Design`) | MIT | Data access and migrations ([ADR-0014](../adr/0014-data-access-with-ef-core.md)); `.Design` only for generating migrations |
 | Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL | PostgreSQL provider ([ADR-0014](../adr/0014-data-access-with-ef-core.md)) |

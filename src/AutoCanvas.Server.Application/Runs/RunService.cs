@@ -19,15 +19,13 @@ namespace AutoCanvas.Server.Application.Runs;
 /// </summary>
 public sealed class RunService
 {
-    /// <summary>How often a start is tried again when another start took the same run number.</summary>
-    private const int NumberAttempts = 3;
-
     private readonly AutoCanvasDbContext database;
     private readonly IJobSignal signal;
     private readonly IAuditLog audit;
     private readonly TimeProvider time;
     private readonly FolderAccess access;
     private readonly RunEngine engine;
+    private readonly RunStarter starter;
 
     /// <summary>Creates the service for one unit of work.</summary>
     public RunService(AutoCanvasDbContext database, IJobSignal signal, ConfigurationService configuration, IAuditLog audit, TimeProvider time)
@@ -39,6 +37,7 @@ public sealed class RunService
         this.time = time;
         access = new FolderAccess(database);
         engine = new RunEngine(database, configuration, time);
+        starter = new RunStarter(database, signal, audit, engine, time);
     }
 
     /// <summary>
@@ -48,18 +47,7 @@ public sealed class RunService
     public async Task<UseCaseResult<RunView>> StartAsync(Actor actor, Guid automationId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(actor);
-        for (var attempt = 1; ; attempt++)
-        {
-            try
-            {
-                return await TryStartAsync(actor, automationId, cancellationToken).ConfigureAwait(false);
-            }
-            catch (DbUpdateException) when (attempt < NumberAttempts)
-            {
-                // Another start took the same run number in the meantime; count again.
-                database.ChangeTracker.Clear();
-            }
-        }
+        return await TryStartAsync(actor, automationId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Cancels a run (Operator): unfinished jobs stop, finally jobs that run on cancel still run.</summary>
@@ -199,34 +187,18 @@ public sealed class RunService
             return UseCase.Failure<RunView>(UseCaseError.Invalid("automation", "This automation cannot be started by hand. Add 'manual: true' under triggers to allow it."));
         }
 
-        if (definition.Concurrency == Concurrency.Exclusive
-            && await database.Runs.AnyAsync(r => r.AutomationId == automationId && r.State == RunState.Running, cancellationToken).ConfigureAwait(false))
+        var started = await starter.StartAsync(
+            automation,
+            yaml,
+            definition,
+            new RunStart(RunTriggerKind.Manual, actor.UserId, await UserNameAsync(actor, cancellationToken).ConfigureAwait(false)),
+            cancellationToken).ConfigureAwait(false);
+        if (started.Error is { } refused)
         {
-            return UseCase.Failure<RunView>(UseCaseError.Conflict("The automation allows one run at a time (concurrency: single), and a run is still active."));
+            return UseCase.Failure<RunView>(refused);
         }
 
-        var now = time.GetUtcNow();
-        var last = await database.Runs.Where(r => r.AutomationId == automationId).MaxAsync(r => (int?)r.Number, cancellationToken).ConfigureAwait(false);
-        var run = new Run
-        {
-            Id = Guid.CreateVersion7(now),
-            AutomationId = automationId,
-            FolderId = automation.FolderId,
-            AutomationName = automation.Name,
-            AutomationVersion = automation.CurrentVersion,
-            Number = (last ?? 0) + 1,
-            Yaml = yaml,
-            Trigger = RunTriggerKind.Manual,
-            TriggeredById = actor.UserId,
-            TriggeredByName = await UserNameAsync(actor, cancellationToken).ConfigureAwait(false),
-            CreatedAt = now,
-        };
-        database.Runs.Add(run);
-        var jobs = engine.CreateJobs(run, definition);
-        await engine.AdvanceAsync(run, jobs, cancellationToken).ConfigureAwait(false);
-        audit.Record(Entry(AuditActions.RunStarted, run));
-        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
+        var run = started.Value!;
         return await GetAsync(actor, run.Id, cancellationToken).ConfigureAwait(false);
     }
 
