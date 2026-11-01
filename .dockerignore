@@ -1,0 +1,9 @@
+# Keep the build context small: images build from sources, never from local outputs.
+**/bin/
+**/obj/
+**/node_modules/
+.git/
+artifacts/
+BenchmarkDotNet.Artifacts/
+docs-site/build/
+**/data/

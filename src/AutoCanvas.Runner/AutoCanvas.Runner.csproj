@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The reference runner: a worker that connects out to the server over the runner protocol and
+       executes jobs in containers (S2 step 7). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Hosting, configuration, logging and file globbing come with the shared framework the server
+         runs on too, so the runner adds no packages for them. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet.Enhanced" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="System.CommandLine" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../AutoCanvas.Core/AutoCanvas.Core.csproj" />
+    <ProjectReference Include="../AutoCanvas.Protocol/AutoCanvas.Protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoCanvas.Runner.Tests" />
+  </ItemGroup>
+</Project>

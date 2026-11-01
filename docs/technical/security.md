@@ -27,6 +27,12 @@ This page describes what AutoCanvas protects and how. It grows with the server; 
   one step at a time, including only the secrets those steps use
   ([ADR-0008](../adr/0008-server-resolves-steps.md)). An offered job's environment contains no
   secrets; service containers get the secrets their environment names.
+- **Runner → jobs**: the reference runner holds the Docker socket and is trusted with its host; the
+  jobs it runs are not. A job's container gets its workspace and the runner's files for that job
+  (scripts, output files), never the Docker socket, and runs with `no-new-privileges` and a process
+  limit. A step's secrets reach only that step's process, as environment variables, and the runner
+  masks them in everything it sends back before the server masks them again. The runner's
+  credential is kept in a file readable by its user only and never logged.
 
 ## Authentication
 

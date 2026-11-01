@@ -34,12 +34,13 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      # Database tests run on SQLite and on PostgreSQL (Testcontainers, Docker is preinstalled);
-      # in CI they must not be skipped (ADR-0010).
+      # Database tests run on SQLite and on PostgreSQL (Testcontainers, Docker is preinstalled),
+      # the runner's tests on Docker; in CI neither may be skipped (ADR-0010).
       - name: Test (coverage gate 75 % per project)
         run: dotnet test --configuration Release --no-build
         env:
           AUTOCANVAS_REQUIRE_POSTGRES: "1"
+          AUTOCANVAS_REQUIRE_DOCKER: "1"
 
       - name: Coverage summary
         if: always()
@@ -59,6 +60,16 @@ jobs:
 
       - name: Dependency licenses
         run: dotnet nuget-license --input AutoCanvas.slnx --include-transitive --allowed-license-types build/allowed-licenses.json
+
+  runner-image:
+    name: Runner image (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Built to prove the Dockerfile works; it is published with the first release.
+      - name: Build
+        run: docker build --file src/AutoCanvas.Runner/Dockerfile --tag autocanvas-runner:ci .
 
   protocol:
     name: Protocol (buf lint, format, breaking)

@@ -59,19 +59,6 @@
           "System.Management": "6.0.1"
         }
       },
-      "Docker.DotNet.Enhanced": {
-        "type": "Transitive",
-        "resolved": "4.3.3",
-        "contentHash": "nGicLwvd42FhRk+khY5uS6cx49ErNdwYKnYBg0F4m4BDKLp/R77AVmmN9xAiqI3W/wN5ZCHkdUhgxf5ORkZuFQ==",
-        "dependencies": {
-          "Docker.DotNet.Enhanced.Handler.Abstractions": "4.3.3",
-          "Docker.DotNet.Enhanced.LegacyHttp": "4.3.3",
-          "Docker.DotNet.Enhanced.NPipe": "4.3.3",
-          "Docker.DotNet.Enhanced.NativeHttp": "4.3.3",
-          "Docker.DotNet.Enhanced.Unix": "4.3.3",
-          "Microsoft.Extensions.Logging.Abstractions": "8.0.3"
-        }
-      },
       "Docker.DotNet.Enhanced.Handler.Abstractions": {
         "type": "Transitive",
         "resolved": "4.3.3",
@@ -526,6 +513,20 @@
           "Testcontainers.PostgreSql": "[4.16.0, )",
           "xunit.v3.assert": "[4.0.2, )",
           "xunit.v3.extensibility.core": "[4.0.2, )"
+        }
+      },
+      "Docker.DotNet.Enhanced": {
+        "type": "CentralTransitive",
+        "requested": "[4.3.3, )",
+        "resolved": "4.3.3",
+        "contentHash": "nGicLwvd42FhRk+khY5uS6cx49ErNdwYKnYBg0F4m4BDKLp/R77AVmmN9xAiqI3W/wN5ZCHkdUhgxf5ORkZuFQ==",
+        "dependencies": {
+          "Docker.DotNet.Enhanced.Handler.Abstractions": "4.3.3",
+          "Docker.DotNet.Enhanced.LegacyHttp": "4.3.3",
+          "Docker.DotNet.Enhanced.NPipe": "4.3.3",
+          "Docker.DotNet.Enhanced.NativeHttp": "4.3.3",
+          "Docker.DotNet.Enhanced.Unix": "4.3.3",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.3"
         }
       },
       "EFCore.NamingConventions": {

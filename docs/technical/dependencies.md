@@ -40,12 +40,13 @@ EULA in version 9, so check the exact version, not only the package.
 | Grpc.Tools | Apache-2.0 | Generating C# from `proto/` at build time (not shipped) |
 | Grpc.Core.Api | Apache-2.0 | Base types of the generated gRPC stubs |
 | Grpc.AspNetCore.Server | Apache-2.0 | Serving the runner protocol in the server ([ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)) |
-| Grpc.Net.Client | Apache-2.0 | The runner protocol's client side in tests |
+| Grpc.Net.Client | Apache-2.0 | The runner protocol's client side: the reference runner and tests |
+| Docker.DotNet.Enhanced | MIT | The reference runner's container engine client (the original Docker.DotNet has had no release since 2023; Testcontainers uses the same fork) |
 | BenchmarkDotNet | MIT | Benchmarks in `benchmarks/` (not shipped) |
 | Microsoft.AspNetCore.OpenApi | MIT | OpenAPI document of the server's HTTP API |
 | Microsoft.AspNetCore.Mvc.Testing | MIT | Hosting the server in memory in API tests (tests only) |
 | Microsoft.Extensions.TimeProvider.Testing | MIT | Controllable clock in tests (tests only) |
-| System.CommandLine | MIT | Commands of the server executable (`migrate`) |
+| System.CommandLine | MIT | Commands of the server and runner executables (`migrate`, `register`) |
 | Microsoft.EntityFrameworkCore (+ `.Sqlite`, `.Design`) | MIT | Data access and migrations ([ADR-0014](../adr/0014-data-access-with-ef-core.md)); `.Design` only for generating migrations |
 | Npgsql.EntityFrameworkCore.PostgreSQL | PostgreSQL | PostgreSQL provider ([ADR-0014](../adr/0014-data-access-with-ef-core.md)) |
 | EFCore.NamingConventions | Apache-2.0 | snake_case table and column names |
