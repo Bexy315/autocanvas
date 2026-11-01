@@ -16,6 +16,11 @@ docs-site/static/openapi/
 docs-site/static/scalar/
 .docusaurus/
 
+# Web UI: built into the server's web root (ADR-0018), test output
+src/AutoCanvas.Server/wwwroot/
+src/web/test-results/
+src/web/playwright-report/
+
 # IDEs
 .idea/
 .vs/

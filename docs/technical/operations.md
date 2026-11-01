@@ -187,6 +187,28 @@ A proxy in front of the runner endpoint must forward gRPC: HTTP/2 to the server,
 without buffering or timing out long-lived streams. With nginx this is `grpc_pass`, with Caddy
 `reverse_proxy` with `transport http { versions h2c }`, with Traefik a service using `h2c`.
 
+## Web UI
+
+The server serves the web UI on the same address as the HTTP API, from its web root (`wwwroot` next
+to the server; the container image contains it). There is nothing to configure: open the server's
+address in a browser. Behind a reverse proxy, forward every path to the server, not only `/api`,
+and keep the headers the server sets (`Content-Security-Policy`, `Cache-Control`); see
+[Web UI](web-ui.md) for what is cached how. A server built without the UI answers the UI's paths
+with `404` and works otherwise as usual.
+
+## Container image
+
+`src/AutoCanvas.Server/Dockerfile` builds the server with its web UI (from the repository root:
+`docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server .`). It listens on 5080 (web
+UI and API) and 5081 (runners), keeps its data in the volume `/var/lib/autocanvas` and runs as a
+non-root user. CI builds it on every change; it is published with the first release.
+
+```sh
+docker run -d --name autocanvas -p 5080:5080 -p 5081:5081 -v autocanvas-data:/var/lib/autocanvas \
+  -e AUTOCANVAS_MASTER_KEY=… -e AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME=admin \
+  -e AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD='a first password' autocanvas-server
+```
+
 ## Health endpoints
 
 | Endpoint | Answers `200` when | Use it for |

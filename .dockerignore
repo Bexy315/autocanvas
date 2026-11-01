@@ -6,4 +6,8 @@
 artifacts/
 BenchmarkDotNet.Artifacts/
 docs-site/build/
+src/AutoCanvas.Server/wwwroot/
+src/web/coverage/
+src/web/test-results/
+src/web/playwright-report/
 **/data/

@@ -1,0 +1,7 @@
+[
+  {
+    "package": "lightningcss",
+    "license": "MPL-2.0",
+    "reason": "The CSS compiler Vite 8 and Tailwind 4 run at build time; used unchanged and not part of the built UI (ADR-0019)."
+  }
+]

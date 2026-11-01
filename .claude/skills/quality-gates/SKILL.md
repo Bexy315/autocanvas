@@ -37,6 +37,19 @@ If anything under `docs/` or `docs-site/` changed, also run the docs gate from `
 npm ci && npm run typecheck && npm run build
 ```
 
+If anything under `src/web/` or `openapi/` changed, run the web gate from `src/web/` (Node 24). The
+end-to-end test also needs the .NET SDK and, once, a browser
+(`npx playwright install chromium --only-shell`; on a nearly full system drive, set
+`PLAYWRIGHT_BROWSERS_PATH=0` to keep it in `node_modules`):
+
+```sh
+npm ci
+npm run api && git diff --exit-code -- src/api/schema.d.ts
+npm run typecheck && npm run lint && npm run format:check
+npm test && npm run licenses
+npm run build && npm run e2e
+```
+
 Report the result per step. Do not claim the gates pass unless every command exited with 0.
 
 ## Reading failures
@@ -52,7 +65,10 @@ Report the result per step. Do not claim the gates pass unless every command exi
 | Test run exit code **2** | At least one test failed | Read the failing test output |
 | Test run exit code **8** | A test project found no tests | Add tests or remove the empty project |
 | Docs build: `MDX compilation failed` or `Broken link` | A relative link points to a missing page or anchor, or a link leaves `docs/` | Fix the link. Link only within `docs/`; mention repository files (e.g. `build/…`) as code, not links. `docs/plans/` is not published, so do not link to it from published docs |
-| License check lists a package as not allowed | Dependency license is not on the allow list | Pick another package, or write an ADR before extending `build/allowed-licenses.json` |
+| License check lists a package as not allowed | Dependency license is not on the allow list | Pick another package, or write an ADR before extending `build/allowed-licenses.json` (npm: or before adding to `src/web/license-exceptions.json`, ADR-0019) |
+| Web: `git diff` after `npm run api` shows changes | `openapi/v1.json` changed without regenerating the UI's types | Run `npm run api` and commit `src/api/schema.d.ts` |
+| Web: Vitest ends with "Coverage for lines … does not meet global threshold" | `src/web` fell below 75 % | Add tests; the HTML report is in `src/web/coverage/` |
+| Web: `npm run e2e` times out starting the server | The server did not become ready on port 5090, or the port is taken | Run the `webServer` command from `playwright.config.ts` by hand and read its output |
 
 ## Finding uncovered code
 

@@ -29,6 +29,10 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
     {
         UseDatabaseSettings(ownDatabase);
         settings["Secrets:MasterKey"] = MasterKey;
+
+        // Without a web UI unless a test asks for one: a UI built into the project's wwwroot for
+        // local development would otherwise change how unknown paths are answered.
+        settings[WebHostDefaults.WebRootKey] = Path.Combine(AppContext.BaseDirectory, "no-web-ui");
     }
 
     /// <summary>
@@ -49,6 +53,9 @@ public sealed class AutoCanvasFactory : WebApplicationFactory<Program>
         UseDatabaseSettings(database);
         return this;
     }
+
+    /// <summary>Serves the web UI from this directory instead of the server's own <c>wwwroot</c>.</summary>
+    public AutoCanvasFactory WithWebRoot(string path) => With(WebHostDefaults.WebRootKey, path);
 
     public AutoCanvasFactory WithServices(Action<IServiceCollection> configure)
     {

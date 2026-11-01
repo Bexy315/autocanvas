@@ -10,8 +10,16 @@ permissions are granted to.
 
 ## Signing in
 
-The web UI arrives with S3; until then, sign in through the API. The session lasts 7 days without
-use and 30 days at most:
+Open the server's address in a browser and sign in with your user name and password. If an admin
+set your password (or it is the first admin's initial one), the web UI asks you to choose your own
+before anything else. The session lasts 7 days without use and 30 days at most; when it ends, the
+web UI asks you to sign in again and then returns to the page you were on.
+
+Your account page (the menu with your name in the top right) shows your account and groups and lets
+you change your password. The same menu switches between a light and a dark color scheme, or
+follows your system's setting.
+
+Scripts sign in through the API:
 
 ```sh
 curl -c cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json'   -d '{"userName":"root","password":"…"}' http://localhost:5080/api/v1/auth/sign-in

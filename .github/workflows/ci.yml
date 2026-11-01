@@ -71,6 +71,100 @@ jobs:
       - name: Build
         run: docker build --file src/AutoCanvas.Runner/Dockerfile --tag autocanvas-runner:ci .
 
+  server-image:
+    name: Server image (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Built to prove the Dockerfile works, web UI included; it is published with the first release.
+      - name: Build
+        run: docker build --file src/AutoCanvas.Server/Dockerfile --tag autocanvas-server:ci .
+
+  web:
+    name: Web (types, lint, format, tests, licenses, e2e)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Install
+        run: npm ci
+
+      # The committed API types must match openapi/v1.json, like the OpenAPI snapshot itself.
+      - name: API types
+        run: |
+          npm run api
+          git diff --exit-code -- src/api/schema.d.ts
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Test (coverage gate 75 %)
+        run: npm test
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/cobertura-coverage.xml ]; then
+            echo "### Web UI coverage" >> "$GITHUB_STEP_SUMMARY"
+            grep -o 'line-rate="[0-9.]*"' coverage/cobertura-coverage.xml | head -1 \
+              | awk -F'"' '{ printf "Lines: %.1f %%\n", $2 * 100 }' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Dependency licenses
+        run: npm run licenses
+
+      - name: Build
+        run: npm run build
+
+      - name: Build the server
+        working-directory: .
+        run: dotnet build src/AutoCanvas.Server --configuration Release
+
+      - name: Browsers
+        run: npx playwright install --with-deps chromium --only-shell
+
+      - name: End-to-end smoke test
+        run: npm run e2e
+
+      # Screenshots of every screen the smoke test passes, light and dark, for review without a local start.
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-screenshots
+          path: src/web/test-results/screenshots/
+          if-no-files-found: ignore
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-reports
+          path: |
+            src/web/coverage/
+            src/web/playwright-report/
+          if-no-files-found: ignore
+
   protocol:
     name: Protocol (buf lint, format, breaking)
     runs-on: ubuntu-latest

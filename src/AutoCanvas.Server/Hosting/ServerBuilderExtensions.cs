@@ -96,12 +96,14 @@ internal static class ServerBuilderExtensions
     {
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+        app.UseAutoCanvasWebUi();
         app.UseAutoCanvasAuthentication();
 
         app.MapOpenApi().AllowAnonymous();
         app.MapAutoCanvasHealth();
         app.MapAutoCanvasApi();
         app.MapAutoCanvasRunners();
+        app.MapAutoCanvasWebUi();
 
         return app;
     }
