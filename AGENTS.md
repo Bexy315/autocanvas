@@ -20,6 +20,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `src/AutoCanvas.Server.Application/` | Use cases of the server and the audit log; works with the EF Core context directly |
 | `src/AutoCanvas.Server/` | ASP.NET Core host: HTTP API, runner gRPC services, health, configuration, CLI commands |
 | `src/AutoCanvas.Protocol/` | C# generated from `proto/` (runner protocol messages and stubs); no hand-written code |
+| `src/web/` | Web UI: React SPA built with Vite, served by the server ([ADR-0018](docs/adr/0018-web-ui.md)); app and commands arrive in S3 step 2 |
 | `openapi/` | Committed OpenAPI document of the HTTP API, checked by a test |
 | `benchmarks/` | BenchmarkDotNet benchmarks of Core's hot paths; baselines in `docs/technical/performance.md` |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
@@ -35,7 +36,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `build/` | Build and CI support files |
 | `.claude/skills/` | Task playbooks — any agent can read them (see below) |
 
-Planned areas (persistence, runner, web UI) appear with their milestone; see the active plan.
+Planned areas appear with their milestone; see the active plan.
 
 ## Commands
 
