@@ -5,6 +5,7 @@ using AutoCanvas.Runner.Connection;
 using AutoCanvas.Runner.Docker;
 using AutoCanvas.Runner.Execution;
 using AutoCanvas.Server.Tests;
+using AutoCanvas.TestSupport;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -23,14 +24,16 @@ internal sealed class TestRunner : IAsyncDisposable
     public static readonly TimeSpan Patience = TimeSpan.FromSeconds(20);
 
     private readonly List<IHost> hosts = [];
+    private readonly bool ownsServer;
     private BreakableHandler? handler;
 
-    private TestRunner(AutoCanvasFactory server, HttpClient admin, string dataDirectory, IContainerRuntime runtime)
+    private TestRunner(AutoCanvasFactory server, HttpClient admin, string dataDirectory, IContainerRuntime runtime, bool ownsServer = true)
     {
         Server = server;
         Admin = admin;
         DataDirectory = dataDirectory;
         Runtime = runtime;
+        this.ownsServer = ownsServer;
     }
 
     public AutoCanvasFactory Server { get; }
@@ -46,13 +49,27 @@ internal sealed class TestRunner : IAsyncDisposable
 
     public static CancellationToken Cancel => TestContext.Current.CancellationToken;
 
-    public static async Task<TestRunner> CreateAsync(IContainerRuntime? runtime = null)
+    /// <summary>A server and a runner for one test; the server on <paramref name="database"/> if given, with extra settings.</summary>
+    public static async Task<TestRunner> CreateAsync(IContainerRuntime? runtime = null, TestDatabase? database = null, params (string Key, string Value)[] settings)
     {
         var server = new AutoCanvasFactory().With("Runners:HeartbeatInterval", "00:00:01");
+        if (database is not null)
+        {
+            server.WithDatabase(database);
+        }
+
+        foreach (var (key, value) in settings)
+        {
+            server.With(key, value);
+        }
+
         var admin = await server.SignedInAsync("root", isAdmin: true);
         var data = Path.Combine(Path.GetTempPath(), "autocanvas-runner-tests", Guid.NewGuid().ToString("N"));
         return new TestRunner(server, admin, data, runtime ?? new FakeRuntime());
     }
+
+    /// <summary>A second runner on the same server, with a data directory of its own.</summary>
+    public TestRunner Another() => new(Server, Admin, DataDirectory + "-another", Runtime, ownsServer: false);
 
     /// <summary>The arguments that point the runner at the test server and its own data directory.</summary>
     public string[] Settings(params string[] more) =>
@@ -169,8 +186,12 @@ internal sealed class TestRunner : IAsyncDisposable
             host.Dispose();
         }
 
-        Admin.Dispose();
-        await Server.DisposeAsync();
+        if (ownsServer)
+        {
+            Admin.Dispose();
+            await Server.DisposeAsync();
+        }
+
         if (Directory.Exists(DataDirectory))
         {
             Directory.Delete(DataDirectory, recursive: true);

@@ -1,7 +1,7 @@
 # 0014. Data access with EF Core, one project per database provider
 
-- Status: Proposed
-- Date: 2026-10-30
+- Status: Accepted
+- Date: 2026-10-30 (accepted 2026-11-01)
 
 ## Context
 

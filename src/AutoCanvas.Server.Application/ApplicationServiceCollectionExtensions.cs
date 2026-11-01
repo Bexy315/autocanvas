@@ -66,6 +66,8 @@ public static class ApplicationServiceCollectionExtensions
     private static void AddRuns(IServiceCollection services)
     {
         services.AddScoped<RunService>();
+        services.AddOptions<RunOptions>();
+        services.AddScoped<RunRetention>();
         services.AddOptions<QueueOptions>();
         services.AddScoped<JobDispatcher>();
         services.AddScoped<JobOfferBuilder>();

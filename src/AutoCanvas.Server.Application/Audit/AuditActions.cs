@@ -120,6 +120,9 @@ public static class AuditActions
     /// <summary>Entries older than the retention period were deleted; details: <c>before</c>, <c>deleted</c>.</summary>
     public const string AuditPruned = "audit.pruned";
 
+    /// <summary>Finished runs older than the retention period were deleted with their logs and reports; details: <c>before</c>, <c>deleted</c>.</summary>
+    public const string RunsPruned = "run.pruned";
+
     /// <summary>A run was started by hand; details: <c>automation</c>, <c>number</c>.</summary>
     public const string RunStarted = "run.started";
 

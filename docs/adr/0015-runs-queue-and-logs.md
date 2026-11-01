@@ -1,7 +1,7 @@
 # 0015. Store runs with a copy of their definition, queue jobs per provider, keep logs as chunks in the database
 
-- Status: Proposed
-- Date: 2026-10-31
+- Status: Accepted
+- Date: 2026-10-31 (accepted 2026-11-01)
 
 ## Context
 
