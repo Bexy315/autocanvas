@@ -25,6 +25,8 @@ any text value — scripts, node inputs, environment variables, outputs — and 
 | `trigger.event` | What started the run: `manual`, `push`, `schedule`, `webhook` or `automation_completed`. |
 | `trigger.branch`, `trigger.ref`, `trigger.tag`, `trigger.sha`, `trigger.short_sha`, `trigger.before`, `trigger.pusher`, `trigger.message` | Details of a push. |
 | `trigger.body`, `trigger.headers.NAME`, `trigger.query.NAME` | Request of a webhook trigger. |
+| `trigger.schedule`, `trigger.scheduled_at` | The schedule entry that started the run, and when it was due. |
+| `trigger.automation`, `trigger.run_id`, `trigger.run_number`, `trigger.result` | The run whose end started this one (`automation_completed`); `result` is `success`, `failure` or `cancelled`. |
 | `run.id`, `run.automation_name`, `run.triggered_by`, `run.branch`, `run.commit_sha`, `run.commit_short_sha` | The run itself. |
 | `run.status` | How the run went so far; meant for `finally` jobs. |
 

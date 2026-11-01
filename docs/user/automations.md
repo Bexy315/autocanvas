@@ -94,6 +94,8 @@ triggers:
     on: success                   # success | failure | always
 ```
 
+What each trigger does, and when runs start, is described in [Triggers](triggers.md).
+
 ## Jobs
 
 Jobs without `needs` start in parallel. A job runs its steps one after another in one workspace.
