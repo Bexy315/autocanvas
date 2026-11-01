@@ -16,7 +16,8 @@ internal static class ScheduleTimes
         }
 
         var zone = schedule.TimeZone is { } name ? TimeZoneInfo.FindSystemTimeZoneById(name) : TimeZoneInfo.Utc;
-        return CronExpression.Parse(schedule.Cron!, CronFormat.Standard).GetNextOccurrence(after, zone);
+        // In UTC: Cronos answers with the zone's offset, and PostgreSQL stores only UTC times.
+        return CronExpression.Parse(schedule.Cron!, CronFormat.Standard).GetNextOccurrence(after, zone)?.ToUniversalTime();
     }
 
     /// <summary>Why a cron expression cannot be used, or <see langword="null"/>.</summary>

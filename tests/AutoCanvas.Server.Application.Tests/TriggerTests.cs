@@ -34,6 +34,7 @@ public abstract class TriggerTests(DatabaseProvider provider) : IdentityTest(pro
         var schedules = await SchedulesAsync(id);
         schedules.Select(s => (s.Position, s.Cron, s.TimeZone, s.IntervalSeconds)).ShouldBe([(0, "0 3 * * *", "Europe/Berlin", (long?)null), (1, null, null, 600)]);
         schedules[0].NextAt.ShouldBe(new DateTimeOffset(2026, 10, 31, 2, 0, 0, TimeSpan.Zero));
+        schedules[0].NextAt.Offset.ShouldBe(TimeSpan.Zero);
         schedules[1].NextAt.ShouldBe(Clock.GetUtcNow().AddMinutes(10));
 
         Clock.Advance(TimeSpan.FromMinutes(3));
