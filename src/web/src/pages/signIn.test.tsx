@@ -113,7 +113,7 @@ describe('a password set by someone else', () => {
   });
 
   it('shows what the server said about each field', async () => {
-    server({ refuse: problem(400, 'Invalid.', { newPassword: ['The password needs at least 12 characters.'] }) });
+    server({ refuse: problem(400, 'The password needs at least 12 characters.', 'newPassword') });
     const { user } = renderApp('/change-password');
 
     await user.type(await screen.findByLabelText('Current password'), 'set by the admin');

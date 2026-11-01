@@ -1,9 +1,14 @@
-/** Problem details as the API returns them (RFC 9457), with field errors for validation problems. */
+/**
+ * Problem details as the API returns them (RFC 9457, docs/technical/api.md). A rule a request
+ * breaks names its property in `field` and says what is wrong in `detail`; a body that cannot be
+ * read at all lists messages per property in `errors`.
+ */
 export interface Problem {
   type?: string | null;
   title?: string | null;
   status?: number | string | null;
   detail?: string | null;
+  field?: string | null;
   errors?: Record<string, string[]>;
 }
 
@@ -19,9 +24,13 @@ export class ApiError extends Error {
     this.problem = problem;
   }
 
-  /** The messages for one field of a validation problem, e.g. `newPassword`. */
+  /** The messages for one request property, e.g. `newPassword`; empty when the problem is about another. */
   fieldErrors(field: string): string[] {
-    return this.problem.errors?.[field] ?? [];
+    const listed = this.problem.errors?.[field] ?? [];
+    if (this.problem.field === field && this.problem.detail) {
+      return [this.problem.detail, ...listed];
+    }
+    return listed;
   }
 }
 

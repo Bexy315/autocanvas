@@ -14,7 +14,12 @@ async function shoot(page: Page, name: string, scheme: 'light' | 'dark') {
   await page.evaluate((value) => {
     document.documentElement.dataset['theme'] = value;
   }, scheme);
-  await page.screenshot({ path: `test-results/screenshots/${name}-${scheme}.png`, fullPage: true });
+  // Transitions (e.g. button colors) finish first, so a shot never shows half the old scheme.
+  await page.screenshot({
+    path: `test-results/screenshots/${name}-${scheme}.png`,
+    fullPage: true,
+    animations: 'disabled',
+  });
 }
 
 test('the first admin signs in, replaces the password, uses the shell and signs out', async ({ page }) => {
@@ -40,7 +45,8 @@ test('the first admin signs in, replaces the password, uses the shell and signs 
   await page.getByLabel('New password', { exact: true }).fill('short');
   await page.getByLabel('Repeat the new password').fill('short');
   await page.getByRole('button', { name: 'Change password and continue' }).click();
-  await expect(page.getByText(/at least 12 characters|12 to 256/i).last()).toBeVisible();
+  // The server's refusal shows at the field.
+  await expect(page.getByLabel('New password', { exact: true })).toHaveAttribute('aria-invalid', 'true');
   await snapshot(page, '3-change-password');
 
   await page.getByLabel('New password', { exact: true }).fill(newPassword);

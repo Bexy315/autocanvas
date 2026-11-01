@@ -33,8 +33,9 @@ export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-export function problem(status: number, detail: string, errors?: Record<string, string[]>): Response {
-  return new Response(JSON.stringify({ status, title: 'Problem', detail, ...(errors ? { errors } : {}) }), {
+/** A problem as the server sends it; `field` names the request property a broken rule is about. */
+export function problem(status: number, detail: string, field?: string): Response {
+  return new Response(JSON.stringify({ status, title: 'Problem', detail, ...(field ? { field } : {}) }), {
     status,
     headers: { 'Content-Type': 'application/problem+json' },
   });

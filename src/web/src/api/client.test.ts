@@ -33,9 +33,9 @@ describe('the API client', () => {
     ]);
   });
 
-  it('turns problems into errors with the server words and field errors', async () => {
+  it('turns a broken rule into an error at its field', async () => {
     fakeServer({
-      'PUT /api/v1/me/password': () => problem(400, 'One or more fields are invalid.', { newPassword: ['Too short.'] }),
+      'PUT /api/v1/me/password': () => problem(400, 'The password must have at least 12 characters.', 'newPassword'),
     });
 
     const error = await unwrap(
@@ -44,8 +44,24 @@ describe('the API client', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(400);
-    expect((error as ApiError).fieldErrors('newPassword')).toEqual(['Too short.']);
+    expect((error as ApiError).fieldErrors('newPassword')).toEqual(['The password must have at least 12 characters.']);
     expect((error as ApiError).fieldErrors('currentPassword')).toEqual([]);
+  });
+
+  it('reads the messages per property of a body that could not be read', async () => {
+    fakeServer({
+      'PUT /api/v1/me/password': () =>
+        json(
+          { status: 400, title: 'One or more validation errors occurred.', errors: { newPassword: ['Required.'] } },
+          400,
+        ),
+    });
+
+    const error = await unwrap(
+      api.PUT('/api/v1/me/password', { body: { currentPassword: 'a', newPassword: 'b' } }),
+    ).catch((e: unknown) => e);
+
+    expect((error as ApiError).fieldErrors('newPassword')).toEqual(['Required.']);
   });
 
   it('reports an ended session when a request that needs one is refused', async () => {
