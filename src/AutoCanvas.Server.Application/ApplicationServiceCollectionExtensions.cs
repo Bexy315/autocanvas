@@ -80,5 +80,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<TestHistoryService>();
         services.AddScoped<TriggerDispatcher>();
         services.AddScoped<AutomationTriggerService>();
+        services.AddScoped<WebhookService>();
     }
 }

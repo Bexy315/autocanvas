@@ -1,3 +1,4 @@
+using AutoCanvas.Server.Api.Triggers;
 using AutoCanvas.Server.Api.Audit;
 using AutoCanvas.Server.Api.Automations;
 using AutoCanvas.Server.Api.Folders;
@@ -51,6 +52,7 @@ internal static class ApiEndpoints
         api.MapAuditEndpoints();
         api.MapRunEndpoints();
         api.MapReportEndpoints();
+        api.MapWebhookEndpoints();
         api.MapRunnerEndpoints();
 
         return endpoints;

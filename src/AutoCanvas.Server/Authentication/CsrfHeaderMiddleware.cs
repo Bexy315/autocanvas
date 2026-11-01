@@ -12,10 +12,17 @@ internal sealed class CsrfHeaderMiddleware(RequestDelegate next, IProblemDetails
 {
     public const string HeaderName = "X-AutoCanvas-Request";
 
+    /// <summary>
+    /// Webhook calls come from other systems with a token in the path, never with a session cookie,
+    /// so there is no browser session a foreign page could ride on.
+    /// </summary>
+    public const string WebhookPath = "/api/v1/hooks";
+
     public async Task InvokeAsync(HttpContext context)
     {
         var request = context.Request;
         if (request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
+            && !request.Path.StartsWithSegments(WebhookPath, StringComparison.OrdinalIgnoreCase)
             && !HttpMethods.IsGet(request.Method)
             && !HttpMethods.IsHead(request.Method)
             && !HttpMethods.IsOptions(request.Method)

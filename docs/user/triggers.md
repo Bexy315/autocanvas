@@ -5,8 +5,8 @@ sidebar_position: 10.5
 # Triggers
 
 An automation's `triggers` say what starts its runs. Besides starting them by hand (`manual: true`),
-runs start on a schedule, when another automation finishes, or — with the next release step — on a
-webhook call. Push triggers come with the repository integrations (S5).
+runs start on a schedule, when another automation finishes, or on a webhook call. Push triggers come
+with the repository integrations (S5).
 
 ```yaml
 triggers:
@@ -18,6 +18,7 @@ triggers:
   automation_completed:
     automation: build
     on: success
+  webhook: true
 ```
 
 `GET /api/v1/automations/{id}/triggers` (Viewer) shows what the current version of an automation
@@ -63,3 +64,40 @@ describe the run that finished.
 
 Schedules and followers are started by the server within about five seconds of their time; with
 several servers on one PostgreSQL database, exactly one of them starts each run.
+
+## Webhooks
+
+With `webhook: true`, other systems start runs by calling the automation's webhook address — a
+chat bot, a monitoring alert, a script. The address is a secret URL; Operators of the folder create
+it:
+
+```sh
+curl -X POST https://autocanvas.example.org/api/v1/automations/$AUTOMATION/webhook \
+  -H "Authorization: Bearer $AUTOCANVAS_TOKEN" -H "Content-Type: application/json" \
+  -d '{"requireSignature": true}'
+```
+
+The answer holds the `path` (`/api/v1/hooks/ach_…`) and, with `requireSignature`, the
+`signingSecret`. Both are shown only this once; AutoCanvas keeps the token as a hash and the
+secret encrypted with the master key. Creating an address again replaces the old one, and
+`DELETE …/webhook` removes it; `GET …/webhook` shows whether there is one, without the token.
+
+A call needs no sign-in — the token in the path is the credential:
+
+```sh
+body='{"ref": "main", "reason": "alert 42"}'
+signature="sha256=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$SIGNING_SECRET" -hex | cut -d' ' -f2)"
+curl -X POST "https://autocanvas.example.org/api/v1/hooks/$TOKEN" \
+  -H "Content-Type: application/json" -H "X-AutoCanvas-Signature: $signature" -d "$body"
+```
+
+- **Signature**: an address created with `requireSignature` takes only calls whose
+  `X-AutoCanvas-Signature` is `sha256=` and the hex HMAC-SHA256 of the exact body, keyed with the
+  signing secret (`401` otherwise).
+- **What the run reads**: `trigger.body` is the body — with a JSON content type it can be read
+  into by property names (`trigger.body.ref`); `trigger.headers.NAME` and `trigger.query.NAME` are
+  the request's headers and query. `Authorization`, `Cookie` and the signature are left out.
+- **Answers**: `202` with the run's id and number; `404` when the address is unknown or the current
+  version has no `webhook: true` (deliberately the same); `409` while a `concurrency: single`
+  automation is running; `413` for a body over 1 MiB; `429` beyond `Webhooks:PerMinute` calls a
+  minute to one address (30 by default).

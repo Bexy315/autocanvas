@@ -131,7 +131,12 @@ Status 500 and above. Something went wrong on the server; the `traceId` identifi
 
 Status 429. Too many sign-in attempts: either from one network address (10 per minute; the
 `Retry-After` header says how many seconds to wait), or for one user name (5 failures within 15
-minutes lock it for 15 minutes).
+minutes lock it for 15 minutes). Also too many calls of one webhook address (`Webhooks:PerMinute`,
+30 a minute by default).
+
+### Too large
+
+Status 413. The request body is larger than the endpoint takes, such as a webhook call over 1 MiB.
 
 ## Paging
 

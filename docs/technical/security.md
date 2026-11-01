@@ -22,6 +22,11 @@ This page describes what AutoCanvas protects and how. It grows with the server; 
   ([ADR-0011](../adr/0011-local-identity.md)). Everything from a client is untrusted input.
 - **Server → database**: the database is not trusted with secrets. A dump or a copied SQLite file
   reveals no secret values ([ADR-0013](../adr/0013-secrets-at-rest.md)).
+- **Other systems → webhooks**: a webhook call is anonymous; the random token in the path
+  (`ach_`, 32 random bytes, stored as SHA-256) is its credential, and a signed address also checks
+  an HMAC-SHA256 of the body with a secret kept encrypted under the master key. Calls are rate
+  limited per address and at most 1 MiB. They are exempt from the `X-AutoCanvas-Request` header,
+  which guards browser sessions, because they never carry one.
 - **Server → runners**: runners authenticate with their own credentials on a port of their own
   ([ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)) and receive resolved jobs and steps,
   one step at a time, including only the secrets those steps use
