@@ -1404,6 +1404,49 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.ToTable("automation_schedules", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Triggers.AutomationWebhook", b =>
+                {
+                    b.Property<Guid>("AutomationId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("automation_id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("Hint")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("hint");
+
+                    b.Property<string>("SigningSecret")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("signing_secret");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("AutomationId")
+                        .HasName("pk_automation_webhooks");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_automation_webhooks_token_hash");
+
+                    b.ToTable("automation_webhooks", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Triggers.CompletionTrigger", b =>
                 {
                     b.Property<Guid>("AutomationId")
@@ -1838,6 +1881,18 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_automation_schedules_automations_automation_id");
+
+                    b.Navigation("Automation");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Triggers.AutomationWebhook", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Automations.Automation", "Automation")
+                        .WithMany()
+                        .HasForeignKey("AutomationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_automation_webhooks_automations_automation_id");
 
                     b.Navigation("Automation");
                 });

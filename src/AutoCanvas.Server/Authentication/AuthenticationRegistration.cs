@@ -1,3 +1,5 @@
+using AutoCanvas.Server.Api.Triggers;
+using AutoCanvas.Server.Configuration;
 using System.Globalization;
 using System.Threading.RateLimiting;
 using AutoCanvas.Server.Api;
@@ -37,6 +39,15 @@ internal static class AuthenticationRegistration
             limiter.AddPolicy(AuthEndpoints.SignInRateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = SignInsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            // Per webhook address, by the token's hash: a flood at one address does not slow others.
+            limiter.AddPolicy(WebhookEndpoints.RateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
+                SecretTokens.Hash(context.Request.RouteValues["token"] as string ?? string.Empty),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = context.RequestServices.GetRequiredService<IOptions<WebhookOptions>>().Value.PerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                }));
             limiter.OnRejected = async (rejected, cancellationToken) =>
             {
                 var response = rejected.HttpContext.Response;
@@ -54,7 +65,9 @@ internal static class AuthenticationRegistration
                         Status = StatusCodes.Status429TooManyRequests,
                         Type = ProblemTypes.TooManyRequests,
                         Title = "Too many requests",
-                        Detail = "Too many sign-in attempts from this address. Wait a minute.",
+                        Detail = rejected.HttpContext.Request.Path.StartsWithSegments(CsrfHeaderMiddleware.WebhookPath, StringComparison.OrdinalIgnoreCase)
+                            ? "Too many calls of this webhook. Wait a minute."
+                            : "Too many sign-in attempts from this address. Wait a minute.",
                     },
                 }).ConfigureAwait(false);
             };

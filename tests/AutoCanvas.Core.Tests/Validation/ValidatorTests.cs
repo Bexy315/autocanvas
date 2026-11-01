@@ -30,7 +30,7 @@ public sealed class ValidatorTests
             jobs:
               report:
                 steps:
-                  - run: echo ${{ trigger.schedule }} ${{ trigger.scheduled_at }} ${{ trigger.automation }} ${{ trigger.run_id }} ${{ trigger.run_number }} ${{ trigger.result }}
+                  - run: echo ${{ trigger.schedule }} ${{ trigger.scheduled_at }} ${{ trigger.automation }} ${{ trigger.run_id }} ${{ trigger.run_number }} ${{ trigger.result }} ${{ trigger.body.repository.name }}
             """).ShouldBeEmpty();
 
     [Fact]

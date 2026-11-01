@@ -96,6 +96,12 @@ public static class AuditActions
     /// <summary>An automation was deleted with all its versions; details: <c>name</c>, <c>versions</c>.</summary>
     public const string AutomationDeleted = "automation.deleted";
 
+    /// <summary>A webhook address of an automation was created, replacing any earlier one; details: <c>hint</c>, <c>signed</c>, <c>replaced</c>.</summary>
+    public const string WebhookCreated = "automation.webhook_created";
+
+    /// <summary>The webhook address of an automation was deleted; details: <c>hint</c>.</summary>
+    public const string WebhookDeleted = "automation.webhook_deleted";
+
     /// <summary>A variable of the instance or a folder was created or replaced; details: <c>scope</c>, <c>name</c>. Never the value.</summary>
     public const string VariableSet = "variable.set";
 

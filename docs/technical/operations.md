@@ -48,6 +48,7 @@ setting and what is expected, instead of failing later on first use.
 | `Logs:MaxBytesPerJob` | `67108864` (64 MiB) | Log text one job attempt may store, 1 MiB to 1 GiB; later lines are dropped (see [Runs](../user/runs.md#logs)) |
 | `Reports:MaxBytesPerFile` | `52428800` (50 MiB) | Largest report file a runner may upload, 1 MiB to 1 GiB (see [Reports](../user/reports.md#limits)) |
 | `Reports:MaxFilesPerJob` | `100` | Report files one job attempt may upload, 1 to 1000 |
+| `Webhooks:PerMinute` | `30` | Calls one webhook address takes per minute, 1 to 10,000; more are answered with 429 (see [Triggers](../user/triggers.md#webhooks)) |
 | `Queue:LeaseDuration` | `00:01:00` | How long a runner holds a job after its last heartbeat (10 seconds to 1 hour); then an offered job goes back to the queue and a running one fails as if the runner were gone |
 | `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
 | `Secrets:MasterKey` or `Secrets:MasterKeyFile` | none — **required** | The master key, or a file holding it; exactly one of them (see [Master key](#master-key)) |
@@ -165,6 +166,10 @@ The session cookie is marked `Secure` when the server sees an HTTPS request or w
 `Server:PublicUrl` starts with `https://`. Behind a proxy that ends TLS, set `Server:PublicUrl` to
 the public HTTPS address. Sign-in attempts are limited per client address; until forwarded headers
 are supported (S4), all requests through one proxy count as one address.
+
+Webhook calls (`POST /api/v1/hooks/…`) come from other systems; a proxy in front of the API must
+let request bodies of up to 1 MiB through for them, and should not log request paths, which hold
+the webhook tokens.
 
 Following a log live (`…/log/stream`) is a long-lived HTTP response of Server-Sent Events; a proxy
 in front of the API must not buffer it (nginx: the server sends `X-Accel-Buffering: no`; others:

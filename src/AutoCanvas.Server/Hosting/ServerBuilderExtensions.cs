@@ -67,6 +67,8 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IValidateOptions<QueueOptions>, QueueOptionsValidator>();
         services.AddHostedService<QueueSweepService>();
         services.AddHostedService<TriggerTickService>();
+        services.AddOptions<WebhookOptions>().BindConfiguration(WebhookOptions.SectionName).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<WebhookOptions>, WebhookOptionsValidator>();
         services.AddHostedService<JobSignalListenerService>();
         builder.AddAutoCanvasRunners();
 

@@ -18,6 +18,9 @@ internal static class ProblemTypes
     public const string PreconditionFailed = Base + "precondition-failed";
     public const string PasswordChangeRequired = Base + "password-change-required";
     public const string TooManyRequests = Base + "too-many-requests";
+
+    /// <summary>The request body is larger than the endpoint takes.</summary>
+    public const string TooLarge = Base + "too-large";
     public const string Internal = Base + "internal";
 
     /// <summary>The type for a status code, or <see langword="null"/> when the API defines none.</summary>

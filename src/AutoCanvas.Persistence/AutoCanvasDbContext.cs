@@ -98,6 +98,9 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>The automations that start when another one finishes.</summary>
     public DbSet<CompletionTrigger> CompletionTriggers => Set<CompletionTrigger>();
 
+    /// <summary>The webhook addresses of automations.</summary>
+    public DbSet<AutomationWebhook> AutomationWebhooks => Set<AutomationWebhook>();
+
     /// <summary>Registered runners.</summary>
     public DbSet<Runner> Runners => Set<Runner>();
 
@@ -145,6 +148,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ReportCoverageClassConfiguration());
         modelBuilder.ApplyConfiguration(new AutomationScheduleConfiguration());
         modelBuilder.ApplyConfiguration(new CompletionTriggerConfiguration());
+        modelBuilder.ApplyConfiguration(new AutomationWebhookConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
     }

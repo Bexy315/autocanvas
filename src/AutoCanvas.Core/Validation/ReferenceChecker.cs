@@ -141,9 +141,15 @@ internal sealed class ReferenceChecker(JobGraph graph, ValidationContext context
             return null;
         }
 
+        // A webhook's JSON body is read into by property names: trigger.body.repository.name.
+        if (segments.Count > 2 && string.Equals(segments[1], "body", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
         return segments.Count == 2 && TriggerFields.Contains(segments[1])
             ? null
-            : Unknown($"'{reference.Text}' is not something a trigger carries. It carries: {string.Join(", ", TriggerFields.Order(StringComparer.Ordinal).Select(f => "trigger." + f))}, trigger.headers.NAME and trigger.query.NAME.");
+            : Unknown($"'{reference.Text}' is not something a trigger carries. It carries: {string.Join(", ", TriggerFields.Order(StringComparer.Ordinal).Select(f => "trigger." + f))}, trigger.body.FIELD, trigger.headers.NAME and trigger.query.NAME.");
     }
 
     private static (string Code, string Message)? RunProblem(PathExpression reference) =>

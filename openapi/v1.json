@@ -272,6 +272,88 @@
         }
       }
     },
+    "/api/v1/hooks/{token}": {
+      "post": {
+        "tags": [
+          "Triggers"
+        ],
+        "summary": "Start a run through a webhook address",
+        "description": "Needs no sign-in: the token in the path is the credential. The body (at most 1 MiB), the headers and the query become `trigger.body`, `trigger.headers` and `trigger.query`; a JSON body can be read into, as `trigger.body.NAME`. A signed address needs `X-AutoCanvas-Signature: sha256=<hex HMAC-SHA256 of the body>`.",
+        "operationId": "CallWebhook",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookRunView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/sign-in": {
       "post": {
         "tags": [
@@ -4426,6 +4508,160 @@
         }
       }
     },
+    "/api/v1/automations/{automationId}/webhook": {
+      "get": {
+        "tags": [
+          "Triggers"
+        ],
+        "summary": "Get an automation's webhook address",
+        "description": "Whether it has one and calls need a signature, without the token. Needs Viewer.",
+        "operationId": "GetAutomationWebhook",
+        "parameters": [
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Triggers"
+        ],
+        "summary": "Create an automation's webhook address",
+        "description": "Replaces any earlier address. The token, and with `requireSignature` the signing secret, are shown only in this response. Calls start runs only while the current version has `triggers: webhook: true`. Needs Operator.",
+        "operationId": "CreateAutomationWebhook",
+        "parameters": [
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/CreateWebhookRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedWebhookView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Triggers"
+        ],
+        "summary": "Delete an automation's webhook address",
+        "description": "Calls of it fail from then on. Needs Operator.",
+        "operationId": "DeleteAutomationWebhook",
+        "parameters": [
+          {
+            "name": "automationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runner-registration-tokens": {
       "post": {
         "tags": [
@@ -5484,6 +5720,42 @@
         },
         "description": "A new API token. string CreatedToken.Token is shown this once and cannot be retrieved again."
       },
+      "CreatedWebhookView": {
+        "required": [
+          "path",
+          "token",
+          "signingSecret",
+          "hint",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "The path to call with POST, such as `/api/v1/hooks/ach_…`."
+          },
+          "token": {
+            "type": "string",
+            "description": "The token in the path."
+          },
+          "signingSecret": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The secret calls are signed with; `null` for unsigned calls."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The token's start and end, as shown later."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the current version allows webhook calls yet."
+          }
+        },
+        "description": "A new webhook address; the token and the signing secret are shown only now."
+      },
       "CreateFolderRequest": {
         "required": [
           "name"
@@ -5610,6 +5882,17 @@
           }
         },
         "description": "A user to create. The user must change the password at the first sign-in."
+      },
+      "CreateWebhookRequest": {
+        "type": "object",
+        "properties": {
+          "requireSignature": {
+            "type": "boolean",
+            "description": "Whether calls must be signed with a secret the server makes; false by default.",
+            "default": false
+          }
+        },
+        "description": "A new webhook address."
       },
       "DiagnosticSeverity": {
         "enum": [
@@ -8193,6 +8476,73 @@
           }
         },
         "description": "A variable as listed in its scope."
+      },
+      "WebhookRunView": {
+        "required": [
+          "runId",
+          "number"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "description": "The run's id.",
+            "format": "uuid"
+          },
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its number in the automation.",
+            "format": "int32"
+          }
+        },
+        "description": "The run a webhook call started."
+      },
+      "WebhookView": {
+        "required": [
+          "enabled",
+          "hint",
+          "requiresSignature",
+          "createdAt",
+          "createdByName"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the current version allows webhook calls (`triggers.webhook: true`); calls fail without it."
+          },
+          "hint": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The token's start and end; `null` while there is no address."
+          },
+          "requiresSignature": {
+            "type": "boolean",
+            "description": "Whether calls must be signed."
+          },
+          "createdAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the address was created.",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who created it."
+          }
+        },
+        "description": "The webhook address of an automation, without its token."
       }
     }
   },
@@ -8202,6 +8552,9 @@
     },
     {
       "name": "Audit"
+    },
+    {
+      "name": "Triggers"
     },
     {
       "name": "Authentication"
