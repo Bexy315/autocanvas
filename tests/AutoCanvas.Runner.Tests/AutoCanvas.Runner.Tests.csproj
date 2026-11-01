@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The runner is tested against the real server, hosted in memory as in the server's tests. -->
+    <ProjectReference Include="../../src/AutoCanvas.Server/AutoCanvas.Server.csproj" />
+    <ProjectReference Include="../AutoCanvas.TestSupport/AutoCanvas.TestSupport.csproj" />
+    <Compile Include="../AutoCanvas.Server.Tests/AutoCanvasFactory.cs" Link="Server/AutoCanvasFactory.cs" />
+    <Compile Include="../AutoCanvas.Server.Tests/ApiClient.cs" Link="Server/ApiClient.cs" />
+  </ItemGroup>
+</Project>

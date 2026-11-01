@@ -22,8 +22,10 @@ docs-site/static/scalar/
 .vscode/*
 !.vscode/extensions.json
 
-# Server data written by local runs (default SQLite database)
+# Server and runner data written by local runs (default SQLite database, runner credential and jobs)
 src/AutoCanvas.Server/data/
+src/AutoCanvas.Runner/data/
+/data/
 *.db
 *.db-wal
 *.db-shm
