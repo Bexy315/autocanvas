@@ -29,6 +29,18 @@ internal interface IContainerRuntime
     /// <summary>Removes a container with its anonymous volumes; one that is gone already is fine.</summary>
     Task RemoveAsync(string containerId, CancellationToken cancellationToken);
 
-    /// <summary>Removes every container that carries the label with this value; returns how many.</summary>
+    /// <summary>Removes every container and network that carries the label with this value; returns how many.</summary>
     Task<int> RemoveLabelledAsync(string label, string value, CancellationToken cancellationToken);
+
+    /// <summary>Creates a network for a job's containers; returns its id.</summary>
+    Task<string> CreateNetworkAsync(string name, IReadOnlyDictionary<string, string> labels, CancellationToken cancellationToken);
+
+    /// <summary>Removes a network; one that is gone already is fine.</summary>
+    Task RemoveNetworkAsync(string networkId, CancellationToken cancellationToken);
+
+    /// <summary>Whether the container is still running.</summary>
+    Task<bool> IsRunningAsync(string containerId, CancellationToken cancellationToken);
+
+    /// <summary>The last lines a container wrote, to show why it failed.</summary>
+    Task<IReadOnlyList<string>> LogTailAsync(string containerId, int lines, CancellationToken cancellationToken);
 }

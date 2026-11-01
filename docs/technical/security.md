@@ -30,7 +30,11 @@ This page describes what AutoCanvas protects and how. It grows with the server; 
 - **Runner → jobs**: the reference runner holds the Docker socket and is trusted with its host; the
   jobs it runs are not. A job's container gets its workspace and the runner's files for that job
   (scripts, output files), never the Docker socket, and runs with `no-new-privileges` and a process
-  limit. A step's secrets reach only that step's process, as environment variables, and the runner
+  limit. `docker_build` runs rootless BuildKit in a container of its own with the default seccomp
+  and AppArmor profiles lifted (BuildKit makes namespaces of its own); it is not privileged, holds
+  no capability on the host and never the Docker socket, and registry credentials are handed to it
+  for one build only. Checkout credentials reach git as an HTTP header, never in `.git/config`.
+  A step's secrets reach only that step's process, as environment variables, and the runner
   masks them in everything it sends back before the server masks them again. The runner's
   credential is kept in a file readable by its user only and never logged.
 

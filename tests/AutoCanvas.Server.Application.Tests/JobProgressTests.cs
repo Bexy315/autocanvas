@@ -202,9 +202,9 @@ public abstract class JobProgressTests(DatabaseProvider provider) : IdentityTest
                     type: http_request
                     with:
                       url: https://${{ vars.HOST }}/ping
-                      retries: 3
+                      timeout_seconds: 3
                       headers:
-                        Accept: [text/plain]
+                        Accept: text/plain
                     outputs:
                       ok: ${{ steps.ping.outputs.status == '200' }}
                 outputs:
@@ -216,7 +216,7 @@ public abstract class JobProgressTests(DatabaseProvider provider) : IdentityTest
         await CompleteAsync(attempt, 0, StepOutcome.Succeeded, ("status", "200"));
 
         node.Type.ShouldBe("http_request");
-        JsonDocument.Parse(node.Inputs).RootElement.GetRawText().ShouldBe("""{"url":"https://example.org/ping","retries":3,"headers":{"Accept":["text/plain"]}}""");
+        JsonDocument.Parse(node.Inputs).RootElement.GetRawText().ShouldBe("""{"url":"https://example.org/ping","timeout_seconds":3,"headers":{"Accept":"text/plain"}}""");
         (await ReadAsync(db => db.JobSteps.SingleAsync(s => s.AttemptId == attempt, Cancel))).Outputs.ShouldBe("""{"status":"200","ok":"true"}""");
         (await ReadAsync(db => db.RunJobs.SingleAsync(j => j.Key == "call", Cancel))).Outputs.ShouldBe("""{"ok":"true"}""");
     }

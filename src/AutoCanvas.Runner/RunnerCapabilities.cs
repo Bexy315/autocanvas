@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using AutoCanvas.Core.Nodes;
 using AutoCanvas.Protocol.Runner.V1;
 
 namespace AutoCanvas.Runner;
@@ -40,6 +41,7 @@ internal static class RunnerCapabilities
         };
         capabilities.Labels.Add(options.EffectiveLabels);
         capabilities.Shells.Add(Shells);
+        capabilities.NodeTypes.Add(BuiltInNodeTypes.All.Keys.Order(StringComparer.Ordinal));
         return capabilities;
     }
 }

@@ -26,9 +26,12 @@ internal sealed class RunnerOptionsValidator : IValidateOptions<RunnerOptions>
             failures.Add($"Runner:MaxConcurrentJobs must be between 1 and {MaxJobs}.");
         }
 
-        if (string.IsNullOrWhiteSpace(options.DefaultImage))
+        foreach (var (key, value) in new[] { ("DefaultImage", options.DefaultImage), ("GitImage", options.GitImage), ("BuildKitImage", options.BuildKitImage), ("BuildCacheVolume", options.BuildCacheVolume) })
         {
-            failures.Add("Runner:DefaultImage must be set.");
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                failures.Add($"Runner:{key} must be set.");
+            }
         }
 
         if (options.ShutdownTimeout < TimeSpan.Zero || options.ShutdownTimeout > TimeSpan.FromDays(1))

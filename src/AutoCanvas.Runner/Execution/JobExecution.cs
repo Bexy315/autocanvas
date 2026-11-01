@@ -1,8 +1,7 @@
 using System.Threading.Channels;
 using AutoCanvas.Core.Secrets;
 using AutoCanvas.Protocol.Runner.V1;
-using AutoCanvas.Runner.Docker;
-using Docker.DotNet;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 
 namespace AutoCanvas.Runner.Execution;
@@ -94,15 +93,15 @@ internal sealed partial class JobExecution : IDisposable
     {
         var log = new LogBatcher(job.JobId, services.Outbox, services.Time);
         var warnings = new List<string>();
-        string? containerId = null;
         await using (log.ConfigureAwait(false))
         {
+            var environment = new JobEnvironment(job, services, paths, runnerId, log);
             try
             {
-                (containerId, var error) = await PrepareAsync(log, abort).ConfigureAwait(false);
+                var error = await environment.PrepareAsync(abort).ConfigureAwait(false);
                 log.Flush();
                 Send(new ConnectRequest { JobPrepared = new JobPrepared { JobId = job.JobId, Error = error ?? string.Empty } });
-                await StepsAsync(error is null ? new ScriptStep(services, paths, containerId!, log) : null, log, abort).ConfigureAwait(false);
+                await StepsAsync(error is null ? environment.ContainerId : null, log, abort).ConfigureAwait(false);
                 if (cancelReason is { } reason)
                 {
                     log.Write(null, LogStream.System, $"The job was cancelled: {reason}", NoSecrets);
@@ -116,7 +115,13 @@ internal sealed partial class JobExecution : IDisposable
             }
             finally
             {
-                warnings.AddRange(await CleanUpAsync(containerId).ConfigureAwait(false));
+                var problems = await environment.CleanUpAsync().ConfigureAwait(false);
+                if (problems.Count > 0)
+                {
+                    LogCleanupFailed(logger, job.JobId, string.Join(" ", problems));
+                }
+
+                warnings.AddRange(problems);
             }
 
             if (log.Dropped > 0)
@@ -134,35 +139,11 @@ internal sealed partial class JobExecution : IDisposable
 
     public void Dispose() => cancelled.Dispose();
 
-    private async Task<(string? ContainerId, string? Error)> PrepareAsync(LogBatcher log, CancellationToken abort)
+    /// <summary>Runs the steps the server sends until it completes the job; without a container, none run.</summary>
+    private async Task StepsAsync(string? containerId, LogBatcher log, CancellationToken abort)
     {
-        try
-        {
-            Directory.CreateDirectory(paths.Workspace);
-            Directory.CreateDirectory(paths.Meta);
-            var image = string.IsNullOrEmpty(job.Image) ? services.Options.DefaultImage : job.Image;
-            await services.Runtime.PullAsync(image, line => Setup(log, line), abort).ConfigureAwait(false);
-            var id = await services.Runtime.StartAsync(
-                new ContainerSpec(
-                    image,
-                    ["sh", "-c", "trap 'exit 0' TERM; while :; do sleep 3600 & wait $!; done"],
-                    paths.Binds,
-                    new Dictionary<string, string>(job.Env, StringComparer.Ordinal),
-                    ContainerLabels.For(runnerId, job.JobId)),
-                abort).ConfigureAwait(false);
-            await Setup(log, $"Started the job's container from {image}.").ConfigureAwait(false);
-            return (id, null);
-        }
-        catch (Exception exception) when (exception is DockerApiException or IOException or HttpRequestException or UnauthorizedAccessException)
-        {
-            var error = $"The runner could not prepare the job: {exception.Message}";
-            log.Write(null, LogStream.System, error, NoSecrets);
-            return (null, error);
-        }
-    }
-
-    private async Task StepsAsync(ScriptStep? steps, LogBatcher log, CancellationToken abort)
-    {
+        var scripts = containerId is null ? null : new ScriptStep(services, paths, containerId, log);
+        var nodes = containerId is null ? null : new NodeSteps(services, paths, runnerId, job.JobId, log);
         await foreach (var step in instructions.Reader.ReadAllAsync(abort).ConfigureAwait(false))
         {
             if (step is null)
@@ -170,15 +151,17 @@ internal sealed partial class JobExecution : IDisposable
                 return;
             }
 
-            if (steps is null || cancelled.IsCancellationRequested)
+            if (scripts is null || nodes is null || cancelled.IsCancellationRequested)
             {
                 continue;
             }
 
-            Send(new ConnectRequest { StepStarted = new StepStarted { JobId = job.JobId, StepIndex = step.Index, StartedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(services.Time.GetUtcNow()) } });
-            var completed = await steps.RunAsync(step, cancelled.Token, abort).ConfigureAwait(false);
+            Send(new ConnectRequest { StepStarted = new StepStarted { JobId = job.JobId, StepIndex = step.Index, StartedAt = Timestamp.FromDateTimeOffset(services.Time.GetUtcNow()) } });
+            var completed = step.ActionCase == Step.ActionOneofCase.Node
+                ? await nodes.RunAsync(step, cancelled.Token, abort).ConfigureAwait(false)
+                : await scripts.RunAsync(step, cancelled.Token, abort).ConfigureAwait(false);
             completed.JobId = job.JobId;
-            completed.FinishedAt ??= Google.Protobuf.WellKnownTypes.Timestamp.FromDateTimeOffset(services.Time.GetUtcNow());
+            completed.FinishedAt ??= Timestamp.FromDateTimeOffset(services.Time.GetUtcNow());
             if (completed.Outcome == StepOutcome.Errored)
             {
                 log.Write((int)step.Index, LogStream.System, completed.Error, NoSecrets);
@@ -187,36 +170,6 @@ internal sealed partial class JobExecution : IDisposable
             log.Flush();
             Send(new ConnectRequest { StepCompleted = completed });
         }
-    }
-
-    /// <summary>Empties and removes the container and the job's directory; problems become warnings.</summary>
-    private async Task<List<string>> CleanUpAsync(string? containerId)
-    {
-        var warnings = new List<string>();
-        using var patience = new CancellationTokenSource(TimeSpan.FromMinutes(1));
-        try
-        {
-            if (containerId is not null)
-            {
-                // The container's processes run as whoever the image says, often root: files they
-                // made in the workspace are removed from inside, where the runner's user may not.
-                var empty = new ExecSpec(["sh", "-c", "find /workspace /autocanvas -mindepth 1 -delete"], JobPaths.ContainerWorkspace, new Dictionary<string, string>(StringComparer.Ordinal));
-                await services.Runtime.ExecAsync(containerId, empty, _ => Task.CompletedTask, patience.Token).ConfigureAwait(false);
-                await services.Runtime.RemoveAsync(containerId, patience.Token).ConfigureAwait(false);
-            }
-
-            if (Directory.Exists(paths.Root))
-            {
-                Directory.Delete(paths.Root, recursive: true);
-            }
-        }
-        catch (Exception exception) when (exception is DockerApiException or IOException or HttpRequestException or UnauthorizedAccessException or OperationCanceledException)
-        {
-            LogCleanupFailed(logger, job.JobId, exception);
-            warnings.Add($"The runner could not clean up after the job: {exception.Message}");
-        }
-
-        return warnings;
     }
 
     private void Send(ConnectRequest message)
@@ -229,12 +182,6 @@ internal sealed partial class JobExecution : IDisposable
         services.Outbox.Send(message);
     }
 
-    private static Task Setup(LogBatcher log, string line)
-    {
-        log.Write(null, LogStream.System, line, NoSecrets);
-        return Task.CompletedTask;
-    }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Cleaning up after job {JobId} failed")]
-    private static partial void LogCleanupFailed(ILogger logger, string jobId, Exception exception);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Cleaning up after job {JobId} failed: {Problems}")]
+    private static partial void LogCleanupFailed(ILogger logger, string jobId, string problems);
 }
