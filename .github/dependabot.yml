@@ -32,5 +32,20 @@ updates:
       # Lift this once Docusaurus supports TypeScript 7.
       - dependency-name: typescript
         versions: ['>=6']
+    # New versions only once they have been out for two weeks, as for every package (dependencies.md).
+    cooldown:
+      default-days: 14
     commit-message:
       prefix: docs
+
+  - package-ecosystem: npm
+    directory: /src/web
+    schedule:
+      interval: weekly
+    groups:
+      web:
+        patterns: ['*']
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: build

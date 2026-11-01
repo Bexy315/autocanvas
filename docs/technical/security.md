@@ -72,6 +72,13 @@ a foreign page cannot set that header without a CORS preflight, and the server a
 cross-origin requests, so a signed-in browser cannot be made to act by another website (this
 includes signing it in to an attacker's account).
 
+The web UI is served by the server on the API's own origin ([ADR-0018](../adr/0018-web-ui.md)),
+so it uses the same session cookie and header and needs no cross-origin access. Its page carries a
+content security policy that allows scripts, connections and other resources only from that origin
+and forbids framing (clickjacking); every response is sent with `X-Content-Type-Options: nosniff`
+and `Referrer-Policy: same-origin`. The policy allows inline styles, which React and the canvas
+use for positioning, but no inline scripts. Details in [Web UI](web-ui.md).
+
 API tokens are `acp_` followed by 32 random bytes, shown once at creation and stored only as a
 SHA-256 hash with a short hint for recognition. They can expire, act with the owner's current
 permissions (a disabled owner disables them), and are subject to the same password-change rule as

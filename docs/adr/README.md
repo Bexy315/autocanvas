@@ -23,3 +23,4 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0016](0016-built-in-node-types-first.md) | Ship a few built-in node types; decide on plugins after 0.1 | Accepted |
 | [0017](0017-runner-endpoint-and-credentials.md) | Serve runners on their own HTTP/2 port, with their own credentials | Accepted |
 | [0018](0018-web-ui.md) | Web UI: a React SPA served by the server, with YAML as the editor's source of truth | Proposed |
+| [0019](0019-npm-licenses.md) | Check npm licenses against the shared list, with named build-time exceptions | Proposed |

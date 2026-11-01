@@ -20,7 +20,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `src/AutoCanvas.Server.Application/` | Use cases of the server and the audit log; works with the EF Core context directly |
 | `src/AutoCanvas.Server/` | ASP.NET Core host: HTTP API, runner gRPC services, health, configuration, CLI commands |
 | `src/AutoCanvas.Protocol/` | C# generated from `proto/` (runner protocol messages and stubs); no hand-written code |
-| `src/web/` | Web UI: React SPA built with Vite, served by the server ([ADR-0018](docs/adr/0018-web-ui.md)); app and commands arrive in S3 step 2 |
+| `src/web/` | Web UI: React SPA built with Vite into the server's `wwwroot`, served by the server ([ADR-0018](docs/adr/0018-web-ui.md)) |
 | `openapi/` | Committed OpenAPI document of the HTTP API, checked by a test |
 | `benchmarks/` | BenchmarkDotNet benchmarks of Core's hot paths; baselines in `docs/technical/performance.md` |
 | `tests/<Project>.Tests/` | Tests for `src/<Project>`; coverage is measured per pair |
@@ -70,6 +70,23 @@ npm run typecheck
 npm run build      # broken links, anchors and images fail the build
 npm run start      # local preview with hot reload
 ```
+
+Web UI (Node 24), from `src/web/` (details in `docs/technical/web-ui.md`):
+
+```sh
+npm ci
+npm run api && git diff --exit-code -- src/api/schema.d.ts   # API types match openapi/v1.json
+npm run typecheck
+npm run lint                 # oxlint, warnings fail
+npm run format:check         # Prettier; `npm run format` fixes it
+npm test                     # Vitest, ≥ 75 % line coverage
+npm run licenses
+npm run build                # into src/AutoCanvas.Server/wwwroot
+npm run e2e                  # Playwright against the real server; needs the build and dotnet
+```
+
+`build/dev.sh` (or `build/dev.ps1`) runs the server and the UI's dev server together on
+`http://localhost:5173`.
 
 Benchmarks (not part of CI; run before and after performance work, see `docs/technical/performance.md`):
 
