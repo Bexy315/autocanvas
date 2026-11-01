@@ -58,6 +58,21 @@ describe('signing in', () => {
     expect(await screen.findByRole('heading', { name: 'Account' })).toBeInTheDocument();
   });
 
+  it('tries again when the server was not reachable yet', async () => {
+    let up = false;
+    fakeServer({
+      'GET /api/v1/info': () => json(info),
+      'GET /api/v1/me': () => (up ? json(me()) : problem(502, 'Bad Gateway')),
+    });
+    const { user } = renderApp('/');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('may be starting or restarting');
+    up = true;
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByRole('heading', { name: 'Automations' })).toBeInTheDocument();
+  });
+
   it('shows why the account could not be loaded', async () => {
     fakeServer({ 'GET /api/v1/info': () => json(info), 'GET /api/v1/me': () => problem(500, 'The database is down.') });
     renderApp('/');

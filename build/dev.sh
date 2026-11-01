@@ -21,6 +21,16 @@ dotnet run --project src/AutoCanvas.Server -- \
 server=$!
 trap 'kill "$server" 2>/dev/null || true' EXIT INT TERM
 
+# The first start builds the server, which takes a while; the UI starts once the server answers.
+echo "Waiting for the server on http://localhost:5080 (the first start builds it) ..."
+until curl -fsS -o /dev/null --max-time 2 http://localhost:5080/health/ready; do
+  if ! kill -0 "$server" 2>/dev/null; then
+    echo "The server stopped; see its output above." >&2
+    exit 1
+  fi
+  sleep 1
+done
+
 echo
 echo "  Web UI: http://localhost:5173 (API on http://localhost:5080)"
 echo "  First start: sign in as '$admin_user' with '$admin_password', then choose a new password."

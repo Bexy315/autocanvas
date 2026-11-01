@@ -6,8 +6,23 @@ describe('problems', () => {
     [new ApiError(409, { detail: 'Someone saved first.' }), 'Someone saved first.'],
     [new ApiError(400, { title: 'Bad', errors: { name: ['Name is required.'] } }), 'Name is required.'],
     [new ApiError(403, { title: 'Forbidden' }), 'Forbidden'],
-    [new ApiError(502, {}), 'The server answered 502.'],
-    [new TypeError('Failed to fetch'), 'The server could not be reached. Check your connection and try again.'],
+    [new ApiError(500, {}), 'The server answered 500.'],
+    [
+      new ApiError(502, {}),
+      'The server cannot be reached right now. It may be starting or restarting; try again in a moment.',
+    ],
+    [
+      new ApiError(503, { detail: 'Not ready.' }),
+      'The server cannot be reached right now. It may be starting or restarting; try again in a moment.',
+    ],
+    [
+      new ApiError(504, {}),
+      'The server cannot be reached right now. It may be starting or restarting; try again in a moment.',
+    ],
+    [
+      new TypeError('Failed to fetch'),
+      'The server cannot be reached right now. It may be starting or restarting; try again in a moment.',
+    ],
     [new Error('Broken.'), 'Broken.'],
     ['a string', 'Something went wrong.'],
   ])('describes %s in one sentence', (error, sentence) => {

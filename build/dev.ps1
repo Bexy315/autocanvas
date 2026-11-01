@@ -22,6 +22,21 @@ try {
         "--Bootstrap:AdminUserName=$adminUser", "--Bootstrap:AdminPassword=$adminPassword"
     )
 
+    # The first start builds the server, which takes a while; the UI starts once the server answers.
+    Write-Host 'Waiting for the server on http://localhost:5080 (the first start builds it) ...'
+    while ($true) {
+        if ($server.HasExited) {
+            throw "The server stopped with exit code $($server.ExitCode); see its output above."
+        }
+        try {
+            Invoke-WebRequest -Uri 'http://localhost:5080/health/ready' -UseBasicParsing -TimeoutSec 2 | Out-Null
+            break
+        }
+        catch {
+            Start-Sleep -Seconds 1
+        }
+    }
+
     Write-Host ''
     Write-Host '  Web UI: http://localhost:5173 (API on http://localhost:5080)'
     Write-Host "  First start: sign in as '$adminUser' with '$adminPassword', then choose a new password."

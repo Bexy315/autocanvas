@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../api/problem';
+import { shouldRetry } from './queryClient';
 import { returnQuery, safeReturnTo } from './returnTo';
 import { readSetting, writeSetting } from './storage';
 import { shortVersion } from './version';
@@ -54,5 +56,18 @@ describe('settings', () => {
 
     expect(() => writeSetting('autocanvas.test', 'yes')).not.toThrow();
     expect(readSetting('autocanvas.test')).toBeNull();
+  });
+});
+
+describe('retrying failed requests', () => {
+  it.each([
+    ['an unreachable server', new ApiError(502, {}), 4, true],
+    ['an unreachable server for long', new ApiError(502, {}), 5, false],
+    ['a lost connection', new TypeError('Failed to fetch'), 4, true],
+    ['a server error', new ApiError(500, {}), 1, true],
+    ['a repeated server error', new ApiError(500, {}), 2, false],
+    ['a refusal', new ApiError(403, {}), 0, false],
+  ])('%s: retried or not', (_, error, failures, retried) => {
+    expect(shouldRetry(failures, error)).toBe(retried);
   });
 });

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
 import { useMe } from '../api/session';
 import { ErrorAlert } from '../ui/Alert';
+import { Button } from '../ui/Button';
 import { Loading } from '../ui/Spinner';
 import { returnQuery } from './returnTo';
 
@@ -26,8 +27,11 @@ export function RequireSession({
   }
   if (me.isError) {
     return (
-      <div className="mx-auto max-w-md p-8">
+      <div className="mx-auto flex max-w-md flex-col items-start gap-3 p-8">
         <ErrorAlert error={me.error} title="Your account could not be loaded" />
+        <Button busy={me.isFetching} onClick={() => void me.refetch()}>
+          Try again
+        </Button>
       </div>
     );
   }

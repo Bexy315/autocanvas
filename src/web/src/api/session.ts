@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, unwrap } from './client';
-import { ApiError } from './problem';
+import { ApiError, isUnreachable } from './problem';
 import type { components } from './schema';
 
 export type Me = components['schemas']['MeView'];
@@ -23,6 +23,9 @@ export function useMe() {
     },
     staleTime: 60_000,
     retry: false,
+    // While the server cannot be reached (e.g. still starting), keep asking, so the page goes on
+    // by itself once it is back.
+    refetchInterval: (query) => (isUnreachable(query.state.error) ? 3_000 : false),
   });
 }
 
