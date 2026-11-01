@@ -130,7 +130,9 @@ internal sealed class JobEnvironment(Job job, JobServices services, JobPaths pat
         var until = services.Time.GetUtcNow() + (service.ReadyTimeout?.ToTimeSpan() ?? TimeSpan.FromMinutes(2));
         while (await services.Runtime.IsRunningAsync(id, abort).ConfigureAwait(false))
         {
-            if (await services.Runtime.ExecAsync(id, Quiet(["sh", "-c", service.ReadyCommand]), _ => Task.CompletedTask, abort).ConfigureAwait(false) == 0)
+            // In /: a service's container has no workspace, and an exec in a missing directory fails.
+            var check = new ExecSpec(["sh", "-c", service.ReadyCommand], "/", new Dictionary<string, string>(StringComparer.Ordinal));
+            if (await services.Runtime.ExecAsync(id, check, _ => Task.CompletedTask, abort).ConfigureAwait(false) == 0)
             {
                 Write($"Service {service.Name} is ready.");
                 return null;

@@ -44,7 +44,7 @@ public sealed class JobEnvironmentTests
         var helpers = runtime.Helpers.Select(h => string.Join(' ', h.Command)).ToList();
         helpers.ShouldContain(h => h == "git clone --depth 1 --branch v2 -- https://example.org/tools.git /workspace/tools");
         helpers.ShouldContain(h => h == "git -C /workspace/app fetch --no-tags origin 0123456789abcdef0123456789abcdef01234567");
-        helpers.ShouldContain(h => h.Contains("pg_isready", StringComparison.Ordinal));
+        runtime.Helpers.Single(h => string.Join(' ', h.Command).Contains("pg_isready", StringComparison.Ordinal)).WorkingDirectory.ShouldBe("/");
         runtime.RemovedNetworks.ShouldHaveSingleItem().ShouldBe(service.Network);
         runtime.Removed.Count.ShouldBe(3);
         var log = await runner.LogAsync(run);
