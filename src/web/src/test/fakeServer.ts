@@ -29,13 +29,13 @@ export async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): P
   return handler(request);
 }
 
-export function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+export function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 }
 
 /** A problem as the server sends it; `field` names the request property a broken rule is about. */
-export function problem(status: number, detail: string, field?: string): Response {
-  return new Response(JSON.stringify({ status, title: 'Problem', detail, ...(field ? { field } : {}) }), {
+export function problem(status: number, detail: string, field?: string, extra: Record<string, unknown> = {}): Response {
+  return new Response(JSON.stringify({ status, title: 'Problem', detail, ...(field ? { field } : {}), ...extra }), {
     status,
     headers: { 'Content-Type': 'application/problem+json' },
   });

@@ -1,26 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { adminPassword, adminUserName } from '../playwright.config';
-
-const newPassword = 'a password of my own';
-
-/** Screenshots for review, in light and dark (CI keeps them as the `web-screenshots` artifact). */
-async function snapshot(page: Page, name: string) {
-  await shoot(page, name, 'light');
-  await shoot(page, name, 'dark');
-}
-
-async function shoot(page: Page, name: string, scheme: 'light' | 'dark') {
-  // The page's code runs in the browser (DOM types come from tsconfig.node.json for that reason).
-  await page.evaluate((value) => {
-    document.documentElement.dataset['theme'] = value;
-  }, scheme);
-  // Transitions (e.g. button colors) finish first, so a shot never shows half the old scheme.
-  await page.screenshot({
-    path: `test-results/screenshots/${name}-${scheme}.png`,
-    fullPage: true,
-    animations: 'disabled',
-  });
-}
+import { newPassword, snapshot } from './helpers';
 
 test('the first admin signs in, replaces the password, uses the shell and signs out', async ({ page }) => {
   await page.goto('/account');

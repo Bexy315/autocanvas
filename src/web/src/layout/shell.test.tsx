@@ -9,6 +9,7 @@ function signedIn(extra: Parameters<typeof fakeServer>[0] = {}) {
   let session = true;
   fakeServer({
     'GET /api/v1/info': () => json(info),
+    'GET /api/v1/folders': () => json([]),
     'GET /api/v1/me': () => (session ? json(me()) : problem(401, 'Sign in first.')),
     'POST /api/v1/auth/sign-out': () => {
       session = false;
@@ -24,7 +25,7 @@ describe('the app shell', () => {
     renderApp('/');
 
     expect(await screen.findByRole('heading', { name: 'Automations' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Welcome, Ada Lovelace' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'No folders yet' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Breadcrumbs' })).toHaveTextContent('Automations');
     expect(screen.getByRole('link', { name: 'Automations' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Account menu for Ada Lovelace' })).toBeInTheDocument();

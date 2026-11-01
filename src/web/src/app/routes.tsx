@@ -1,11 +1,16 @@
 import type { RouteObject } from 'react-router';
 import { AppShell } from '../layout/AppShell';
+import { AutomationsLayout } from '../layout/AutomationsLayout';
 import type { CrumbHandle } from '../layout/Breadcrumbs';
 import { AccountPage } from '../pages/AccountPage';
-import { AutomationsPage } from '../pages/AutomationsPage';
+import { AutomationLayout } from '../pages/automation/AutomationLayout';
+import { OverviewTab } from '../pages/automation/OverviewTab';
+import { VersionsTab } from '../pages/automation/VersionsTab';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
+import { FolderPage } from '../pages/FolderPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { SignInPage } from '../pages/SignInPage';
+import { StartPage } from '../pages/StartPage';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 import { RequireSession } from './RequireSession';
 import { SessionExpiry } from './SessionExpiry';
@@ -36,7 +41,23 @@ export const routes: RouteObject[] = [
           </RequireSession>
         ),
         children: [
-          { index: true, element: <AutomationsPage />, handle: crumb('Automations') },
+          {
+            // Folders and automations, with the folder tree; their pages set their own breadcrumbs.
+            element: <AutomationsLayout />,
+            children: [
+              { index: true, element: <StartPage /> },
+              { path: 'folders/:id', element: <FolderPage /> },
+              {
+                path: 'automations/:id',
+                element: <AutomationLayout />,
+                children: [
+                  { index: true, element: <OverviewTab /> },
+                  { path: 'versions', element: <VersionsTab /> },
+                  { path: 'versions/:number', element: <VersionsTab /> },
+                ],
+              },
+            ],
+          },
           { path: 'account', element: <AccountPage />, handle: crumb('Account') },
           { path: '*', element: <NotFoundPage />, handle: crumb('Not found') },
         ],

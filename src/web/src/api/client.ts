@@ -39,11 +39,30 @@ export const api = createClient<paths>({
 });
 api.use(sessionMiddleware);
 
+type Call<T> = Promise<{ data?: T; error?: unknown; response: Response }>;
+
 /** The data of a call, or an `ApiError` with the server's problem details. */
-export async function unwrap<T>(call: Promise<{ data?: T; error?: unknown; response: Response }>): Promise<T> {
+export async function unwrap<T>(call: Call<T>): Promise<T> {
+  return (await unwrapWithTag(call)).data;
+}
+
+/** A resource with the version it was read at, to send back as `If-Match` when changing it. */
+export interface Tagged<T> {
+  data: T;
+  /** The `ETag` header, or null when the server sent none. */
+  tag: string | null;
+}
+
+/** Like `unwrap`, keeping the `ETag` (docs/technical/api.md, Concurrency). */
+export async function unwrapWithTag<T>(call: Call<T>): Promise<Tagged<T>> {
   const { data, error, response } = await call;
   if (!response.ok) {
     throw new ApiError(response.status, toProblem(error, response.status));
   }
-  return data as T;
+  return { data: data as T, tag: response.headers.get('ETag') };
+}
+
+/** Headers for a change based on what was read: `If-Match` with its tag, when there is one. */
+export function ifMatch(tag: string | null | undefined): Record<string, string> {
+  return tag ? { 'If-Match': tag } : {};
 }

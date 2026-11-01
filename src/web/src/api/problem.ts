@@ -10,6 +10,18 @@ export interface Problem {
   detail?: string | null;
   field?: string | null;
   errors?: Record<string, string[]>;
+  /** Every problem found in an automation file, when the request carried one. */
+  diagnostics?: Diagnostic[];
+}
+
+/** A problem or warning in an automation file, as the command line reports it too. */
+export interface Diagnostic {
+  severity: 'Error' | 'Warning';
+  code: string;
+  message: string;
+  path: string;
+  line?: number | string | null;
+  column?: number | string | null;
 }
 
 /** A request the API refused or could not answer; `problem` holds what the server said. */
@@ -57,6 +69,9 @@ export function isUnreachable(error: unknown): boolean {
 export function describeError(error: unknown): string {
   if (isUnreachable(error)) {
     return 'The server cannot be reached right now. It may be starting or restarting; try again in a moment.';
+  }
+  if (error instanceof ApiError && error.status === 412) {
+    return 'Someone changed this in the meantime. The page now shows their version; check it and try again.';
   }
   if (error instanceof ApiError) {
     const fields = Object.values(error.problem.errors ?? {}).flat();

@@ -44,24 +44,37 @@ inline scripts are not, which is why the color scheme is set by a small file of 
   `X-AutoCanvas-Request: 1` on every request that changes something, as the server's CSRF check
   requires, and reports a `401` on any request but the sign-in and the account check as an ended
   session. The app then forgets the user and asks to sign in again, returning to the same page.
-- **Errors** are problem details (`src/api/problem.ts`): field errors appear at their field, other
-  problems as a message with the server's words.
-- **Data** is cached with TanStack Query. A request the server refused (4xx) is not retried; network
-  failures and 5xx are retried twice.
+- **Errors** are problem details (`src/api/problem.ts`): a broken rule (`field` with `detail`)
+  appears at its field, problems in an automation file (`diagnostics`) as a list with line, column
+  and code, everything else as a message with the server's words.
+- **Data** is cached with TanStack Query, with one hooks file per area (`session.ts`, `folders.ts`,
+  `automations.ts`); a change invalidates what it affects. A request the server refused (4xx) is
+  not retried; an unreachable server (no connection, 502–504) is retried for about half a minute,
+  other server errors twice.
+- **Concurrency**: folders and automations are read with their `ETag` (`unwrapWithTag`), and
+  changes send it back as `If-Match`. When someone changed the resource in between, the server
+  answers `412`; the UI says so and shows the current state, so nothing is overwritten unseen.
 
 ## Structure
 
 ```
 src/web/
   index.html, public/       page skeleton, favicon, theme.js (color scheme before the app loads)
-  src/api/                  client, problems, generated schema, hooks per area (session.ts)
+  src/api/                  client, problems, generated schema, hooks per area
   src/app/                  App, routes, session guards, theme, settings in localStorage
-  src/layout/               app shell (sidebar, breadcrumbs, user menu), sign-in layout
-  src/pages/                one file per page
-  src/ui/                   small shared components (button, field, alert, spinner, error boundary)
+  src/layout/               app shell (sidebar, breadcrumbs, user menu), folder tree, page context
+  src/pages/                one file per page; pages/automation/ for an automation's tabs
+  src/dialogs/              create, rename, move and delete dialogs
+  src/lib/                  logic without React: line diff, roles, relative times
+  src/ui/                   small shared components (button, field, dialog, badge, alert, …)
   src/styles/theme.css      design tokens: colors for light and dark, radius, fonts
   e2e/                      Playwright tests against the real server
 ```
+
+Pages tell the shell where they are with `usePageInfo`: their breadcrumbs, and the folder to
+highlight and expand in the folder tree. The tree follows the ARIA tree pattern (one tab stop,
+arrow keys, Home and End) and loads subfolders when one is expanded; the move dialog uses the same
+tree as a picker.
 
 All colors come from the tokens in `theme.css`; light and dark share token names, and
 `<html data-theme>` picks the values. Text and accent pairs meet WCAG AA.
