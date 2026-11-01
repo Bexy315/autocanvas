@@ -119,10 +119,10 @@ internal sealed class TestRunner : IAsyncDisposable
 
     public async Task<JsonElement> GetAsync(string path) => await (await Admin.GetAsync(new Uri(path, UriKind.Relative), Cancel)).JsonAsync();
 
-    /// <summary>The run once it has ended, within <see cref="Patience"/>.</summary>
-    public async Task<JsonElement> EndedRunAsync(Guid run)
+    /// <summary>The run once it has ended, within <paramref name="patience"/> (<see cref="Patience"/> by default).</summary>
+    public async Task<JsonElement> EndedRunAsync(Guid run, TimeSpan? patience = null)
     {
-        var until = DateTimeOffset.UtcNow + Patience;
+        var until = DateTimeOffset.UtcNow + (patience ?? Patience);
         while (true)
         {
             var view = await GetAsync($"/api/v1/runs/{run}");
@@ -131,7 +131,11 @@ internal sealed class TestRunner : IAsyncDisposable
                 return view;
             }
 
-            DateTimeOffset.UtcNow.ShouldBeLessThan(until, "The run did not end in time.");
+            if (DateTimeOffset.UtcNow >= until)
+            {
+                throw new ShouldAssertException($"The run did not end in time. Its log:{Environment.NewLine}{string.Join(Environment.NewLine, await LogAsync(run))}");
+            }
+
             await Task.Delay(100, Cancel);
         }
     }

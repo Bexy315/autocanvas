@@ -45,7 +45,8 @@ public sealed class DockerNodeTests
                   digest: ${{ steps.build.outputs.digest }}
             """);
 
-        var ended = await runner.EndedRunAsync(run);
+        // Pulling nginx, git and BuildKit and building take a while on a fresh machine.
+        var ended = await runner.EndedRunAsync(run, TimeSpan.FromMinutes(3));
         var log = await runner.LogAsync(run);
         ended.GetProperty("state").GetString().ShouldBe("Succeeded", string.Join(Environment.NewLine, log));
         log.ShouldContain(l => l == "Welcome to nginx");
