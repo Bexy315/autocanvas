@@ -63,6 +63,14 @@ starts deep in a tree, you see the names of the folders above it for orientation
 open them. Folders you may not see at all answer *not found*, exactly like folders that do not
 exist, so nobody learns what exists in places they have no access to.
 
+## In the web UI
+
+**Automations** in the sidebar shows the folders where you can start; the folder tree next to it
+opens subfolders as you expand them, and the arrow keys move through it. A folder's page lists its
+subfolders and automations. Depending on your role it offers **New folder**, **New automation**,
+and in its menu **Rename**, **Move** and **Delete**. Moving opens the same tree as a picker, in which
+only folders where you are an editor can be chosen.
+
 ## With the API
 
 ```sh

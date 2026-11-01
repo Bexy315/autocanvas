@@ -10,8 +10,9 @@ go back. The content is an ordinary [automation file](automations.md).
 
 :::note Status
 
-Managed automations can be created, saved, organized and read through the HTTP API. Running them
-and editing them on the canvas come with later milestones.
+Managed automations can be created, organized, read and compared in the web UI and through the
+HTTP API. Editing them in the web UI (YAML and canvas) and running them from it come with the next
+steps of S3.
 
 :::
 
@@ -53,6 +54,23 @@ Deleting an automation removes it **with all its versions**; this cannot be undo
 [audit log](../technical/audit.md) keeps who deleted which automation and when, but not its content.
 Its [runs](runs.md) stay readable: each keeps its own copy of the file it ran. A folder can only be
 deleted once it holds no automations and no subfolders; the runs left in it go with it.
+
+## In the web UI
+
+Open a folder in **Automations** and choose **New automation**. Give it a name and start from the
+starter file (started by hand, one job that says hello) or a file from your computer. If the file
+has problems, they are listed with their line, column and [code](diagnostics.md); fix the file
+and choose it again.
+
+An automation's page shows what starts it (by hand, webhook, schedules with their next time, or
+another automation), its latest runs, warnings worth a look, and its file, which **Download** saves
+as YAML. **Versions** lists every version with its message, author and time; a version shows what
+changed from the one before, with unchanged lines collapsed and canvas positions (`x-editor`) left
+out, or its full file. **Restore** saves an old version's file as the newest version. The menu
+next to **Download** renames, moves and deletes the automation; it is there for editors only.
+
+If someone else changed an automation or a folder while you had it open, your change is refused
+instead of overwriting theirs: the page shows their version, and you can try again.
 
 ## Using the API
 
