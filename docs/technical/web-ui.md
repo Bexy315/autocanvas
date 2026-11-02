@@ -136,11 +136,22 @@ editors change it. Its logic is harvested from the origin's editor and rewritten
   card is handed back with the cards: they are built anew on every change, and React Flow hides a
   card without a size (and its lines) until it has measured it again, which flickered while
   dragging.
-- **Changing the text** (`canvas/yamlEdit.ts`): `setIn`, `deleteIn`, `appendItem` and `removeItem`
-  splice the text at the ranges of the parsed YAML document and render new values in the file's
-  style, instead of writing the whole document, which would normalise unrelated lines. Each result
+- **Changing the text** (`canvas/yamlEdit.ts`): `setIn`, `deleteIn`, `appendItem`, `insertItem`,
+  `removeItem`, `moveItem` and `renameKey` splice the text at the ranges of the parsed YAML document
+  and render new values in the file's style (flow or block like their neighbours, scripts of several
+  lines as `|` blocks), instead of writing the whole document, which would normalise unrelated
+  lines. A new key goes where it usually is (`keyOrder` in `canvas/operations.ts`: `image` before
+  `steps`, …), so a value cleared and typed again lands where it was. Each result
   is parsed again and compared (ignoring key order) with the same change on the document; when it
   differs, the whole document is written as a last resort and the change is marked `rewritten`.
+- **Side panel** (`canvas/panel/`): opens for the card chosen on the canvas (`onPick`) and follows
+  the choice. It reads values from the same text as the canvas (`canvas/panelModel.ts`), showing
+  each in a form only when it has the shape that form writes back, and otherwise as written, to be
+  changed in the YAML. Each field change is a `Change` from `canvas/operations.ts` (`setField`,
+  `addStep`, `setNeeds`, `renameJob`, `addListItem`, …) handed to the editor like canvas changes.
+  Values typed into a field reach CodeMirror as `input.type` events, which its history joins into
+  one undo step; adding, moving and renaming are `input.canvas` events, a step each. Diagnostics are
+  matched to fields by their path (`jobs.build.steps[0].run`).
 - **Look**: the cards and React Flow's controls use the design tokens (`canvas/canvas.css`), so the
   canvas follows light and dark.
 

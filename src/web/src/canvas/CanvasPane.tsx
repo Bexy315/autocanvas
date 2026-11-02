@@ -1,15 +1,26 @@
 import { clsx } from 'clsx';
 import { LayoutGrid, List, Redo2, Undo2, Workflow } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { Diagnostic } from '../api/problem';
 import { readSetting, writeSetting } from '../app/storage';
 import { AutomationCanvas, type CanvasEdits } from './AutomationCanvas';
 import { ListView } from './ListView';
 import type { Graph } from './model';
 import type { NodeTypeView } from './operations';
+import type { PanelEdits } from './panel/panelContext';
+import { SidePanel, type PanelSubject } from './panel/SidePanel';
 
 export const canvasViewKey = 'autocanvas.editor.canvas';
 
 const noNodeTypes: readonly NodeTypeView[] = [];
+
+/** What the side panel needs: the file it reads, and the way it changes it (for editors). */
+export interface PanelProps {
+  text: string;
+  nodeTypes: readonly NodeTypeView[];
+  diagnostics: readonly Diagnostic[];
+  edits?: PanelEdits;
+}
 
 /**
  * The canvas or its list form, with a note when the file cannot be read right now. For editors it
@@ -26,6 +37,7 @@ export function CanvasPane({
   paletteNodeTypes = noNodeTypes,
   announcement = '',
   fitKey = 0,
+  panel,
 }: {
   graph: Graph;
   stale: boolean;
@@ -40,11 +52,44 @@ export function CanvasPane({
   announcement?: string;
   /** Changes after Tidy up, to fit the view to the new layout. */
   fitKey?: number;
+  /** The side panel with the chosen card's settings; without it, choosing a card only selects it. */
+  panel?: PanelProps;
 }) {
   const [asList, setAsList] = useState(() => readSetting(canvasViewKey) === 'list');
   const choose = (list: boolean) => {
     writeSetting(canvasViewKey, list ? 'list' : 'graph');
     setAsList(list);
+  };
+
+  // The panel opens when cards are chosen on the canvas, and then follows the choice, also when the
+  // cursor in the file moves to another job. Choosing nothing (a click on the empty canvas) closes it.
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [followed, setFollowed] = useState(selectedJob);
+  if (followed !== selectedJob) {
+    setFollowed(selectedJob);
+    setPicked(selectedJob ? [selectedJob] : []);
+  }
+  const subject: PanelSubject | null =
+    picked.length > 1 ? { count: picked.length } : picked[0] ? { id: picked[0] } : null;
+  // Chosen with the keyboard (Enter on a card), the panel takes the focus once its heading is there.
+  const focusPanel = useRef(false);
+  const heading = (element: HTMLHeadingElement | null) => {
+    if (element && focusPanel.current) {
+      focusPanel.current = false;
+      element.focus();
+    }
+  };
+  const pick = (ids: string[]) => {
+    setPicked(ids);
+    setPanelOpen(ids.length > 0);
+  };
+  const closePanel = () => {
+    setPanelOpen(false);
+    const id = subject && 'id' in subject ? subject.id : null;
+    if (id) {
+      document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id)}"]`)?.focus();
+    }
   };
 
   return (
@@ -88,19 +133,46 @@ export function CanvasPane({
             : 'The file cannot be read right now; showing the last readable state.'}
         </output>
       )}
-      <div className="min-h-0 flex-1">
-        {asList ? (
-          <ListView graph={graph} selectedJob={selectedJob} onSelectJob={onSelectJob} />
-        ) : (
-          <AutomationCanvas
-            graph={graph}
-            stale={stale}
-            selectedJob={selectedJob}
-            problemsByJob={problemsByJob}
-            onSelectJob={onSelectJob}
-            fitKey={fitKey}
-            {...(edits ? { edits, paletteNodeTypes } : {})}
-          />
+      <div className="@container relative flex min-h-0 flex-1">
+        <div
+          className="min-w-0 flex-1"
+          onKeyDownCapture={(event) => {
+            const card = event.target as HTMLElement;
+            if (panel && event.key === 'Enter' && card.classList.contains('react-flow__node') && card.dataset['id']) {
+              pick([card.dataset['id']]);
+              focusPanel.current = true;
+            }
+          }}
+        >
+          {asList ? (
+            <ListView graph={graph} selectedJob={selectedJob} onSelectJob={onSelectJob} />
+          ) : (
+            <AutomationCanvas
+              graph={graph}
+              stale={stale}
+              selectedJob={selectedJob}
+              problemsByJob={problemsByJob}
+              onSelectJob={onSelectJob}
+              fitKey={fitKey}
+              {...(panel ? { onPick: pick } : {})}
+              {...(edits ? { edits, paletteNodeTypes } : {})}
+            />
+          )}
+        </div>
+        {panel && panelOpen && subject && !asList && (
+          // Beside the canvas when there is room; over it when the canvas is narrow.
+          <div className="absolute inset-y-0 right-0 z-10 max-w-full shadow-xl @3xl:static @3xl:shadow-none">
+            <SidePanel
+              subject={subject}
+              text={panel.text}
+              graph={graph}
+              nodeTypes={panel.nodeTypes}
+              diagnostics={panel.diagnostics}
+              edits={panel.edits}
+              onClose={closePanel}
+              headingRef={heading}
+            />
+          </div>
         )}
       </div>
       <output aria-live="polite" className="sr-only">

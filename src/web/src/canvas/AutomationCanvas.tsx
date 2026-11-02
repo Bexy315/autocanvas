@@ -56,6 +56,8 @@ export interface AutomationCanvasProps {
   problemsByJob?: Readonly<Record<string, number>>;
   /** A card was chosen (click, or Enter/Space on a focused card). */
   onSelectJob?: (id: string) => void;
+  /** The cards the user chose on the canvas (the trigger too), whenever that changes. */
+  onPick?: (ids: string[]) => void;
   /** For editors: changes made on the canvas. Without it the canvas only shows. */
   edits?: CanvasEdits;
   /** The node types the palette offers. */
@@ -96,6 +98,7 @@ function Canvas({
   selectedJob = null,
   problemsByJob = noProblems,
   onSelectJob,
+  onPick,
   edits,
   paletteNodeTypes = noNodeTypes,
   fitKey = 0,
@@ -208,6 +211,9 @@ function Canvas({
     if (nodesSelected.join() !== selection.nodes.join()) {
       setSelection({ ...selection, nodes: nodesSelected });
     }
+    if (changes.some((change) => change.type === 'select')) {
+      onPick?.(nodesSelected);
+    }
     if (moved) {
       if (settled) {
         edits?.move(next);
@@ -301,6 +307,12 @@ function Canvas({
           minZoom={0.2}
           onNodesChange={changeNodes}
           onEdgesChange={changeEdges}
+          onNodeClick={(event, node) => {
+            // A click on a card that is chosen already changes no selection, but opens the panel again.
+            if (!event.shiftKey && !event.ctrlKey && !event.metaKey) {
+              onPick?.([node.id]);
+            }
+          }}
           onNodesDelete={(deleted) => edits?.remove(deleted.map((node) => node.id).filter((id) => id !== triggerId))}
           onEdgesDelete={(deleted) => edits?.disconnect(deleted.map(lineOf))}
           onConnect={(connection) =>

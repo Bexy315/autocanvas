@@ -36,6 +36,12 @@ export interface ValueOptions {
   flow?: boolean;
   /** A new key goes before the mapping's first one instead of after its last, as `needs` is written. */
   first?: boolean;
+  /**
+   * The usual order of the keys of the mapping at a path (`name`, `needs`, …, `steps` for a job). A
+   * new key goes before the first key that usually comes after it, so a value cleared and typed
+   * again lands where it was, and new keys sit where people expect them.
+   */
+  order?: (path: Path) => readonly string[] | undefined;
 }
 
 type Range = [number, number, number];
@@ -112,6 +118,21 @@ function renderInline(value: unknown): string {
   return document.toString(renderOptions).replace(/\n$/, '');
 }
 
+/**
+ * A value after `key: ` or `- `, where block content belongs `indent` columns in: a script of
+ * several lines becomes a block scalar (`|`) with its lines indented under the key.
+ */
+function renderValue(value: unknown, indent: number): string {
+  const inline = renderInline(value);
+  if (!/^[|>]/.test(inline)) {
+    return inline;
+  }
+  return inline
+    .split('\n')
+    .map((line, index) => (index === 0 || line === '' ? line : ' '.repeat(indent) + line))
+    .join('\n');
+}
+
 function makeFlow(node: unknown): void {
   if (isMap(node) || isSeq(node)) {
     node.flow = true;
@@ -132,7 +153,7 @@ function renderBlock(value: unknown, indent: number, indentSeq: boolean): string
 function renderPair(key: string, value: unknown, indent: number, options: ValueOptions, indentSeq: boolean): string {
   const name = renderInline(key);
   if (!isCollectionValue(value) || options.flow) {
-    return `${' '.repeat(indent)}${name}: ${renderInline(value)}`;
+    return `${' '.repeat(indent)}${name}: ${renderValue(value, indent + 2)}`;
   }
   return `${' '.repeat(indent)}${name}:\n${renderBlock(value, indent + 2, indentSeq)}`;
 }
@@ -209,12 +230,15 @@ function replacePairValue(
     return null;
   }
   const old = pair.value;
-  const oldIsBlock = (isMap(old) || isSeq(old)) && !old.flow && old.items.length > 0;
+  // Block collections and block scalars (`|`) end with the newlines after them, which stay.
+  const oldIsBlock =
+    ((isMap(old) || isSeq(old)) && !old.flow && old.items.length > 0) ||
+    (isScalar(old) && (old.type === 'BLOCK_LITERAL' || old.type === 'BLOCK_FOLDED'));
   const end = old && rangeOf(old) ? (oldIsBlock ? contentEnd(text, old) : (rangeOf(old)?.[1] ?? colon + 1)) : colon + 1;
-  if (!isCollectionValue(value) || options.flow) {
-    return splice(text, colon + 1, end, ` ${renderInline(value)}`);
-  }
   const indent = columnOf(text, keyRange[0]) + 2;
+  if (!isCollectionValue(value) || options.flow) {
+    return splice(text, colon + 1, end, ` ${renderValue(value, indent)}`);
+  }
   return splice(text, colon + 1, end, `\n${renderBlock(value, indent, indentSeq)}`);
 }
 
@@ -238,6 +262,10 @@ function spliceSet(
   options: ValueOptions,
   indentSeq: boolean,
 ): string | null {
+  const key = path.at(-1);
+  if (typeof key === 'number') {
+    return spliceItem(text, document, path.slice(0, -1), key, value, options, indentSeq);
+  }
   // The deepest mapping on the path that exists; what is below it is created.
   let depth = path.length - 1;
   while (depth > 0 && !isMap(document.getIn(path.slice(0, depth), true))) {
@@ -245,15 +273,15 @@ function spliceSet(
   }
   const parentPath = path.slice(0, depth);
   const parent = depth === 0 ? document.contents : document.getIn(parentPath, true);
-  const key = path[depth];
-  if (typeof key !== 'string') {
+  const name = path[depth];
+  if (typeof name !== 'string') {
     return null;
   }
   const rest = path.slice(depth + 1);
   const nested = nestedNode(value, rest, options);
   const nestedOptions = { flow: !isCollectionValue(nested) };
 
-  const existing = pairOf(parent, key);
+  const existing = pairOf(parent, name);
   if (existing && rest.length === 0) {
     return replacePairValue(text, existing, nested, nestedOptions, indentSeq);
   }
@@ -265,18 +293,31 @@ function spliceSet(
   if (parent === null || parent === undefined) {
     // An empty file: the pair is all there is.
     const prefix = text.trim() === '' ? '' : text.endsWith('\n') ? text : `${text}\n`;
-    return `${prefix}${renderPair(key, nested, 0, nestedOptions, indentSeq)}\n`;
+    return `${prefix}${renderPair(name, nested, 0, nestedOptions, indentSeq)}\n`;
   }
   if (!isMap(parent)) {
     return null;
   }
   if (parent.flow || parent.items.length === 0) {
     return rewriteFlowCollection(text, document, parentPath, (node) => {
-      node.setIn([key], nested);
+      node.setIn([name], nested);
     });
   }
   const last = parent.items.at(-1) as Pair;
   const firstKey = rangeOf((parent.items[0] as Pair).key);
+  const follower = options.first ? undefined : nextInOrder(parent, options.order?.(parentPath), name);
+  const followerKey = rangeOf(follower?.key);
+  if (followerKey) {
+    const before = lineStart(text, followerKey[0]);
+    if (text.slice(before, followerKey[0]).trim() === '') {
+      return splice(
+        text,
+        before,
+        before,
+        `${renderPair(name, nested, columnOf(text, followerKey[0]), nestedOptions, indentSeq)}\n`,
+      );
+    }
+  }
   if (options.first && firstKey) {
     const before = lineStart(text, firstKey[0]);
     // Only when the first key starts its line; `- a: 1` keeps new keys after it instead.
@@ -285,7 +326,7 @@ function spliceSet(
         text,
         before,
         before,
-        `${renderPair(key, nested, columnOf(text, firstKey[0]), nestedOptions, indentSeq)}\n`,
+        `${renderPair(name, nested, columnOf(text, firstKey[0]), nestedOptions, indentSeq)}\n`,
       );
     }
   }
@@ -299,8 +340,59 @@ function spliceSet(
     text,
     at,
     at,
-    `${newline}${renderPair(key, nested, columnOf(text, firstKey[0]), nestedOptions, indentSeq)}\n`,
+    `${newline}${renderPair(name, nested, columnOf(text, firstKey[0]), nestedOptions, indentSeq)}\n`,
   );
+}
+
+/** The first pair of `map` whose key usually comes after `key`, by `order`. */
+function nextInOrder(map: YAMLMap, order: readonly string[] | undefined, key: string): Pair | undefined {
+  const position = order?.indexOf(key) ?? -1;
+  if (!order || position === -1) {
+    return undefined;
+  }
+  const later = new Set(order.slice(position + 1));
+  return map.items.find((pair) => isScalar(pair.key) && later.has(String(pair.key.value))) as Pair | undefined;
+}
+
+/** An item of a list, as it follows `- ` at column `dashColumn`. */
+function renderItem(value: unknown, dashColumn: number, options: ValueOptions, indentSeq: boolean): string {
+  return !isCollectionValue(value) || options.flow
+    ? renderValue(value, dashColumn + 2)
+    : renderBlock(value, dashColumn + 2, indentSeq).slice(dashColumn + 2);
+}
+
+/** The column of the dash in front of a block list's item. */
+function dashOf(text: string, item: unknown): number | null {
+  const range = rangeOf(item);
+  return range ? text.lastIndexOf('-', range[0]) : null;
+}
+
+/** Replaces the item at `index` of the list at `path`. */
+function spliceItem(
+  text: string,
+  document: Document,
+  path: Path,
+  index: number,
+  value: unknown,
+  options: ValueOptions,
+  indentSeq: boolean,
+): string | null {
+  const list = document.getIn([...path], true);
+  if (!isSeq(list) || index < 0 || index >= list.items.length) {
+    return null;
+  }
+  if (list.flow) {
+    return rewriteFlowCollection(text, document, path, (node) =>
+      node.setIn([index], valueNode(value, options, document)),
+    );
+  }
+  const item = list.items[index];
+  const range = rangeOf(item);
+  const dash = dashOf(text, item);
+  if (!range || dash === null) {
+    return null;
+  }
+  return splice(text, range[0], contentEnd(text, item), renderItem(value, columnOf(text, dash), options, indentSeq));
 }
 
 /** Writes one flow (or empty) collection anew, after `change`, keeping it on its line. */
@@ -403,10 +495,7 @@ export function appendItem(text: string, path: Path, value: unknown, options: Va
   const dashColumn = columnOf(text, dash);
   const at = lineEnd(text, contentEnd(text, last));
   const newline = at === text.length && !text.endsWith('\n') ? '\n' : '';
-  const item =
-    !isCollectionValue(value) || options.flow
-      ? renderInline(value)
-      : renderBlock(value, dashColumn + 2, indentSeq).slice(dashColumn + 2);
+  const item = renderItem(value, dashColumn, options, indentSeq);
   return verified(splice(text, at, at, `${newline}${' '.repeat(dashColumn)}- ${item}\n`), expected, indentSeq);
 }
 
@@ -437,4 +526,104 @@ export function removeItem(text: string, path: Path, index: number): EditResult 
   }
   const dash = text.lastIndexOf('-', range[0]);
   return verified(splice(text, lineStart(text, dash), lineEnd(text, contentEnd(text, item)), ''), expected, indentSeq);
+}
+
+/** Puts `value` into the list at `path` before the item at `index`; at or past the end it is appended. */
+export function insertItem(
+  text: string,
+  path: Path,
+  index: number,
+  value: unknown,
+  options: ValueOptions = {},
+): EditResult {
+  const document = readable(text);
+  const indentSeq = sequencesIndented(text);
+  const list = document.getIn([...path], true);
+  if (!isSeq(list) || index >= list.items.length) {
+    return appendItem(text, path, value, options);
+  }
+  const at = Math.max(0, index);
+  const expected = document.clone();
+  const expectedList = expected.getIn([...path], true) as YAMLSeq;
+  expectedList.items.splice(at, 0, valueNode(value, options, expected));
+  if (list.flow) {
+    return verified(
+      rewriteFlowCollection(text, document, path, (node) => {
+        (node as YAMLSeq).items.splice(at, 0, valueNode(value, options, document));
+      }),
+      expected,
+      indentSeq,
+    );
+  }
+  const dash = dashOf(text, list.items[at]);
+  if (dash === null) {
+    return verified(null, expected, indentSeq);
+  }
+  const column = columnOf(text, dash);
+  const start = lineStart(text, dash);
+  return verified(
+    splice(text, start, start, `${' '.repeat(column)}- ${renderItem(value, column, options, indentSeq)}\n`),
+    expected,
+    indentSeq,
+  );
+}
+
+/** Moves the item at `from` of the list at `path` to `to`, with its lines and comments. */
+export function moveItem(text: string, path: Path, from: number, to: number): EditResult {
+  const document = readable(text);
+  const indentSeq = sequencesIndented(text);
+  const list = document.getIn([...path], true);
+  if (!isSeq(list) || from === to || from < 0 || to < 0 || from >= list.items.length || to >= list.items.length) {
+    return { text, fallback: false };
+  }
+  const expected = document.clone();
+  const expectedItems = (expected.getIn([...path], true) as YAMLSeq).items;
+  expectedItems.splice(to, 0, ...expectedItems.splice(from, 1));
+  if (list.flow) {
+    return verified(
+      rewriteFlowCollection(text, document, path, (node) => {
+        const items = (node as YAMLSeq).items;
+        items.splice(to, 0, ...items.splice(from, 1));
+      }),
+      expected,
+      indentSeq,
+    );
+  }
+  // Each item's lines run from its dash's line to the end of its content.
+  const lines = list.items.map((item) => {
+    const dash = dashOf(text, item);
+    return dash === null ? null : { start: lineStart(text, dash), end: lineEnd(text, contentEnd(text, item)) };
+  });
+  const moving = lines[from];
+  const target = lines[to];
+  if (!moving || !target || lines.some((line) => line === null)) {
+    return verified(null, expected, indentSeq);
+  }
+  const block = text.slice(moving.start, moving.end);
+  const spliced =
+    from < to
+      ? splice(splice(text, target.end, target.end, block), moving.start, moving.end, '')
+      : splice(splice(text, moving.start, moving.end, ''), target.start, target.start, block);
+  return verified(spliced, expected, indentSeq);
+}
+
+/** Gives the pair at `path` another key, keeping its value, place and comments. */
+export function renameKey(text: string, path: Path, key: string): EditResult {
+  const document = readable(text);
+  const indentSeq = sequencesIndented(text);
+  const old = path.at(-1);
+  const parentPath = path.slice(0, -1);
+  const parent = parentPath.length === 0 ? document.contents : document.getIn(parentPath, true);
+  const pair = typeof old === 'string' ? pairOf(parent, old) : undefined;
+  const range = rangeOf(pair?.key);
+  if (!pair || !range || pairOf(parent, key)) {
+    return { text, fallback: false };
+  }
+  const expected = document.clone();
+  const expectedParent = parentPath.length === 0 ? expected.contents : expected.getIn(parentPath, true);
+  const expectedPair = pairOf(expectedParent, old as string);
+  if (expectedPair) {
+    expectedPair.key = expected.createNode(key);
+  }
+  return verified(splice(text, range[0], range[1], renderInline(key)), expected, indentSeq);
 }

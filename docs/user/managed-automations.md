@@ -92,8 +92,27 @@ grey either way, or a switch's case) to the top of another to make it wait; choo
 press Delete to remove it, and Shift-click or Shift-drag to choose several. Drag cards, or move a
 chosen one with the arrow keys; **Tidy up** arranges them all. Every change lands in the YAML at once,
 changing only the lines it must: your comments, blank lines and formatting stay. **Undo** and
-**Redo** (Ctrl+Z, Ctrl+Y) go back and forth through canvas changes and typing alike. Connecting jobs
-needs a mouse for now; with the keyboard, add `needs` in the YAML.
+**Redo** (Ctrl+Z, Ctrl+Y) go back and forth through canvas changes and typing alike.
+
+Choose a card (click it, or press Enter on it) to open its **side panel**; Esc or the × closes it, and
+it follows when you choose another card or move the cursor in the file to another job. What you type
+there lands in the file at once, and one undo takes back a value you typed.
+
+- **A job**: a rail at the top lists its settings and its steps. **Job settings** holds the id (other
+  jobs, its place on the canvas and `${{ jobs.ID… }}` in expressions follow when it changes), name
+  and condition; **Needs**, what the job waits for, which is also the way to connect jobs with the
+  keyboard; runner labels and image; environment; services (a preset such as Postgres, or an
+  image); what to check out; reports; timeout and retries; outputs. Choose a step to edit its
+  script, or the inputs of its node type (each may be an expression instead), with more settings
+  under **More**. **Add step** adds a script or a node type's step; the arrows reorder steps.
+- **A switch**: its expression and cases; **a join**: what it waits for.
+- **The trigger**: what starts the automation (by hand, webhook, schedules, pushes, another
+  automation finishing) and the settings of the whole file: description, timeout, whether runs may
+  overlap, `changed_when` and variables.
+
+Problems the server finds are shown at their field. A value written in a form the panel does not
+show, such as an expression in place of a list or an anchor shared with another place, is shown as
+written, to be changed in the YAML.
 
 The file is edited in a YAML editor. While you type, the server checks the file exactly
 as a save would, including node types and triggers; problems are underlined in the file and listed

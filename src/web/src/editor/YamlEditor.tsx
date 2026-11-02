@@ -25,10 +25,11 @@ export interface YamlEditorHandle {
   /** Puts the cursor at the start of a line and scrolls it into view, leaving the focus where it is. */
   revealLine: (line: number) => void;
   /**
-   * Replaces the text with `text`, changing only the part that differs, as one step of the undo
-   * history: how changes made on the canvas reach the file.
+   * Replaces the text with `text`, changing only the part that differs: how changes made on the
+   * canvas reach the file. Each is one step of the undo history; with `typing`, changes that follow
+   * each other closely join one step, as typed characters do (a field of the side panel).
    */
-  apply: (text: string) => void;
+  apply: (text: string, options?: { typing?: boolean }) => void;
   undo: () => void;
   redo: () => void;
   /** The text as it is now, also before React has seen the latest change. */
@@ -181,10 +182,14 @@ export function YamlEditor({
       const at = offsetOf(current.state.doc, line, 1);
       current.dispatch({ selection: { anchor: at }, effects: EditorView.scrollIntoView(at, { y: 'center' }) });
     },
-    apply: (text) => {
+    apply: (text, options) => {
       const current = view.current;
       if (current) {
-        current.dispatch({ changes: smallestChange(current.state.doc.toString(), text), userEvent: 'input.canvas' });
+        current.dispatch({
+          changes: smallestChange(current.state.doc.toString(), text),
+          // The history joins `input.type` events close in time and place; `input.canvas` stays apart.
+          userEvent: options?.typing ? 'input.type.panel' : 'input.canvas',
+        });
       }
     },
     text: () => view.current?.state.doc.toString() ?? value,

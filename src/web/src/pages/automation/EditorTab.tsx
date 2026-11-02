@@ -16,6 +16,7 @@ import {
   tidy,
   type Change,
 } from '../../canvas/operations';
+import type { PanelEdits } from '../../canvas/panel/panelContext';
 import { useCanvasGraph } from '../../canvas/useCanvasGraph';
 import { useNodeTypes, useSaveAutomation, type NodeTypeView } from '../../api/automations';
 import { api, unwrapWithTag } from '../../api/client';
@@ -124,15 +125,28 @@ export function EditorTab() {
   const [announcement, setAnnouncement] = useState('');
   const [tidied, setTidied] = useState(0);
   const currentText = () => editor.current?.text() ?? draft;
+  // Where each job is in the text as the editor has it now: a change from the canvas or the panel
+  // (a job renamed) moves the cursor before the canvas has read the new text.
+  const lineCache = useRef<{ text: string; lines: ReturnType<typeof jobLines> } | null>(null);
+  const linesNow = () => {
+    const text = currentText();
+    if (lineCache.current?.text !== text) {
+      lineCache.current = { text, lines: jobLines(text) };
+    }
+    return lineCache.current.lines;
+  };
   // Cards keep the place they are shown at once something changes on the canvas (pinUnplaced).
   const pinnedText = () => pinUnplaced(currentText());
-  const applyChange = (change: Change | null) => {
+  const applyChange = (change: Change | null, options: { typing?: boolean; announce?: boolean } = {}) => {
     if (!change) {
       return;
     }
-    editor.current?.apply(change.text);
+    editor.current?.apply(change.text, { typing: options.typing ?? false });
     setFromCanvas(change.text);
-    setAnnouncement(change.summary);
+    // A field typed into would announce every key; its new value is in the field already.
+    if (options.announce ?? true) {
+      setAnnouncement(change.summary);
+    }
     if (change.focus) {
       setSelectedJob(change.focus);
       const range = jobLines(change.text).get(change.focus);
@@ -167,6 +181,13 @@ export function EditorTab() {
       editor.current?.redo();
       setFromCanvas(currentText());
     },
+  };
+  // The side panel writes values as they are typed; adding, moving and renaming are steps of their own.
+  const panelEdits: PanelEdits = {
+    current: currentText,
+    apply: (change, options = {}) =>
+      applyChange(change, { typing: !(options.step ?? false), announce: options.announce ?? false }),
+    remove: (id) => applyChange(deleteJobs(pinnedText(), [id])),
   };
 
   const blockedReason = !dirty
@@ -328,6 +349,12 @@ export function EditorTab() {
               problemsByJob={canvas.problemsByJob}
               onSelectJob={showJob}
               announcement={announcement}
+              panel={{
+                text: canvas.text,
+                nodeTypes: nodeTypeList,
+                diagnostics,
+                ...(canEdit && !canvas.stale ? { edits: panelEdits } : {}),
+              }}
               {...(canEdit
                 ? {
                     edits,
@@ -346,7 +373,7 @@ export function EditorTab() {
               ref={editor}
               value={draft}
               onSave={askToSave}
-              onCursor={(line) => setSelectedJob(jobAtLine(canvas.lines, line))}
+              onCursor={(line) => setSelectedJob(jobAtLine(linesNow(), line))}
               readOnly={!canEdit}
               diagnostics={canEdit ? diagnostics : []}
               {...(canEdit ? { onChange: edit, completions } : {})}
