@@ -82,6 +82,32 @@ internal sealed class FolderAccess(AutoCanvasDbContext database)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// The ids of the folders the actor may view (Viewer or more), for lists across folders; null
+    /// for admins, who may view every folder.
+    /// </summary>
+    public async Task<IReadOnlyCollection<Guid>?> ViewableIdsAsync(Actor actor, CancellationToken cancellationToken)
+    {
+        if (actor.IsAdmin)
+        {
+            return null;
+        }
+
+        var grants = await AllGrantsAsync(actor, cancellationToken).ConfigureAwait(false);
+        if (grants.Count == 0)
+        {
+            return [];
+        }
+
+        var folders = await database.Folders.AsNoTracking()
+            .Select(f => new { f.Id, f.Path, Entry = new FolderChainEntry(f.Id, f.Name, f.IsRestricted) })
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var entries = folders.ToDictionary(f => f.Id, f => f.Entry);
+        return [.. folders
+            .Where(f => FolderPermissions.EffectiveRole([.. FolderPaths.Ids(f.Path).Where(entries.ContainsKey).Select(id => entries[id])], grants, isAdmin: false) >= FolderRole.Viewer)
+            .Select(f => f.Id)];
+    }
+
     /// <summary>The breadcrumb above a folder: names, and ids only where the actor may open them.</summary>
     public static IReadOnlyList<FolderCrumb> Crumbs(IReadOnlyList<FolderChainEntry> chain, IReadOnlyCollection<FolderGrantFact> grants, bool isAdmin)
     {

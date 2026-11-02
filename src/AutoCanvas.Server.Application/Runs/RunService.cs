@@ -104,7 +104,8 @@ public sealed class RunService
             run.CancelledByName,
             run.CreatedAt,
             run.FinishedAt,
-            [.. jobs.Select(j => new RunJobView(j.Key, j.Name, j.Status, j.ActivatedCase, j.Reason, j.AttemptCount, j.StartedAt, j.FinishedAt))]));
+            [.. jobs.Select(j => new RunJobView(j.Key, j.Name, j.Status, j.ActivatedCase, j.Reason, j.AttemptCount, j.StartedAt, j.FinishedAt))],
+            run.Yaml));
     }
 
     /// <summary>The automation's runs, newest first, one page at a time (Viewer).</summary>
@@ -145,10 +146,55 @@ public sealed class RunService
             .Where(r => r.AutomationId == automationId && (before == null || r.Number < before))
             .OrderByDescending(r => r.Number)
             .Take(limit.Value + 1)
-            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt))
+            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.FolderId, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt))
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var next = rows.Count > limit.Value ? rows[limit.Value - 1].Number.ToString(CultureInfo.InvariantCulture) : null;
         return UseCase.Success(new Page<RunSummary>([.. rows.Take(limit.Value)], next));
+    }
+
+    /// <summary>
+    /// The newest runs of every automation the actor may view (Viewer on the run's folder), one page
+    /// at a time, optionally only those in one state.
+    /// </summary>
+    public async Task<UseCaseResult<Page<RunSummary>>> ListRecentAsync(Actor actor, RunState? state, PageRequest page, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentNullException.ThrowIfNull(page);
+        var limit = page.ResolveLimit();
+        var after = TimeCursor.Decode(page.Cursor);
+        if ((limit.Error ?? after.Error) is { } invalid)
+        {
+            return UseCase.Failure<Page<RunSummary>>(invalid);
+        }
+
+        var runs = database.Runs.AsNoTracking();
+        var viewable = await access.ViewableIdsAsync(actor, cancellationToken).ConfigureAwait(false);
+        if (viewable is not null)
+        {
+            var ids = viewable.ToList();
+            runs = runs.Where(r => ids.Contains(r.FolderId));
+        }
+
+        if (state is { } only)
+        {
+            runs = runs.Where(r => r.State == only);
+        }
+
+        var skip = 0;
+        if (after.Value is { } cursor)
+        {
+            runs = runs.Where(r => r.CreatedAt <= cursor.At);
+            skip = cursor.SameInstant;
+        }
+
+        var rows = await runs.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
+            .Skip(skip)
+            .Take(limit.Value + 1)
+            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.FolderId, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var items = rows.Take(limit.Value).ToList();
+        var next = rows.Count > limit.Value ? TimeCursor.After(items.Select(r => r.CreatedAt), items[^1].CreatedAt, after.Value) : null;
+        return UseCase.Success(new Page<RunSummary>(items, next));
     }
 
     private static UseCaseError AutomationNotFound => UseCaseError.NotFound("The automation does not exist, or you may not see it.");

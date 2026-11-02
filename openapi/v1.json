@@ -3937,6 +3937,66 @@
         }
       }
     },
+    "/api/v1/runs": {
+      "get": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "List recent runs",
+        "description": "The newest runs of every automation you may view (Viewer on its folder), one page at a time; `state` keeps only runs in that state.",
+        "operationId": "ListRecentRuns",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RunState"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfRunSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{id}": {
       "get": {
         "tags": [
@@ -7699,6 +7759,7 @@
           "number",
           "automationId",
           "automationName",
+          "folderId",
           "state",
           "trigger",
           "triggeredByName",
@@ -7732,6 +7793,11 @@
           "automationName": {
             "type": "string",
             "description": "The automation's name when the run started."
+          },
+          "folderId": {
+            "type": "string",
+            "description": "The folder the run belongs to.",
+            "format": "uuid"
           },
           "state": {
             "description": "Running, Succeeded, Failed or Cancelled.",
@@ -7785,7 +7851,8 @@
           "cancelledByName",
           "createdAt",
           "finishedAt",
-          "jobs"
+          "jobs",
+          "yaml"
         ],
         "type": "object",
         "properties": {
@@ -7871,6 +7938,10 @@
               "$ref": "#/components/schemas/RunJobView"
             },
             "description": "Its jobs in the order of the automation file."
+          },
+          "yaml": {
+            "type": "string",
+            "description": "The automation file the run runs, as it was when the run started."
           }
         },
         "description": "A run with its jobs."

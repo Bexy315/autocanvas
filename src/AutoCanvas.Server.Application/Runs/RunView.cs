@@ -17,6 +17,7 @@ namespace AutoCanvas.Server.Application.Runs;
 /// <param name="CreatedAt">When it started.</param>
 /// <param name="FinishedAt">When it finished.</param>
 /// <param name="Jobs">Its jobs in the order of the automation file.</param>
+/// <param name="Yaml">The automation file the run runs, as it was when the run started.</param>
 public sealed record RunView(
     Guid Id,
     int Number,
@@ -31,4 +32,5 @@ public sealed record RunView(
     string? CancelledByName,
     DateTimeOffset CreatedAt,
     DateTimeOffset? FinishedAt,
-    IReadOnlyList<RunJobView> Jobs);
+    IReadOnlyList<RunJobView> Jobs,
+    string Yaml);

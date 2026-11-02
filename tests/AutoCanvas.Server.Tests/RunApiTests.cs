@@ -77,6 +77,54 @@ public abstract class RunApiTests(DatabaseProvider provider) : DatabaseTest(prov
     }
 
     [Fact]
+    public async Task Recent_runs_of_every_automation_are_listed_for_whoever_may_see_them()
+    {
+        await using var factory = Factory();
+        var ada = await factory.SignedInAsync("ada");
+        var vic = await factory.SignedInAsync("vic");
+        var eve = await factory.SignedInAsync("eve");
+        var first = await AutomationAsync(ada, Build);
+        var second = await AutomationAsync(ada, Build, "Ops");
+        var older = Id(await (await ada.PostAsync(Uri($"/api/v1/automations/{first}/runs"), null, Cancel)).JsonAsync());
+        var newer = Id(await (await ada.PostAsync(Uri($"/api/v1/automations/{second}/runs"), null, Cancel)).JsonAsync());
+        (await ada.PostAsync(Uri($"/api/v1/runs/{older}/cancel"), null, Cancel)).EnsureSuccessStatusCode();
+        var folder = (await (await ada.GetAsync(Uri($"/api/v1/automations/{first}"), Cancel)).JsonAsync()).GetProperty("folderId").GetGuid();
+        var vicId = (await (await vic.GetAsync(Uri("/api/v1/me"), Cancel)).JsonAsync()).GetProperty("user").GetProperty("id").GetGuid();
+        (await ada.PutAsJsonAsync($"/api/v1/folders/{folder}/grants", new { userId = vicId, role = "Viewer" }, Cancel)).EnsureSuccessStatusCode();
+
+        var all = await (await ada.GetAsync(Uri("/api/v1/runs"), Cancel)).JsonAsync();
+        var firstPage = await (await ada.GetAsync(Uri("/api/v1/runs?limit=1"), Cancel)).JsonAsync();
+        var cursor = firstPage.GetProperty("next").GetString();
+        var secondPage = await (await ada.GetAsync(Uri($"/api/v1/runs?limit=1&cursor={cursor}"), Cancel)).JsonAsync();
+        var cancelled = await (await ada.GetAsync(Uri("/api/v1/runs?state=Cancelled"), Cancel)).JsonAsync();
+        var vics = await (await vic.GetAsync(Uri("/api/v1/runs"), Cancel)).JsonAsync();
+        var eves = await (await eve.GetAsync(Uri("/api/v1/runs"), Cancel)).JsonAsync();
+
+        // Both started at the same instant of the test clock, so their order is not given.
+        Ids(all).ShouldBe([newer, older], ignoreOrder: true);
+        all.GetProperty("items")[0].GetProperty("folderId").GetGuid().ShouldNotBe(Guid.Empty);
+        Ids(firstPage).Concat(Ids(secondPage)).ShouldBe(Ids(all));
+        secondPage.GetProperty("next").ValueKind.ShouldBe(JsonValueKind.Null);
+        Ids(cancelled).ShouldBe([older]);
+        Ids(vics).ShouldBe([older]);
+        Ids(eves).ShouldBeEmpty();
+        (await ada.GetAsync(Uri("/api/v1/runs?cursor=nope"), Cancel)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task A_run_carries_the_file_it_runs()
+    {
+        await using var factory = Factory();
+        var ada = await factory.SignedInAsync("ada");
+        var automation = await AutomationAsync(ada, Build);
+        var id = Id(await (await ada.PostAsync(Uri($"/api/v1/automations/{automation}/runs"), null, Cancel)).JsonAsync());
+
+        var run = await (await ada.GetAsync(Uri($"/api/v1/runs/{id}"), Cancel)).JsonAsync();
+
+        run.GetProperty("yaml").GetString().ShouldBe(Build);
+    }
+
+    [Fact]
     public async Task Automations_that_do_not_allow_it_are_not_started_by_hand()
     {
         await using var factory = Factory();
@@ -149,15 +197,17 @@ public abstract class RunApiTests(DatabaseProvider provider) : DatabaseTest(prov
     public async Task Run_retention_must_be_sensible(string key, string value) =>
         (await ServerStart.FailsAsync<Microsoft.Extensions.Options.OptionsValidationException>(Database, (key, value))).ShouldContain(key);
 
-    private static async Task<Guid> AutomationAsync(HttpClient client, string yaml)
+    private static async Task<Guid> AutomationAsync(HttpClient client, string yaml, string folderName = "Team")
     {
-        var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = "Team" }, Cancel)).JsonAsync());
+        var folder = Id(await (await client.PostAsJsonAsync("/api/v1/folders", new { name = folderName }, Cancel)).JsonAsync());
         var response = await client.PostAsJsonAsync($"/api/v1/folders/{folder}/automations", new { name = "build", yaml }, Cancel);
         response.StatusCode.ShouldBe(HttpStatusCode.Created);
         return Id(await response.JsonAsync());
     }
 
     private static Guid Id(JsonElement element) => element.GetProperty("id").GetGuid();
+
+    private static Guid[] Ids(JsonElement page) => [.. page.GetProperty("items").EnumerateArray().Select(Id)];
 
     private static Uri Uri(string path) => new(path, UriKind.Relative);
 
