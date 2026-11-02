@@ -132,3 +132,17 @@ export function withoutLayout(yaml: string): { text: string; removed: boolean } 
 
   return { text: [...lines.slice(0, start), ...lines.slice(end)].join('\n'), removed: true };
 }
+
+const lineCount = (n: number, what: string) => `${n} ${n === 1 ? 'line' : 'lines'} ${what}`;
+
+/** How much the file changed, in words; a change to the canvas layout alone is named as such. */
+export function changeSummary(before: string, after: string): string {
+  if (withoutLayout(before).text === withoutLayout(after).text) {
+    return 'Only the places of cards on the canvas changed.';
+  }
+  const lines = lineDiff(before, after);
+  const added = lines.filter((line) => line.kind === 'added').length;
+  const removed = lines.filter((line) => line.kind === 'removed').length;
+  const parts = [added > 0 ? lineCount(added, 'added') : '', removed > 0 ? lineCount(removed, 'removed') : ''];
+  return `${parts.filter((part) => part !== '').join(', ')}.`;
+}

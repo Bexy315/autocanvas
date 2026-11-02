@@ -74,7 +74,9 @@ changed from the one before, with unchanged lines collapsed and canvas positions
 out, or its full file. **Restore** saves an old version's file as the newest version. The menu
 next to **Download** renames, moves and deletes the automation; it is there for editors only.
 
-**Editor** shows the automation as a graph on the canvas next to its file. The buttons
+**Editor** opens the automation's editor, which fills the whole window: the app's sidebar and the
+folder tree make room for it, and the arrow next to the automation's name leads back. It shows the
+automation as a graph on the canvas next to its file. The buttons
 **Canvas**, **Split** and **YAML** show either one or both; drag the line between them, or move it
 with the arrow keys, to share the width differently. The canvas draws the trigger, a card per job
 with its steps, and the lines between them: green when a job waits for success, red for failure,
@@ -95,10 +97,13 @@ needs a mouse for now; with the keyboard, add `needs` in the YAML.
 
 The file is edited in a YAML editor. While you type, the server checks the file exactly
 as a save would, including node types and triggers; problems are underlined in the file and listed
-below it with their [code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
+under **Problems** at the bottom of the window (which you can fold away) with their
+[code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
 the keys allowed where the cursor is, the node types for a step's `type`, a node type's inputs
-under `with`, and fixed values such as `concurrency: single`. **Save** (or Ctrl+S) stores a new
-version with an optional message; it is offered once the file has changes and no errors.
+under `with`, and fixed values such as `concurrency: single`. **Save** (or Ctrl+S, also on the canvas)
+asks for an optional message and says how much changed; Enter in that dialog stores the new version,
+Esc goes back without saving. So pressing Ctrl+S out of habit does not create a version each time.
+Saving needs a file without errors.
 **Discard** returns to the saved version, and leaving the page with unsaved changes asks first.
 People with the Viewer role see the file in the editor without changing it.
 

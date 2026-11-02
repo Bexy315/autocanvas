@@ -22,6 +22,11 @@ import { Palette } from './Palette';
 import { kindOfDrop, paletteMime } from './paletteEntries';
 import { edgeTypes, nodeTypes } from './types';
 
+interface Size {
+  width: number;
+  height: number;
+}
+
 /** A line as the canvas knows it: from an output of one job to another job. */
 export interface Line {
   source: string;
@@ -101,6 +106,10 @@ function Canvas({
   // Where cards are while being dragged; saved to the file when the drag ends.
   const [dragged, setDragged] = useState<Positions>({});
   const [selection, setSelection] = useState<Selection>({ nodes: [], edges: [], from: null });
+  // The size React Flow measured for each card. Cards are built anew whenever something changes;
+  // without their size, React Flow hides them (and their lines) until it has measured them again,
+  // which made the canvas flicker on every step of a drag.
+  const [sizes, setSizes] = useState<Readonly<Record<string, Size>>>({});
 
   // The cursor moved to another job in the YAML: that job becomes the selection.
   if (selection.from !== selectedJob) {
@@ -112,10 +121,15 @@ function Canvas({
     const built = toFlow(graph, { ...positions, ...dragged }, problemsByJob, editable);
     return {
       // toFlow builds new objects every time, so they can take the selection directly.
-      nodes: built.nodes.map((node): Node => Object.assign(node, { selected: selection.nodes.includes(node.id) })),
+      nodes: built.nodes.map((node): Node =>
+        Object.assign(node, {
+          selected: selection.nodes.includes(node.id),
+          ...(sizes[node.id] ? { measured: sizes[node.id] } : {}),
+        }),
+      ),
       edges: built.edges.map((edge): Edge => Object.assign(edge, { selected: selection.edges.includes(edge.id) })),
     };
-  }, [graph, positions, dragged, problemsByJob, editable, selection]);
+  }, [graph, positions, dragged, problemsByJob, editable, selection, sizes]);
 
   // A job chosen in the YAML is brought into view once, when it becomes the chosen one; later
   // changes to the graph (moves, Tidy up) leave the view where the user has it.
@@ -169,6 +183,7 @@ function Canvas({
     const next: Positions = { ...dragged };
     let moved = false;
     let settled = false;
+    let measured: Record<string, Size> | null = null;
     for (const change of changes) {
       if (change.type === 'select') {
         nodesSelected = change.selected
@@ -180,7 +195,15 @@ function Canvas({
         moved = true;
         // A mouse drag ends with `dragging: false`; a move with the arrow keys has no drag at all.
         settled ||= change.dragging !== true;
+      } else if (change.type === 'dimensions' && change.dimensions) {
+        const { width, height } = change.dimensions;
+        if (sizes[change.id]?.width !== width || sizes[change.id]?.height !== height) {
+          measured = { ...(measured ?? sizes), [change.id]: { width, height } };
+        }
       }
+    }
+    if (measured) {
+      setSizes(measured);
     }
     if (nodesSelected.join() !== selection.nodes.join()) {
       setSelection({ ...selection, nodes: nodesSelected });

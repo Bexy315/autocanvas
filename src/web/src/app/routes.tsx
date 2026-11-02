@@ -4,6 +4,7 @@ import { AutomationsLayout } from '../layout/AutomationsLayout';
 import type { CrumbHandle } from '../layout/Breadcrumbs';
 import { AccountPage } from '../pages/AccountPage';
 import { AutomationLayout } from '../pages/automation/AutomationLayout';
+import { EditorLayout } from '../pages/automation/EditorLayout';
 import { OverviewTab } from '../pages/automation/OverviewTab';
 import { VersionsTab } from '../pages/automation/VersionsTab';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
@@ -32,6 +33,24 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        // The editor fills the window, outside the app's shell.
+        path: '/automations/:id/edit',
+        element: (
+          <RequireSession>
+            <ErrorBoundary>
+              <EditorLayout />
+            </ErrorBoundary>
+          </RequireSession>
+        ),
+        children: [
+          {
+            index: true,
+            // The editor (CodeMirror, the canvas) loads when it is first opened, not with the app.
+            lazy: async () => ({ Component: (await import('../pages/automation/EditorTab')).EditorTab }),
+          },
+        ],
+      },
+      {
         path: '/',
         element: (
           <RequireSession>
@@ -52,11 +71,6 @@ export const routes: RouteObject[] = [
                 element: <AutomationLayout />,
                 children: [
                   { index: true, element: <OverviewTab /> },
-                  {
-                    path: 'edit',
-                    // The editor (CodeMirror) loads when it is first opened, not with the app.
-                    lazy: async () => ({ Component: (await import('../pages/automation/EditorTab')).EditorTab }),
-                  },
                   { path: 'versions', element: <VersionsTab /> },
                   { path: 'versions/:number', element: <VersionsTab /> },
                 ],

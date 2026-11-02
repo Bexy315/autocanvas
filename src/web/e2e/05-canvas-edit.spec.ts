@@ -105,8 +105,15 @@ test('jobs are added, wired, moved, deleted and saved on the canvas, keeping the
   await expect(file(page)).toContainText('    - run: make');
   await snapshot(page, 'canvas-edit-2-tidied');
 
+  // Ctrl+S on the canvas asks for a message; Esc saves nothing, the second time Enter saves.
+  await card(page, 'build').click();
+  await page.keyboard.press('ControlOrMeta+s');
+  await expect(page.getByRole('dialog', { name: 'Save version 2' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.keyboard.press('ControlOrMeta+s');
   await page.getByRole('textbox', { name: 'Message' }).fill('Built on the canvas');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.keyboard.press('Enter');
   await expect(page.getByText('Saved version 2')).toBeVisible();
   await page.reload();
   await expect(card(page, 'job')).toBeVisible();

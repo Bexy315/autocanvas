@@ -5,6 +5,20 @@ import { automationView, folderView, page, twoJobs } from '../../test/fixtures';
 import { fakeServer, info, json, me, problem, requests, type Handler } from '../../test/fakeServer';
 import { renderApp } from '../../test/renderApp';
 
+type User = ReturnType<typeof renderApp>['user'];
+
+/** Saves through the bar's Save button and the dialog it opens, with a message if one is given. */
+async function saveVersion(user: User, message = '') {
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled());
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  const dialog = await screen.findByRole('dialog', { name: /^Save version/ });
+  if (message !== '') {
+    await user.type(within(dialog).getByRole('textbox', { name: 'Message' }), message);
+  }
+  await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Save version' })).toBeEnabled());
+  await user.click(within(dialog).getByRole('button', { name: 'Save version' }));
+}
+
 const team = folderView('team', 'Team');
 const label = 'File of Build';
 const changed = twoJobs.replace('run: make', 'run: make test');
@@ -58,7 +72,11 @@ describe('the editor', () => {
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
     const problems = await screen.findByRole('list', { name: 'Problems in the file' });
     expect(problems).toHaveTextContent("There is no job 'tset'.");
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Save version 3' });
+    expect(within(dialog).getByText('Fix the problems below to save.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Save version' })).toBeDisabled();
+    await user.keyboard('{Escape}');
     const last = validations().at(-1);
     expect(await last?.json()).toEqual({ yaml: `${twoJobs}    needs: [tset]\n`, folderId: 'team', automationId: 'a1' });
 
@@ -73,9 +91,7 @@ describe('the editor', () => {
     const view = await editorView(label);
 
     act(() => replaceText(view, changed));
-    await user.type(screen.getByRole('textbox', { name: 'Message' }), 'Run the tests');
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled());
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await saveVersion(user, 'Run the tests');
 
     expect(await screen.findByText('Saved version 3')).toBeInTheDocument();
     const put = requests.find((request) => request.method === 'PUT');
@@ -104,8 +120,7 @@ describe('the editor', () => {
     const view = await editorView(label);
 
     act(() => replaceText(view, changed));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled());
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await saveVersion(user);
 
     expect(await screen.findByRole('list', { name: 'Problems in the file' })).toHaveTextContent(
       'You may not see deploy.',
@@ -139,7 +154,7 @@ describe('the editor', () => {
           : json(automationView('a1', 'team', { version: 4, yaml: changed }));
       },
     });
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await saveVersion(user);
 
     const dialog = await screen.findByRole('dialog', { name: 'Someone saved in the meantime' });
     const diff = await within(dialog).findByRole('region', { name: 'Your changes compared with version 3' });
@@ -164,7 +179,7 @@ describe('the editor', () => {
       'PUT /api/v1/automations/a1': () => problem(412, 'The automation changed.'),
     });
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await saveVersion(user);
     await user.click(await screen.findByRole('button', { name: 'Load theirs' }));
 
     await waitFor(() => expect(view.state.doc.toString()).toBe(theirs));
@@ -193,14 +208,36 @@ describe('the editor', () => {
     const view = await editorView(label);
     act(() => replaceText(view, changed));
 
-    await user.click(screen.getByRole('link', { name: 'Overview' }));
+    await user.click(screen.getByRole('link', { name: 'Back to Build' }));
     expect(await screen.findByRole('dialog', { name: 'Leave without saving?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(globalThis.location.pathname).toBe('/automations/a1/edit');
 
-    await user.click(screen.getByRole('link', { name: 'Overview' }));
+    await user.click(screen.getByRole('link', { name: 'Back to Build' }));
     await user.click(await screen.findByRole('button', { name: 'Leave and lose changes' }));
     await waitFor(() => expect(globalThis.location.pathname).toBe('/automations/a1'));
+  });
+
+  it('asks for a message on Ctrl+S, from the canvas too, and saves nothing on Esc', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+    expect(screen.queryByLabelText('Folders')).not.toBeInTheDocument();
+
+    await user.keyboard('{Control>}s{/Control}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    act(() => replaceText(view, changed));
+    screen.getByRole('button', { name: 'Tidy up' }).focus();
+    await user.keyboard('{Control>}s{/Control}');
+    const dialog = await screen.findByRole('dialog', { name: 'Save version 3' });
+    expect(within(dialog).getByText('1 line added, 1 line removed.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('textbox', { name: 'Message' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(requests.some((request) => request.method === 'PUT')).toBe(false);
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
   });
 
   it('only shows the file to viewers', async () => {
@@ -209,7 +246,7 @@ describe('the editor', () => {
     const view = await editorView(label);
 
     expect(view.state.readOnly).toBe(true);
-    expect(screen.getByText(/Changing it needs the Editor role/)).toBeInTheDocument();
+    expect(screen.getByText('Read only: changing it needs the Editor role on its folder.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(validations()).toHaveLength(0);
   });

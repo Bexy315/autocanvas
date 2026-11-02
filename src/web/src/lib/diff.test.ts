@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collapse, lineDiff, withoutLayout } from './diff';
+import { changeSummary, collapse, lineDiff, withoutLayout } from './diff';
 
 function rendered(before: string, after: string): string[] {
   const marks = { added: '+', removed: '-', same: ' ' } as const;
@@ -96,5 +96,20 @@ describe('leaving out the canvas layout', () => {
     );
     expect(text).toContain('concurrency: single');
     expect(text).not.toContain('layout');
+  });
+});
+
+describe('the summary of a change', () => {
+  it.each([
+    ['a\nb\n', 'a\nb\nc\n', '1 line added.'],
+    ['a\nb\n', 'a\n', '1 line removed.'],
+    ['a\nb\n', 'a\nc\nd\n', '2 lines added, 1 line removed.'],
+    [
+      'a: 1\nx-editor:\n  layout: {}\n',
+      'a: 1\nx-editor:\n  layout: {a: {x: 1, y: 2}}\n',
+      'Only the places of cards on the canvas changed.',
+    ],
+  ])('from %j to %j', (before, after, summary) => {
+    expect(changeSummary(before, after)).toBe(summary);
   });
 });

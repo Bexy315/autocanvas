@@ -12,11 +12,15 @@ const emptyGraph: Graph = { triggers: [], jobs: [], edges: [], positions: {} };
 /**
  * The canvas's view of the text being edited. While the text cannot be read (half-typed YAML),
  * the last readable graph stays, marked as stale, so the canvas does not flicker away.
+ *
+ * The canvas follows typing once it pauses, but a text the canvas made itself (`fromCanvas`) at
+ * once: a card dropped somewhere must not jump back to where it was for the length of the pause.
  */
-export function useCanvasGraph(text: string, diagnostics: readonly Diagnostic[]) {
+export function useCanvasGraph(text: string, diagnostics: readonly Diagnostic[], fromCanvas: string | null = null) {
   const settled = useSettled(text, followDelay);
-  const read = useMemo(() => graphFromYaml(settled), [settled]);
-  const lines = useMemo<ReadonlyMap<string, LineRange>>(() => jobLines(settled), [settled]);
+  const source = text === fromCanvas ? text : settled;
+  const read = useMemo(() => graphFromYaml(source), [source]);
+  const lines = useMemo<ReadonlyMap<string, LineRange>>(() => jobLines(source), [source]);
   const [lastReadable, setLastReadable] = useState<Graph>(() => graphFromYaml(text).graph ?? emptyGraph);
   if (read.graph && read.graph !== lastReadable) {
     setLastReadable(read.graph);
