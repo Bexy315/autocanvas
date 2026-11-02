@@ -5,7 +5,7 @@ repository or built visually on a canvas, executed by lightweight runners, with 
 first-class feature.
 
 > **Status: pre-alpha.** Nothing to run yet. The current milestone is
-> [S3 — Web-UI](docs/plans/s3.md).
+> [S3 — Web-UI and Canvas](docs/plans/s3.md).
 
 ## License
 
