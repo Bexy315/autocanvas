@@ -53,7 +53,6 @@ test('a file is edited with checks while typing, completed, saved, and saved aga
   await replaceAll(page, `${start}  deploy:\n    needs: [tset]\n    steps:\n      - run: echo deploy\n`);
   await expect(page.getByRole('list', { name: 'Problems in the file' })).toContainText('tset');
   await expect(page.locator('.cm-lintRange-error').first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
   await snapshot(page, 'editor-1-problem');
 
   // Completion offers the node types for a step's type.
@@ -62,13 +61,16 @@ test('a file is edited with checks while typing, completed, saved, and saved aga
   await snapshot(page, 'editor-2-completion');
   await page.keyboard.press('Escape');
 
-  // A valid file is saved with a message as version 2.
+  // A valid file is saved with a message as version 2: Ctrl+S asks for it, Enter saves.
   await replaceAll(page, fixed);
   await expect(page.getByText('No problems found.')).toBeVisible();
-  await page.getByRole('textbox', { name: 'Message' }).fill('Deploy after the build');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.keyboard.press('ControlOrMeta+s');
+  const saving = page.getByRole('dialog', { name: 'Save version 2' });
+  await saving.getByRole('textbox', { name: 'Message' }).fill('Deploy after the build');
+  await snapshot(page, 'editor-3-save-dialog');
+  await page.keyboard.press('Enter');
   await expect(page.getByText('Saved version 2')).toBeVisible();
-  await snapshot(page, 'editor-3-saved');
+  await snapshot(page, 'editor-4-saved');
 
   // Someone else saves version 3 meanwhile; saving here shows the difference and saves on top.
   await replaceAll(page, `# Deploys after every build.\n${fixed}`);
@@ -78,11 +80,12 @@ test('a file is edited with checks while typing, completed, saved, and saved aga
   });
   expect(other.ok()).toBeTruthy();
   await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('dialog', { name: 'Save version 3' }).getByRole('button', { name: 'Save version' }).click();
   const dialog = page.getByRole('dialog', { name: 'Someone saved in the meantime' });
   await expect(dialog.getByRole('region', { name: 'Your changes compared with version 3' })).toContainText(
     'Deploys after every build',
   );
-  await snapshot(page, 'editor-4-conflict');
+  await snapshot(page, 'editor-5-conflict');
   await dialog.getByRole('button', { name: 'Save mine on top' }).click();
   await expect(page.getByText('Saved version 4')).toBeVisible();
 });

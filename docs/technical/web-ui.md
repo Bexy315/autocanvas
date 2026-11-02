@@ -73,10 +73,19 @@ src/web/
 
 ## The YAML editor
 
-The editor tab (`pages/automation/EditorTab.tsx`) wraps CodeMirror 6 (`editor/YamlEditor.tsx`) and
-is loaded on demand, so the app's first load does not carry it. It keeps the version the edits are
-based on; Save sends its ETag as `If-Match`, and a `412` opens a comparison of the newer version with
-the edited text (`dialogs/ConflictDialog.tsx`).
+The editor (`pages/automation/EditorTab.tsx`) wraps CodeMirror 6 (`editor/YamlEditor.tsx`) and
+is loaded on demand, so the app's first load does not carry it. It has a route of its own outside the
+app shell (`/automations/:id/edit`, `pages/automation/EditorLayout.tsx`) and fills the window: a bar
+with the way back, the view switch, the status and Save; canvas and file below; problems in a bar at
+the bottom that folds away (remembered in `localStorage`). It keeps the version the edits are based
+on; Save sends its ETag as `If-Match`, and a `412` opens a comparison of the newer version with the
+edited text (`dialogs/ConflictDialog.tsx`).
+
+- **Saving** is two steps: Save, and Ctrl+S anywhere on the page (one listener on the window; the
+  file's own key binding marks the event as handled), open `pages/automation/SaveDialog.tsx`, which
+  asks for the message and says how much changed (`changeSummary` in `lib/diff.ts`); Enter saves,
+  Esc does not. A reflexive Ctrl+S after every small change would otherwise leave a trail of
+  versions.
 
 - **Checks** come from the server: `useValidation` sends the text to
   `POST /api/v1/automations/validate` once typing pauses for 400 ms, cancels a check that is still
@@ -96,9 +105,8 @@ leave the libraries cached.
 
 ## The canvas
 
-The canvas (`canvas/`) shows the file being edited as a graph, next to the YAML or alone; it reads
-the file and never writes it (S3 step 5b adds editing). Its logic is harvested from the origin's
-editor and rewritten for format v1.
+The canvas (`canvas/`) shows the file being edited as a graph, next to the YAML or alone, and lets
+editors change it. Its logic is harvested from the origin's editor and rewritten for format v1.
 
 - **Model** (`canvas/model.ts`): `graphFromYaml` reads the text with the `yaml` package into the
   trigger summary, one card per job (steps, switch cases, hints such as services, retry, limits),
@@ -108,7 +116,8 @@ editor and rewritten for format v1.
   the card instead of dropped.
 - **Layout** (`canvas/layout.ts`): positions saved in `x-editor.layout` stay; cards without one are
   placed by dagre, top to bottom; finally jobs are kept below the rest.
-- **Following the text**: the canvas reads the text 150 ms after typing stops. While the text cannot
+- **Following the text**: the canvas reads the text 150 ms after typing stops, but a text the
+  canvas made itself at once (otherwise a dropped card would jump back for the pause). While the text cannot
   be read, the last readable graph stays, dimmed, with a note. `canvas/lines.ts` knows which lines
   each job takes, from the YAML document's node ranges: choosing a card puts the cursor on its job
   without taking the focus, and the job the cursor is in is selected on the canvas. The canvas
@@ -117,6 +126,21 @@ editor and rewritten for format v1.
   problems it has; cards are in reading order for Tab, and Enter or Space shows the job in the
   file. The **List** view shows the same structure as text. Colors of lines are repeated as labels
   (`on failure`, `always`, case names).
+- **Editing** (editors, while the file can be read): the canvas reports intents (move, add,
+  connect, disconnect, remove, undo, redo); `canvas/operations.ts` turns each into a new text, and
+  the editor tab hands that to CodeMirror as the smallest change (`editor/smallestChange.ts`), so
+  there is one undo history for typing and canvas. Operations always start from the editor's
+  current text, as React Flow can report two in one event (a card and its lines deleted). Before
+  the first change, every card without a saved place gets the place it is shown at
+  (`pinUnplaced`), so nothing jumps as the graph changes. The size React Flow measured for each
+  card is handed back with the cards: they are built anew on every change, and React Flow hides a
+  card without a size (and its lines) until it has measured it again, which flickered while
+  dragging.
+- **Changing the text** (`canvas/yamlEdit.ts`): `setIn`, `deleteIn`, `appendItem` and `removeItem`
+  splice the text at the ranges of the parsed YAML document and render new values in the file's
+  style, instead of writing the whole document, which would normalise unrelated lines. Each result
+  is parsed again and compared (ignoring key order) with the same change on the document; when it
+  differs, the whole document is written as a last resort and the change is marked `rewritten`.
 - **Look**: the cards and React Flow's controls use the design tokens (`canvas/canvas.css`), so the
   canvas follows light and dark.
 

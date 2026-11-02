@@ -1,8 +1,7 @@
 import { Download, FolderInput, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Outlet, useMatch, useNavigate, useParams } from 'react-router';
-import { downloadUrl, useAutomation, useDeleteAutomation, useMoveAutomation } from '../../api/automations';
-import { useFolder } from '../../api/folders';
+import { Outlet, useNavigate, useParams } from 'react-router';
+import { downloadUrl, useDeleteAutomation, useMoveAutomation } from '../../api/automations';
 import { RenameAutomationDialog } from '../../dialogs/AutomationDialogs';
 import { ConfirmDialog } from '../../dialogs/ConfirmDialog';
 import { MoveDialog } from '../../dialogs/MoveDialog';
@@ -16,34 +15,27 @@ import { Loading } from '../../ui/Spinner';
 import { TabLinks } from '../../ui/Tabs';
 import { folderPageInfo } from '../folderPageInfo';
 import type { AutomationContext } from './context';
+import { useAutomationPage } from './useAutomationPage';
 
 type Open = 'rename' | 'move' | 'delete' | null;
 
 /** An automation's page: its title, actions and tabs; the tabs get the automation as outlet context. */
 export function AutomationLayout() {
   const { id = '' } = useParams();
-  const automation = useAutomation(id);
-  const folderId = automation.data?.data.folderId ?? '';
-  const folder = useFolder(folderId);
-  const ready = automation.data && folder.data;
-  usePageInfo(ready ? folderPageInfo(folder.data.data, automation.data.data.title) : null);
+  const { context, failed, error } = useAutomationPage(id);
+  usePageInfo(context ? folderPageInfo(context.folder, context.automation.title) : null);
 
-  if (automation.isError || folder.isError) {
+  if (failed) {
     return (
       <div className="mx-auto max-w-5xl p-6">
-        <ErrorAlert error={automation.error ?? folder.error} title="The automation could not be loaded" />
+        <ErrorAlert error={error} title="The automation could not be loaded" />
       </div>
     );
   }
-  if (!ready) {
+  if (!context) {
     return <Loading label="Loading the automation…" />;
   }
-  return (
-    <AutomationPage
-      key={id}
-      context={{ automation: automation.data.data, tag: automation.data.tag, folder: folder.data.data }}
-    />
-  );
+  return <AutomationPage key={id} context={context} />;
 }
 
 function AutomationPage({ context }: { context: AutomationContext }) {
@@ -52,8 +44,6 @@ function AutomationPage({ context }: { context: AutomationContext }) {
   const navigate = useNavigate();
   const move = useMoveAutomation(automation.id);
   const remove = useDeleteAutomation(automation.id);
-  // The editor shows the canvas and the file side by side, so it takes the whole width.
-  const wide = useMatch('/automations/:id/edit') !== null;
   const editor = hasRole(automation.myRole, 'Editor');
   const dialog = (name: Open) => (next: boolean) => {
     if (!next) {
@@ -72,7 +62,7 @@ function AutomationPage({ context }: { context: AutomationContext }) {
     : [];
 
   return (
-    <div className={`mx-auto flex flex-col gap-5 p-6 ${wide ? 'max-w-none' : 'max-w-5xl'}`}>
+    <div className="mx-auto flex max-w-5xl flex-col gap-5 p-6">
       <PageHeader
         title={automation.title}
         badges={<Badge tone="accent">Version {automation.currentVersion}</Badge>}

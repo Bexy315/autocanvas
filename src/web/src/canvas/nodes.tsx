@@ -39,7 +39,10 @@ function Header({ icon, title, problems }: { icon: ReactNode; title: string; pro
   );
 }
 
-const target = <Handle type="target" position={Position.Top} isConnectable={false} className="canvas-handle" />;
+/** The input at the top; lines end here when an editor connects jobs. */
+function Target({ editable }: { editable: boolean | undefined }) {
+  return <Handle type="target" position={Position.Top} isConnectable={editable === true} className="canvas-handle" />;
+}
 
 export function TriggerNode({ data, selected }: NodeProps) {
   const { triggers } = data as TriggerNodeData;
@@ -59,11 +62,11 @@ export function TriggerNode({ data, selected }: NodeProps) {
 }
 
 export function JobNode({ data, selected }: NodeProps) {
-  const { job, problemCount } = data as JobNodeData;
+  const { job, problemCount, editable } = data as JobNodeData;
   const problems = problemCount + job.problems.length;
   return (
     <div className={frame(selected, problems, clsx('w-65', job.isFinally && 'border-dashed'))}>
-      {target}
+      <Target editable={editable} />
       <Header
         icon={job.isFinally ? <Play aria-hidden="true" size={14} /> : <SquareTerminal aria-hidden="true" size={14} />}
         title={job.title}
@@ -111,7 +114,7 @@ export function JobNode({ data, selected }: NodeProps) {
             id={output.id}
             type="source"
             position={Position.Bottom}
-            isConnectable={false}
+            isConnectable={editable === true}
             title={output.title}
             className="canvas-handle"
             style={{ left: `${30 + index * 20}%`, background: output.color }}
@@ -125,11 +128,11 @@ export function JobNode({ data, selected }: NodeProps) {
 }
 
 export function SwitchNode({ data, selected }: NodeProps) {
-  const { job, problemCount } = data as JobNodeData;
+  const { job, problemCount, editable } = data as JobNodeData;
   const problems = problemCount + job.problems.length;
   return (
     <div className={frame(selected, problems, 'w-65')}>
-      {target}
+      <Target editable={editable} />
       <Header icon={<GitBranch aria-hidden="true" size={14} />} title={job.title} problems={problems} />
       <p className="truncate border-b border-line px-3 py-1.5 font-mono text-[11px] text-muted">{job.expression}</p>
       <div className="flex justify-around gap-1 px-2 pt-1.5 pb-3 text-[11px]">
@@ -151,7 +154,7 @@ export function SwitchNode({ data, selected }: NodeProps) {
           id={entry.name}
           type="source"
           position={Position.Bottom}
-          isConnectable={false}
+          isConnectable={editable === true}
           title={`case ${entry.name}`}
           className="canvas-handle"
           style={{ left: `${((index + 0.5) / job.cases.length) * 100}%`, background: 'var(--color-accent)' }}
@@ -162,11 +165,11 @@ export function SwitchNode({ data, selected }: NodeProps) {
 }
 
 export function JoinNode({ data, selected }: NodeProps) {
-  const { job, problemCount } = data as JobNodeData;
+  const { job, problemCount, editable } = data as JobNodeData;
   const problems = problemCount + job.problems.length;
   return (
     <div className={frame(selected, problems, 'w-45')}>
-      {target}
+      <Target editable={editable} />
       <div className="flex items-center gap-2 px-3 py-2.5">
         <Merge aria-hidden="true" size={14} className="text-muted" />
         <span className="truncate font-medium">{job.title}</span>
@@ -176,7 +179,7 @@ export function JoinNode({ data, selected }: NodeProps) {
         id="success"
         type="source"
         position={Position.Bottom}
-        isConnectable={false}
+        isConnectable={editable === true}
         className="canvas-handle"
         style={{ background: 'var(--color-ok)' }}
       />

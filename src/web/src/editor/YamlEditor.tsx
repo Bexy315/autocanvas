@@ -1,5 +1,5 @@
 import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, indentWithTab, redo, undo } from '@codemirror/commands';
 import { yaml } from '@codemirror/lang-yaml';
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting } from '@codemirror/language';
 import { lintGutter, lintKeymap, setDiagnostics } from '@codemirror/lint';
@@ -17,12 +17,22 @@ import { useEffect, useImperativeHandle, useLayoutEffect, useRef, type Ref } fro
 import type { Diagnostic } from '../api/problem';
 import { offsetOf, toEditorDiagnostics } from './diagnostics';
 import { editorTheme, yamlHighlight } from './editorTheme';
+import { smallestChange } from './smallestChange';
 
 export interface YamlEditorHandle {
   /** Moves the cursor to a line and column (1-based) and focuses the editor. */
   focusAt: (line: number | string | null | undefined, column: number | string | null | undefined) => void;
   /** Puts the cursor at the start of a line and scrolls it into view, leaving the focus where it is. */
   revealLine: (line: number) => void;
+  /**
+   * Replaces the text with `text`, changing only the part that differs, as one step of the undo
+   * history: how changes made on the canvas reach the file.
+   */
+  apply: (text: string) => void;
+  undo: () => void;
+  redo: () => void;
+  /** The text as it is now, also before React has seen the latest change. */
+  text: () => string;
 }
 
 export interface YamlEditorProps {
@@ -170,6 +180,23 @@ export function YamlEditor({
       }
       const at = offsetOf(current.state.doc, line, 1);
       current.dispatch({ selection: { anchor: at }, effects: EditorView.scrollIntoView(at, { y: 'center' }) });
+    },
+    apply: (text) => {
+      const current = view.current;
+      if (current) {
+        current.dispatch({ changes: smallestChange(current.state.doc.toString(), text), userEvent: 'input.canvas' });
+      }
+    },
+    text: () => view.current?.state.doc.toString() ?? value,
+    undo: () => {
+      if (view.current) {
+        undo(view.current);
+      }
+    },
+    redo: () => {
+      if (view.current) {
+        redo(view.current);
+      }
     },
   }));
 

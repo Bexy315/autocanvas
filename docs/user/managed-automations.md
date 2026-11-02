@@ -74,21 +74,36 @@ changed from the one before, with unchanged lines collapsed and canvas positions
 out, or its full file. **Restore** saves an old version's file as the newest version. The menu
 next to **Download** renames, moves and deletes the automation; it is there for editors only.
 
-**Editor** shows the automation as a graph on the canvas next to its file. The buttons
+**Editor** opens the automation's editor, which fills the whole window: the app's sidebar and the
+folder tree make room for it, and the arrow next to the automation's name leads back. It shows the
+automation as a graph on the canvas next to its file. The buttons
 **Canvas**, **Split** and **YAML** show either one or both; drag the line between them, or move it
 with the arrow keys, to share the width differently. The canvas draws the trigger, a card per job
 with its steps, and the lines between them: green when a job waits for success, red for failure,
 grey for always, violet for a switch's case, dashed into a `finally` job. It follows the file as you
 type; while the file cannot be read, it keeps the last readable state and says so. Choosing a card
 shows its job in the file, and the job your cursor is in is highlighted on the canvas. **List**
-shows the same as text. On the canvas you read for now; editing on it comes next.
+shows the same as text.
+
+Editors build on the canvas too. The bar above it adds a **Job**, **Switch**, **Join** or **Finally**
+job, or a job with a step of a node type such as `http_request`: drag an entry to a place, or choose
+it to add it in the middle. Drag a line from the bottom of a card (green on success, red on failure,
+grey either way, or a switch's case) to the top of another to make it wait; choose a line or card and
+press Delete to remove it, and Shift-click or Shift-drag to choose several. Drag cards, or move a
+chosen one with the arrow keys; **Tidy up** arranges them all. Every change lands in the YAML at once,
+changing only the lines it must: your comments, blank lines and formatting stay. **Undo** and
+**Redo** (Ctrl+Z, Ctrl+Y) go back and forth through canvas changes and typing alike. Connecting jobs
+needs a mouse for now; with the keyboard, add `needs` in the YAML.
 
 The file is edited in a YAML editor. While you type, the server checks the file exactly
 as a save would, including node types and triggers; problems are underlined in the file and listed
-below it with their [code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
+under **Problems** at the bottom of the window (which you can fold away) with their
+[code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
 the keys allowed where the cursor is, the node types for a step's `type`, a node type's inputs
-under `with`, and fixed values such as `concurrency: single`. **Save** (or Ctrl+S) stores a new
-version with an optional message; it is offered once the file has changes and no errors.
+under `with`, and fixed values such as `concurrency: single`. **Save** (or Ctrl+S, also on the canvas)
+asks for an optional message and says how much changed; Enter in that dialog stores the new version,
+Esc goes back without saving. So pressing Ctrl+S out of habit does not create a version each time.
+Saving needs a file without errors.
 **Discard** returns to the saved version, and leaving the page with unsaved changes asks first.
 People with the Viewer role see the file in the editor without changing it.
 
