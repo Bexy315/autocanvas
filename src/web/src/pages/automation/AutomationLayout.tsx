@@ -96,6 +96,7 @@ function AutomationPage({ context }: { context: AutomationContext }) {
         label="Automation"
         tabs={[
           { to: `/automations/${automation.id}`, label: 'Overview', end: true },
+          { to: `/automations/${automation.id}/edit`, label: 'Editor' },
           { to: `/automations/${automation.id}/versions`, label: 'Versions' },
         ]}
       />

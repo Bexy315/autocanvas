@@ -197,6 +197,42 @@ public sealed class AutomationService
         return await SaveChangesAsync(actor, id, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Checks a file as saving it in <paramref name="folderId"/> would, without saving anything:
+    /// the file itself, the node types, and the triggers (an <c>automation_completed</c> target must
+    /// exist and be visible to the actor). Needs Viewer on the folder; <paramref name="automationId"/>,
+    /// when given, is the automation being edited, which must be in that folder.
+    /// </summary>
+    public async Task<UseCaseResult<AutomationValidationView>> ValidateAsync(Actor actor, Guid folderId, Guid? automationId, string? yaml, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        var folder = await access.RequireAsync(actor, folderId, FolderRole.Viewer, track: false, cancellationToken).ConfigureAwait(false);
+        if (folder.Error is { } denied)
+        {
+            return UseCase.Failure<AutomationValidationView>(denied);
+        }
+
+        if (automationId is { } id && !await database.Automations.AnyAsync(a => a.Id == id && a.FolderId == folderId, cancellationToken).ConfigureAwait(false))
+        {
+            return UseCase.Failure<AutomationValidationView>(AutomationNotFound);
+        }
+
+        var loaded = AutomationLoader.Load(yaml ?? string.Empty, BuiltInNodeTypes.All);
+        var diagnostics = loaded.Diagnostics.ToList();
+        if (loaded.Definition is { } definition)
+        {
+            var (_, problems) = await triggers.PrepareAsync(actor, folderId, automationId, definition.Triggers, cancellationToken).ConfigureAwait(false);
+            diagnostics.AddRange(problems);
+        }
+
+        var views = diagnostics
+            .Select(DiagnosticView.From)
+            .OrderBy(d => d.Line ?? 0)
+            .ThenBy(d => d.Column ?? 0)
+            .ToList();
+        return UseCase.Success(new AutomationValidationView(views.TrueForAll(d => d.Severity != DiagnosticSeverity.Error), views));
+    }
+
     /// <summary>Changes the automation's key in its folder (Editor). The content keeps its versions.</summary>
     public async Task<UseCaseResult<AutomationView>> RenameAsync(Actor actor, Guid id, string name, int? expectedVersion, CancellationToken cancellationToken)
     {

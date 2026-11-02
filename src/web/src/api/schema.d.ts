@@ -24,6 +24,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/node-types': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the node types
+     * @description Every node type a step can use with `type:`, with the inputs it takes under `with` and the outputs it sets. Files using any other type are refused.
+     */
+    get: operations['ListNodeTypes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/audit': {
     parameters: {
       query?: never;
@@ -615,6 +635,26 @@ export interface paths {
      * @description Saves the file as version 1. Needs Editor on the folder. An invalid file is refused with every problem in `diagnostics`.
      */
     post: operations['CreateAutomation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/automations/validate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Check an automation file without saving it
+     * @description Runs the checks a save runs, in the given folder: the file, its node types and its triggers. Answers 200 with every error and warning, also when the file is invalid; `valid` says whether a save would accept it. Needs Viewer on the folder.
+     */
+    post: operations['ValidateAutomation'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1428,6 +1468,13 @@ export interface components {
       schedules: components['schemas']['ScheduleView'][];
       follows: null | components['schemas']['CompletionView'];
     };
+    /** @description What checking a file without saving it found. */
+    AutomationValidationView: {
+      /** @description Whether saving it would be accepted: no errors, only warnings if any. */
+      valid: boolean;
+      /** @description Every error and warning, in the order they appear in the file. */
+      diagnostics: components['schemas']['DiagnosticView'][];
+    };
     /** @description A saved version as listed in the history. */
     AutomationVersionSummary: {
       /**
@@ -2078,6 +2125,42 @@ export interface components {
        * @description The new parent (needs Editor there), or null for the top level (needs Owner of the folder).
        */
       parentId: null | string;
+    };
+    /**
+     * @description What a node input takes. Any input may instead be an expression, checked when it runs.
+     * @enum {unknown}
+     */
+    NodeInputKind: 'Text' | 'WholeNumber' | 'Boolean' | 'TextList' | 'TextMap';
+    /** @description One key a node type takes under `with`. */
+    NodeInputView: {
+      /** @description The key. */
+      name: string;
+      /** @description What it takes; any input may instead be an expression. */
+      kind: components['schemas']['NodeInputKind'];
+      /** @description Whether a step must give it. */
+      required: boolean;
+      /** @description What it means. */
+      description: string;
+      /** @description The values a text input may have, when there are few; empty for any. */
+      choices: string[];
+    };
+    /** @description An output a step of a node type sets, readable as `steps.ID.outputs.NAME`. */
+    NodeOutputView: {
+      /** @description The output's name. */
+      name: string;
+      /** @description What it holds. */
+      description: string;
+    };
+    /** @description A node type a step can use with `type:`, for editors and documentation. */
+    NodeTypeView: {
+      /** @description The value of `type`, such as `http_request`. */
+      name: string;
+      /** @description What it does. */
+      description: string;
+      /** @description The keys it takes under `with`, required ones first. */
+      inputs: components['schemas']['NodeInputView'][];
+      /** @description The outputs a step of this type sets, by name. */
+      outputs: components['schemas']['NodeOutputView'][];
     };
     /** @description One page of a list. */
     PageOfAuditEventView: {
@@ -2836,6 +2919,21 @@ export interface components {
        */
       lastSignInAt: null | string;
     };
+    /** @description A file to check without saving it. */
+    ValidateAutomationRequest: {
+      /** @description The whole automation file. */
+      yaml: string;
+      /**
+       * Format: uuid
+       * @description The folder it would be saved in; its triggers are checked from there.
+       */
+      folderId: string;
+      /**
+       * Format: uuid
+       * @description The automation being edited, if any; it must be in that folder.
+       */
+      automationId?: null | string;
+    };
     /** @description A variable as listed in its scope. */
     VariableView: {
       /** @description The name as written. */
@@ -2904,6 +3002,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ServerInfo'];
+        };
+      };
+    };
+  };
+  ListNodeTypes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NodeTypeView'][];
         };
       };
     };
@@ -4519,6 +4637,48 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ValidateAutomation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ValidateAutomationRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AutomationValidationView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };

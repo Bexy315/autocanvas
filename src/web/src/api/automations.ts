@@ -140,3 +140,23 @@ export function useDeleteAutomation(id: string) {
 export function downloadUrl(id: string): string {
   return `/api/v1/automations/${encodeURIComponent(id)}/yaml`;
 }
+
+export type NodeTypeView = components['schemas']['NodeTypeView'];
+export type ValidationView = components['schemas']['AutomationValidationView'];
+
+/** The node types steps may use; the catalog does not change while the server runs. */
+export function useNodeTypes() {
+  return useQuery({
+    queryKey: ['node-types'],
+    queryFn: () => unwrap(api.GET('/api/v1/node-types')),
+    staleTime: Infinity,
+  });
+}
+
+/** Checks a file as saving it in the folder would, without saving it. */
+export function validateAutomation(
+  body: { yaml: string; folderId: string; automationId?: string | null },
+  signal?: AbortSignal,
+): Promise<ValidationView> {
+  return unwrap(api.POST('/api/v1/automations/validate', { body, ...(signal ? { signal } : {}) }));
+}

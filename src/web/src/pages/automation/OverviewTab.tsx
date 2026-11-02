@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useRecentRuns, useTriggers, type AutomationTriggers } from '../../api/automations';
 import type { Diagnostic } from '../../api/problem';
+import { hasRole } from '../../lib/roles';
 import { ErrorAlert } from '../../ui/Alert';
 import { RunStateBadge } from '../../ui/Badge';
 import { DiagnosticList } from '../../ui/DiagnosticList';
@@ -35,7 +37,14 @@ export function OverviewTab() {
         <Triggers id={automation.id} />
         <RecentRuns id={automation.id} />
       </div>
-      <Section title="File">
+      <Section
+        title="File"
+        actions={
+          <Link to={`/automations/${automation.id}/edit`} className="text-sm font-medium text-accent hover:underline">
+            {hasRole(automation.myRole, 'Editor') ? 'Edit' : 'Open in editor'}
+          </Link>
+        }
+      >
         <YamlView text={automation.yaml} label={`File of ${automation.title}`} />
       </Section>
     </div>

@@ -8,6 +8,8 @@ FROM node:24-alpine AS web
 WORKDIR /src
 COPY build/allowed-licenses.json build/
 COPY openapi/ openapi/
+# The editor completes keys and values from the automation schema.
+COPY schema/ schema/
 COPY src/web/package.json src/web/package-lock.json src/web/.npmrc src/web/
 RUN cd src/web && npm ci --no-audit --no-fund
 COPY src/web/ src/web/

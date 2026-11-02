@@ -10,9 +10,9 @@ go back. The content is an ordinary [automation file](automations.md).
 
 :::note Status
 
-Managed automations can be created, organized, read and compared in the web UI and through the
-HTTP API. Editing them in the web UI (YAML and canvas) and running them from it come with the next
-steps of S3.
+Managed automations can be created, organized, read, compared and edited as YAML in the web UI
+and through the HTTP API. Editing them on the canvas and running them from the web UI come with the
+next steps of S3.
 
 :::
 
@@ -44,6 +44,11 @@ lists is the `name:` from the file, or the name when the file has none; the desc
   [code](diagnostics.md), the place in the document and the line and column. So every stored
   version can run. Warnings do not stop a save; they come back with the automation.
 - Saving a file identical to the current version is refused — nothing would change.
+
+`POST /api/v1/automations/validate` runs the checks of a save in the given folder (Viewer is
+enough) and always answers 200 with every problem, so editors and scripts can check a file before
+saving it; pass `automationId` when the file is an existing automation's, so it is not reported as
+following itself.
 - To **restore** an old version, read it and save its file again. It becomes the newest version;
   the history in between stays.
 - Renaming and moving do not create a version.
@@ -69,8 +74,19 @@ changed from the one before, with unchanged lines collapsed and canvas positions
 out, or its full file. **Restore** saves an old version's file as the newest version. The menu
 next to **Download** renames, moves and deletes the automation; it is there for editors only.
 
-If someone else changed an automation or a folder while you had it open, your change is refused
-instead of overwriting theirs: the page shows their version, and you can try again.
+**Editor** opens the file in a YAML editor. While you type, the server checks the file exactly
+as a save would, including node types and triggers; problems are underlined in the file and listed
+below it with their [code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
+the keys allowed where the cursor is, the node types for a step's `type`, a node type's inputs
+under `with`, and fixed values such as `concurrency: single`. **Save** (or Ctrl+S) stores a new
+version with an optional message; it is offered once the file has changes and no errors.
+**Discard** returns to the saved version, and leaving the page with unsaved changes asks first.
+People with the Viewer role see the file in the editor without changing it.
+
+If someone else saved the automation while you were editing, your save is not applied over theirs.
+Instead the editor shows what your file changes compared with their version, and you choose: save
+yours on top as the next version, or load theirs and drop your changes. A folder changed by someone
+else in the meantime is refused the same way, and the page shows its current state.
 
 ## Using the API
 
@@ -88,6 +104,7 @@ The endpoints are described in the API reference (`/openapi/v1.json` on every se
 | `DELETE /api/v1/automations/{id}` | delete with all versions |
 | `GET /api/v1/automations/{id}/versions` | the history, newest first |
 | `GET /api/v1/automations/{id}/versions/{number}` | one version with its file |
+| `POST /api/v1/automations/validate` | check a file without saving it: `{"yaml", "folderId", "automationId"}`, answers `{"valid", "diagnostics"}` |
 
 The `ETag` of an automation is its version number. Send it back as `If-Match` when saving, and the
 server refuses the save (412) if someone else saved in the meantime instead of overwriting their

@@ -52,6 +52,11 @@ export const routes: RouteObject[] = [
                 element: <AutomationLayout />,
                 children: [
                   { index: true, element: <OverviewTab /> },
+                  {
+                    path: 'edit',
+                    // The editor (CodeMirror) loads when it is first opened, not with the app.
+                    lazy: async () => ({ Component: (await import('../pages/automation/EditorTab')).EditorTab }),
+                  },
                   { path: 'versions', element: <VersionsTab /> },
                   { path: 'versions/:number', element: <VersionsTab /> },
                 ],
