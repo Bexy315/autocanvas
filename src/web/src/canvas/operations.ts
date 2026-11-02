@@ -3,11 +3,21 @@
  * changed only where it must be (yamlEdit), so the YAML stays the single source of truth and a
  * canvas change is one step in the editor's undo history like typing is.
  */
-import { parseDocument } from 'yaml';
+import { isMap, isScalar, isSeq, parseDocument } from 'yaml';
 import type { components } from '../api/schema';
 import { layOut, type Positions } from './layout';
 import { graphFromYaml, triggerId } from './model';
-import { appendItem, deleteIn, removeItem, setIn, type EditResult } from './yamlEdit';
+import {
+  appendItem,
+  deleteIn,
+  insertItem,
+  moveItem,
+  removeItem,
+  renameKey,
+  setIn,
+  type EditResult,
+  type Path,
+} from './yamlEdit';
 
 export type NodeTypeView = components['schemas']['NodeTypeView'];
 
@@ -54,15 +64,20 @@ export function newJobId(existing: Readonly<Mapping>, base: string): string {
 
 const runner = { runs_on: 'linux', image: 'alpine:3.22' };
 
+/** A step of a node type, with its required inputs left empty for the panel to fill. */
+function nodeStep(nodeType: NodeTypeView): Mapping {
+  const required = nodeType.inputs.filter((input) => input.required);
+  const step: Mapping = { type: nodeType.name };
+  if (required.length > 0) {
+    step['with'] = Object.fromEntries(required.map((input) => [input.name, '']));
+  }
+  return step;
+}
+
 /** The job a palette entry adds; a node type's required inputs are left empty for the panel to fill. */
 function template(kind: NewJobKind): { base: string; job: Mapping } {
   if (typeof kind === 'object') {
-    const required = kind.nodeType.inputs.filter((input) => input.required);
-    const step: Mapping = { type: kind.nodeType.name };
-    if (required.length > 0) {
-      step['with'] = Object.fromEntries(required.map((input) => [input.name, '']));
-    }
-    return { base: kind.nodeType.name.replaceAll('_', '-'), job: { ...runner, steps: [step] } };
+    return { base: kind.nodeType.name.replaceAll('_', '-'), job: { ...runner, steps: [nodeStep(kind.nodeType)] } };
   }
   switch (kind) {
     case 'switch':
@@ -96,6 +111,10 @@ class Edits {
 
   constructor(text: string) {
     this.text = text;
+  }
+
+  get current(): string {
+    return this.text;
   }
 
   run(edit: (current: string) => EditResult): this {
@@ -266,4 +285,297 @@ export function pinUnplaced(text: string): string {
   const shown = layOut(read.graph);
   const unplaced = Object.fromEntries(Object.entries(shown).filter(([id]) => !(id in (read.graph?.positions ?? {}))));
   return Object.keys(unplaced).length === 0 ? text : movePositions(text, unplaced).text;
+}
+
+const orders = {
+  file: [
+    'version',
+    'name',
+    'description',
+    'triggers',
+    'variables',
+    'timeout_minutes',
+    'concurrency',
+    'changed_when',
+    'jobs',
+    'x-editor',
+  ],
+  triggers: ['manual', 'webhook', 'push', 'schedule', 'automation_completed'],
+  job: [
+    'name',
+    'needs',
+    'if',
+    'type',
+    'finally',
+    'on_cancel',
+    'runs_on',
+    'image',
+    'checkout',
+    'env',
+    'services',
+    'expression',
+    'cases',
+    'steps',
+    'outputs',
+    'reports',
+    'timeout_minutes',
+    'retry',
+  ],
+  step: [
+    'name',
+    'id',
+    'if',
+    'run',
+    'type',
+    'shell',
+    'working_directory',
+    'with',
+    'env',
+    'continue_on_error',
+    'timeout_minutes',
+    'outputs',
+  ],
+  retry: ['max_attempts', 'delay_seconds'],
+  service: ['preset', 'version', 'image', 'env', 'ready'],
+  checkout: ['repository', 'ref', 'path', 'depth'],
+  report: ['format', 'path', 'name'],
+  schedule: ['cron', 'timezone', 'interval'],
+  push: ['branches', 'tags', 'paths'],
+  completed: ['automation', 'on'],
+} as const;
+
+/** The usual order of keys in the mapping at `path`, as the schema and its examples write them. */
+export function keyOrder(path: Path): readonly string[] | undefined {
+  const [first, , third, fourth] = path;
+  if (path.length === 0) {
+    return orders.file;
+  }
+  if (first === 'triggers') {
+    return path.length === 1
+      ? orders.triggers
+      : { push: orders.push, schedule: orders.schedule, automation_completed: orders.completed }[String(path[1])];
+  }
+  if (first !== 'jobs') {
+    return undefined;
+  }
+  if (path.length === 2) {
+    return orders.job;
+  }
+  if (path.length === 3 && third === 'retry') {
+    return orders.retry;
+  }
+  if (path.length === 4 && typeof fourth === 'number') {
+    return { steps: orders.step, checkout: orders.checkout, reports: orders.report }[String(third)];
+  }
+  return path.length === 4 && third === 'services' ? orders.service : undefined;
+}
+
+/** Nothing to write: such a value removes its key instead. */
+function isEmpty(value: unknown): boolean {
+  if (value === undefined || value === null || value === '') {
+    return true;
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  return typeof value === 'object' && Object.keys(value).length === 0;
+}
+
+const isScalarValue = (value: unknown) => value === null || typeof value !== 'object';
+
+/**
+ * Sets one value from the panel, in the style the file already has: a list or mapping written in
+ * flow style stays so, and a new list of plain values is written as `[a, b]`. An empty value removes
+ * the key, and mappings it leaves empty go too (`with: {}` after its last input), up to the job.
+ */
+export function setField(text: string, path: Path, value: unknown, summary: string): Change | null {
+  const document = parseDocument(text);
+  const edits = new Edits(text);
+  const parentNode = document.getIn(path.slice(0, -1), true);
+  // A list item keeps its last key, empty, rather than becoming `{}`: a script cleared to be typed
+  // anew stays `run: ""` until the first character.
+  const lastOfItem =
+    typeof path.at(-2) === 'number' && isMap(parentNode) && parentNode.items.length === 1 && typeof value === 'string';
+  if (isEmpty(value) && !lastOfItem) {
+    if (!document.hasIn([...path])) {
+      return null;
+    }
+    edits.run((current) => deleteIn(current, path));
+    // Up through mappings left empty; never past a job or a list item.
+    const floor = path[0] === 'jobs' ? 2 : 0;
+    let parent = path.slice(0, -1);
+    while (parent.length > floor && typeof parent.at(-1) === 'string') {
+      const above = parent;
+      const node = parseDocument(edits.current).getIn([...above], true);
+      if (!isMap(node) || node.items.length > 0) {
+        break;
+      }
+      edits.run((current) => deleteIn(current, above));
+      parent = parent.slice(0, -1);
+    }
+  } else {
+    const existing = document.getIn([...path], true);
+    const flow =
+      isMap(existing) || isSeq(existing) ? existing.flow === true : Array.isArray(value) && value.every(isScalarValue);
+    if (isScalar(existing) && existing.value === value) {
+      return null;
+    }
+    edits.run((current) => setIn(current, path, value, { flow, order: keyOrder }));
+  }
+  const change = edits.done(summary);
+  return change.text === text ? null : change;
+}
+
+/** What a step added in the panel starts as. */
+export type NewStepKind = 'script' | { nodeType: NodeTypeView };
+
+/** Adds a step at the end of a job. */
+export function addStep(text: string, job: string, kind: NewStepKind): Change {
+  const step = kind === 'script' ? { run: 'echo "Hello"' } : nodeStep(kind.nodeType);
+  return new Edits(text)
+    .run((current) => appendItem(current, ['jobs', job, 'steps'], step))
+    .done(`Added a ${kind === 'script' ? 'script' : kind.nodeType.name} step to ${job}`);
+}
+
+export function moveStep(text: string, job: string, from: number, to: number): Change | null {
+  const change = new Edits(text)
+    .run((current) => moveItem(current, ['jobs', job, 'steps'], from, to))
+    .done(`Moved step ${from + 1} of ${job} to place ${to + 1}`);
+  return change.text === text ? null : change;
+}
+
+export function removeStep(text: string, job: string, index: number): Change | null {
+  const change = new Edits(text)
+    .run((current) => removeItem(current, ['jobs', job, 'steps'], index))
+    .done(`Deleted step ${index + 1} of ${job}`);
+  return change.text === text ? null : change;
+}
+
+/**
+ * Replaces what a job waits for: the keyboard's way to connect jobs. Written like lines drawn on
+ * the canvas (a name for success, `{job, on}` or `{job, case}` otherwise), first in the job.
+ */
+export function setNeeds(text: string, job: string, needs: readonly unknown[]): Change | null {
+  const normal = needs.map((entry) => {
+    if (typeof entry === 'string') {
+      return entry;
+    }
+    const { job: source, on, case: name } = entry as Mapping;
+    if (typeof name === 'string' && name !== '') {
+      return { job: source, case: name };
+    }
+    return on === 'failure' || on === 'always' ? { job: source, on } : source;
+  });
+  if (normal.length === 0) {
+    return setField(text, ['jobs', job, 'needs'], [], `${job} no longer waits for other jobs`);
+  }
+  const existing = parseDocument(text).getIn(['jobs', job, 'needs'], true);
+  const change = new Edits(text)
+    .run((current) =>
+      setIn(current, ['jobs', job, 'needs'], normal, { flow: !isSeq(existing) || existing.flow === true, first: true }),
+    )
+    .done(`Changed what ${job} waits for`);
+  return change.text === text ? null : change;
+}
+
+const identifier = /^[a-z][a-z0-9_-]{0,62}$/;
+
+/** Why a job cannot get the id `next`, or null when it can. */
+export function renameProblem(text: string, old: string, next: string): string | null {
+  if (next === old) {
+    return null;
+  }
+  if (!identifier.test(next)) {
+    return "An id starts with a lower-case letter, followed by lower-case letters, digits, '_' or '-'.";
+  }
+  return next in jobsOf(text) ? `There is a job ${next} already.` : null;
+}
+
+const escaped = (value: string) => value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+/** `jobs.OLD` in an expression's text, where OLD is the whole id. */
+function referenceTo(id: string): RegExp {
+  return new RegExp(String.raw`(?<![\w.-])jobs\.${escaped(id)}(?![\w-])`, 'g');
+}
+
+/** Points expressions at the new id: inside `${{ }}`, and in `if:`, where the braces are optional. */
+function renameInExpressions(text: string, old: string, next: string): string {
+  const reference = referenceTo(old);
+  const inBraces = text.replaceAll(/\$\{\{[\s\S]*?\}\}/g, (expression) =>
+    expression.replaceAll(reference, `jobs.${next}`),
+  );
+  return inBraces.replaceAll(
+    /^(\s*(?:-\s+)?if:)(.*)$/gm,
+    (_line, key: string, rest: string) => `${key}${rest.replaceAll(reference, `jobs.${next}`)}`,
+  );
+}
+
+/**
+ * Gives a job another id, and everything that names it follows: the `needs` of other jobs, its place
+ * on the canvas and `jobs.OLD` in expressions.
+ */
+export function renameJob(text: string, old: string, next: string): Change | null {
+  if (next === old || renameProblem(text, old, next) !== null || !(old in jobsOf(text))) {
+    return null;
+  }
+  const edits = new Edits(text).run((current) => renameKey(current, ['jobs', old], next));
+  if (parseDocument(text).hasIn(['x-editor', 'layout', old])) {
+    edits.run((current) => renameKey(current, ['x-editor', 'layout', old], next));
+  }
+  for (const [id, job] of Object.entries(jobsOf(edits.current))) {
+    needsOf(job).forEach((entry, index) => {
+      if (entry === old) {
+        edits.run((current) => setIn(current, ['jobs', id, 'needs', index], next));
+      } else if (typeof entry === 'object' && entry !== null && (entry as Mapping)['job'] === old) {
+        edits.run((current) => setIn(current, ['jobs', id, 'needs', index, 'job'], next));
+      }
+    });
+  }
+  edits.run((current) => {
+    const renamed = renameInExpressions(current, old, next);
+    return { text: parseDocument(renamed).errors.length === 0 ? renamed : current, fallback: false };
+  });
+  return edits.done(`Renamed ${old} to ${next}`, next);
+}
+
+/** Whether the items of a list are written in flow style, as `- { name: a, when: b }`. */
+function itemsInFlow(list: unknown): boolean {
+  return (
+    isSeq(list) &&
+    list.items.length > 0 &&
+    list.items.every((item) => !(isMap(item) || isSeq(item)) || item.flow === true)
+  );
+}
+
+/**
+ * Adds an item to a list from the panel (a case, a schedule, a report), before `index` or at the
+ * end, written like the items around it; a list that is not there yet is created.
+ */
+export function addListItem(text: string, path: Path, value: unknown, summary: string, index?: number): Change | null {
+  const list = parseDocument(text).getIn([...path], true);
+  if (!isSeq(list)) {
+    return setField(text, path, [value], summary);
+  }
+  const change = new Edits(text)
+    .run((current) => insertItem(current, path, index ?? list.items.length, value, { flow: itemsInFlow(list) }))
+    .done(summary);
+  return change.text === text ? null : change;
+}
+
+/** Removes an item of a list from the panel; a list left empty goes with it. */
+export function removeListItem(text: string, path: Path, index: number, summary: string): Change | null {
+  const list = parseDocument(text).getIn([...path], true);
+  if (!isSeq(list) || index < 0 || index >= list.items.length) {
+    return null;
+  }
+  if (list.items.length === 1) {
+    return setField(text, path, undefined, summary);
+  }
+  return new Edits(text).run((current) => removeItem(current, path, index)).done(summary);
+}
+
+/** Moves an item of a list from the panel, with its lines and comments. */
+export function moveListItem(text: string, path: Path, from: number, to: number, summary: string): Change | null {
+  const change = new Edits(text).run((current) => moveItem(current, path, from, to)).done(summary);
+  return change.text === text ? null : change;
 }

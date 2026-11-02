@@ -2,12 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { graphFromYaml, type Graph } from './model';
 import {
   addJob,
+  addStep,
   connect,
   connectionProblem,
   deleteJobs,
   disconnect,
   movePositions,
+  moveStep,
   newJobId,
+  removeStep,
+  renameJob,
+  renameProblem,
+  setField,
+  setNeeds,
   tidy,
   type NodeTypeView,
 } from './operations';
@@ -194,9 +201,107 @@ describe('every example', () => {
     // Every step spliced the text; none had to write the whole file.
     const steps = [tidy(source), added, connect(added.text, first, 'always', added.focus ?? ''), cut];
     expect(steps.map((change) => change?.rewritten ?? false)).toEqual([false, false, false, false]);
+
+    // And through the panel: a field set and cleared, a step added, the job renamed.
+    const imaged = setField(added.text, ['jobs', added.focus ?? '', 'image'], 'node:24', 'Changed image');
+    const stepped = addStep(imaged?.text ?? '', added.focus ?? '', 'script');
+    const renamed = renameJob(stepped.text, first, 'renamed-first');
+    expect([imaged, stepped, renamed].map((change) => change?.rewritten ?? false)).toEqual([false, false, false]);
+    expect(graph(renamed?.text ?? '').jobs.map((job) => job.id)).toContain('renamed-first');
   });
 
   it('cannot be tidied while unreadable', () => {
     expect(tidy('jobs: [')).toBeNull();
+  });
+});
+
+describe('fields from the panel', () => {
+  it('set a value in place, keeping the rest of the file', () => {
+    const change = setField(file, ['jobs', 'build', 'image'], 'alpine:3.22', 'Changed image of build');
+    // A new key goes where it usually is: the image before the steps.
+    expect(change?.text).toBe(
+      file.replace('  build:   # compiles\n', '  build:   # compiles\n    image: alpine:3.22\n'),
+    );
+    expect(change?.summary).toBe('Changed image of build');
+    expect(setField(change?.text ?? '', ['jobs', 'build', 'image'], 'alpine:3.22', 'Same')).toBeNull();
+  });
+
+  it('write new lists of plain values in flow style, and keep a list in its style', () => {
+    const labels = setField(file, ['jobs', 'build', 'runs_on'], ['linux', 'docker'], 'Labels');
+    expect(labels?.text).toContain('    runs_on: [linux, docker]\n');
+    const needs = setField(file, ['jobs', 'test', 'needs'], ['build', 'lint'], 'Needs');
+    expect(needs?.text).toContain('    needs: [build, lint]\n');
+  });
+
+  it('remove the key for an empty value, and mappings left empty with it', () => {
+    const withUrl = 'version: 1\njobs:\n  a:\n    steps:\n    - type: http_request\n      with:\n        url: x\n';
+    const cleared = setField(withUrl, ['jobs', 'a', 'steps', 0, 'with', 'url'], '', 'Cleared url');
+    expect(cleared?.text).toBe('version: 1\njobs:\n  a:\n    steps:\n    - type: http_request\n');
+    expect(setField(withUrl, ['jobs', 'a', 'image'], '', 'Nothing')).toBeNull();
+    const job = 'jobs:\n  a:\n    retry:\n      max_attempts: 3\n';
+    // The job itself stays, even when it has nothing left.
+    expect(setField(job, ['jobs', 'a', 'retry', 'max_attempts'], undefined, 'No retry')?.text).toBe('jobs:\n  a: {}\n');
+  });
+
+  it('write a script of several lines as a block', () => {
+    const change = setField(file, ['jobs', 'build', 'steps', 0, 'run'], 'make\nmake check\n', 'Script');
+    expect(change?.text).toContain('    - run: |\n        make\n        make check\n  test:');
+  });
+});
+
+describe('steps from the panel', () => {
+  it('are added at the end, as a script or a node type with its required inputs', () => {
+    const script = addStep(file, 'build', 'script');
+    expect(script.text).toContain('    - run: make\n    - run: echo "Hello"\n  test:');
+    const node = addStep(file, 'build', { nodeType: httpRequest });
+    expect(node.text).toContain('    - type: http_request\n      with:\n        url: ""\n');
+  });
+
+  it('move with their lines and are deleted', () => {
+    const two = addStep(file, 'build', 'script').text;
+    expect(moveStep(two, 'build', 1, 0)?.text).toContain('    - run: echo "Hello"\n    - run: make\n');
+    expect(moveStep(two, 'build', 0, 0)).toBeNull();
+    expect(removeStep(two, 'build', 0)?.text).toContain('    steps:\n    - run: echo "Hello"\n');
+  });
+});
+
+describe('needs from the panel', () => {
+  it('are written like drawn lines, first in the job', () => {
+    const change = setNeeds(file, 'build', [{ job: 'test', on: 'failure' }, { job: 'route', case: 'hold' }, 'deploy']);
+    expect(change?.text).toContain(
+      '  build:   # compiles\n    needs: [{job: test, on: failure}, {job: route, case: hold}, deploy]\n    steps:',
+    );
+    expect(setNeeds(file, 'test', [{ job: 'build', on: 'success' }])).toBeNull();
+    expect(setNeeds(file, 'test', [])?.text).not.toContain('needs: [build]');
+  });
+});
+
+describe('renaming a job', () => {
+  it('takes its needs, its place and expressions with it', () => {
+    const placed = movePositions(file, { test: { x: 1, y: 2 } }).text;
+    const withIf = placed.replace('    - run: ./deploy\n', '    - run: ./deploy\n      if: jobs.test.outputs.ok\n');
+    const change = renameJob(withIf, 'test', 'check');
+    expect(change?.rewritten).toBeUndefined();
+    const text = change?.text ?? '';
+    expect(text).toContain('  check:\n    needs: [build]');
+    expect(text).toContain('    needs: [check]\n    expression: ${{ jobs.check.outputs.ok }}');
+    expect(text).toContain('      if: jobs.check.outputs.ok');
+    expect(text).toContain('    check: {x: 1, y: 2}');
+    expect(lines(text)).toEqual(lines(file).map((line) => line.replaceAll('test', 'check')));
+  });
+
+  it('follows needs written as objects, and leaves similar ids alone', () => {
+    const text =
+      'jobs:\n  a:\n    steps: [{run: "${{ jobs.ab.outputs.x }}"}]\n  ab:\n    needs: [{job: a, on: always}]\n    steps: [{run: x}]\n';
+    const change = renameJob(text, 'a', 'first');
+    expect(change?.text).toBe(text.replace('  a:\n', '  first:\n').replace('{job: a,', '{job: first,'));
+  });
+
+  it('is refused for ids that are taken or not allowed', () => {
+    expect(renameProblem(file, 'test', 'build')).toBe('There is a job build already.');
+    expect(renameProblem(file, 'test', 'Test')).toMatch(/^An id starts with a lower-case letter/);
+    expect(renameProblem(file, 'test', 'test')).toBeNull();
+    expect(renameJob(file, 'test', 'build')).toBeNull();
+    expect(renameJob(file, 'missing', 'other')).toBeNull();
   });
 });

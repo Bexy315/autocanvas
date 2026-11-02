@@ -21,9 +21,12 @@ export function useCanvasGraph(text: string, diagnostics: readonly Diagnostic[],
   const source = text === fromCanvas ? text : settled;
   const read = useMemo(() => graphFromYaml(source), [source]);
   const lines = useMemo<ReadonlyMap<string, LineRange>>(() => jobLines(source), [source]);
-  const [lastReadable, setLastReadable] = useState<Graph>(() => graphFromYaml(text).graph ?? emptyGraph);
-  if (read.graph && read.graph !== lastReadable) {
-    setLastReadable(read.graph);
+  const [lastReadable, setLastReadable] = useState<{ graph: Graph; text: string }>(() => ({
+    graph: graphFromYaml(text).graph ?? emptyGraph,
+    text,
+  }));
+  if (read.graph && read.graph !== lastReadable.graph) {
+    setLastReadable({ graph: read.graph, text: source });
   }
 
   const problemsByJob = useMemo(() => {
@@ -38,7 +41,9 @@ export function useCanvasGraph(text: string, diagnostics: readonly Diagnostic[],
   }, [diagnostics]);
 
   return {
-    graph: read.graph ?? lastReadable,
+    graph: read.graph ?? lastReadable.graph,
+    /** The text the graph was read from: the side panel reads the same. */
+    text: read.graph ? source : lastReadable.text,
     stale: read.error !== undefined,
     error: read.error,
     lines,

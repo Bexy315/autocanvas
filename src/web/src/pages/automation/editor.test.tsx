@@ -1,5 +1,5 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { editorView, replaceText } from '../../test/editor';
 import { automationView, folderView, page, twoJobs } from '../../test/fixtures';
 import { fakeServer, info, json, me, problem, requests, type Handler } from '../../test/fakeServer';
@@ -60,6 +60,12 @@ function server(extra: Record<string, Handler> = {}) {
 const validations = () => requests.filter((request) => request.url.endsWith('/validate'));
 
 describe('the editor', () => {
+  // The editor page is loaded on demand (CodeMirror, the canvas). Loaded once here, so the first test
+  // does not spend its time limit on the import when the whole suite runs in parallel.
+  beforeAll(async () => {
+    await import('./EditorTab');
+  }, 30_000);
+
   it('checks the file while typing and points at the problems', async () => {
     server();
     const { user } = renderApp('/automations/a1/edit');
@@ -337,6 +343,32 @@ describe('the editor', () => {
 
     await user.click(within(canvas).getByRole('button', { name: 'Tidy up' }));
     expect(view.state.doc.toString()).toContain('    trigger: {x:');
+  });
+
+  it('opens the side panel for a chosen card, whose typing undo takes back as one step', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+    const canvas = screen.getByRole('region', { name: 'Canvas' });
+    const card = canvas.querySelector<HTMLElement>('.react-flow__node[data-id="build"]');
+    if (!card) {
+      throw new Error('No card.');
+    }
+
+    // Enter on a card opens its panel and gives it the focus. (Not focused first: React Flow pans
+    // to a focused card, which needs sizes that jsdom does not measure.)
+    fireEvent.keyDown(card, { key: 'Enter' });
+    const panel = await screen.findByRole('complementary', { name: 'Settings of build' });
+    expect(within(panel).getByRole('heading', { name: 'build' })).toHaveFocus();
+
+    await user.type(within(panel).getByLabelText('Image'), 'node:24');
+    expect(view.state.doc.toString()).toContain('  build:\n    image: node:24\n    steps:\n');
+    // The value typed shows in the file at once, and one undo takes all of it back.
+    await user.click(within(canvas).getByRole('button', { name: 'Undo (Ctrl+Z)' }));
+    expect(view.state.doc.toString()).toBe(twoJobs);
+
+    await user.click(within(panel).getByRole('button', { name: 'Close the panel (Esc)' }));
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
   });
 
   it('offers no palette to viewers', async () => {

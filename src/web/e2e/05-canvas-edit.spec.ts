@@ -28,7 +28,8 @@ async function wire(page: Page, from: string, output: string, to: string) {
   await drag(page, source, target);
 }
 
-async function drag(page: Page, from: Locator, to: Locator) {
+/** Drags from the middle of one element to a point of another, given as fractions of its size. */
+async function drag(page: Page, from: Locator, to: Locator, at = { x: 0.5, y: 0.5 }) {
   const a = await from.boundingBox();
   const b = await to.boundingBox();
   if (!a || !b) {
@@ -36,7 +37,7 @@ async function drag(page: Page, from: Locator, to: Locator) {
   }
   await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
   await page.mouse.down();
-  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 12 });
+  await page.mouse.move(b.x + b.width * at.x, b.y + b.height * at.y, { steps: 12 });
   await page.mouse.up();
 }
 
@@ -61,7 +62,11 @@ test('jobs are added, wired, moved, deleted and saved on the canvas, keeping the
   await canvas.getByRole('button', { name: /^Add Job:/ }).click();
   await expect(card(page, 'job')).toBeVisible();
   await expect(file(page)).toContainText('job:');
-  await drag(page, canvas.getByRole('button', { name: /^Add http_request:/ }), canvas.locator('.react-flow__pane'));
+  // Onto an empty part of the canvas, away from the cards in the middle.
+  await drag(page, canvas.getByRole('button', { name: /^Add http_request:/ }), canvas.locator('.react-flow__pane'), {
+    x: 0.8,
+    y: 0.85,
+  });
   await expect(card(page, 'http-request')).toBeVisible();
   await expect(file(page)).toContainText('type: http_request');
 

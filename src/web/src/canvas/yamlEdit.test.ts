@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appendItem, deleteIn, removeItem, setIn } from './yamlEdit';
+import { appendItem, deleteIn, insertItem, moveItem, removeItem, renameKey, setIn } from './yamlEdit';
 
 /** A hand-written file with everything a rewrite would normalise. */
 const handWritten = `# Release pipeline
@@ -178,5 +178,71 @@ describe('lists', () => {
   it('ignore indexes that are not there', () => {
     expect(removeItem('a: [1]\n', ['a'], 4).text).toBe('a: [1]\n');
     expect(removeItem('a: 1\n', ['a'], 0).text).toBe('a: 1\n');
+  });
+});
+
+describe('scripts of several lines', () => {
+  it('are written as a block under their key, and replaced as one', () => {
+    const set = setIn(handWritten, ['jobs', 'build', 'steps', 0, 'run'], 'make\nmake test\n');
+    expect(set.fallback).toBe(false);
+    expect(set.text).toContain("    - run: |\n        make\n        make test\n    - run: 'make test'\n");
+    const back = setIn(set.text, ['jobs', 'build', 'steps', 0, 'run'], 'make');
+    expect(back.text).toBe(handWritten.replace('run: "make"', 'run: make'));
+  });
+
+  it('keep their last line without a newline', () => {
+    const set = setIn('a:\n  run: x\n', ['a', 'run'], 'one\ntwo');
+    expect(set.text).toBe('a:\n  run: |-\n    one\n    two\n');
+  });
+});
+
+describe('list items by index', () => {
+  it('are replaced in place, in a block list and in a flow list', () => {
+    const block = setIn(handWritten, ['jobs', 'build', 'steps', 1], { run: 'make check' });
+    expect(changed(handWritten, block.text)).toEqual({
+      removed: ["    - run: 'make test'"],
+      added: ['    - run: make check'],
+    });
+    const flow = setIn(handWritten, ['jobs', 'build', 'needs', 0], 'check');
+    expect(flow.text).toContain('    needs: [check]  # flow, unpadded\n');
+  });
+
+  it('are inserted before an item, or appended past the end', () => {
+    const first = insertItem(handWritten, ['jobs', 'build', 'steps'], 0, { run: 'setup' });
+    expect(first.fallback).toBe(false);
+    expect(first.text).toContain('    steps:\n    - run: setup\n    - run: "make"\n');
+    expect(insertItem(handWritten, ['jobs', 'build', 'needs'], 0, 'setup').text).toContain('needs: [setup, lint]');
+    expect(insertItem(handWritten, ['jobs', 'build', 'steps'], 9, { run: 'last' }).text).toContain(
+      "    - run: 'make test'\n    - run: last\n",
+    );
+  });
+
+  it('move with their lines and comments, up and down', () => {
+    const text = 'steps:\n  # first\n  - run: a\n  - run: b\n    name: B   # bee\n  - run: c\n';
+    const down = moveItem(text, ['steps'], 0, 2);
+    expect(down).toEqual({
+      text: 'steps:\n  # first\n  - run: b\n    name: B   # bee\n  - run: c\n  - run: a\n',
+      fallback: false,
+    });
+    const up = moveItem(text, ['steps'], 1, 0);
+    expect(up.text).toBe('steps:\n  # first\n  - run: b\n    name: B   # bee\n  - run: a\n  - run: c\n');
+    expect(moveItem('a: [1, 2, 3]\n', ['a'], 2, 0).text).toBe('a: [3, 1, 2]\n');
+    expect(moveItem('a: [1]\n', ['a'], 0, 3).text).toBe('a: [1]\n');
+  });
+});
+
+describe('renaming a key', () => {
+  it('changes only the key, keeping value, place and comments', () => {
+    const renamed = renameKey(handWritten, ['jobs', 'lint'], 'check');
+    expect(changed(handWritten, renamed.text)).toEqual({
+      removed: ['  lint: {steps: [{run: lint}]}'],
+      added: ['  check: {steps: [{run: lint}]}'],
+    });
+    expect(renameKey(handWritten, ['x-editor', 'layout', 'build'], 'compile').text).toContain('    compile: { x: 10');
+  });
+
+  it('refuses a key that is taken or a pair that is not there', () => {
+    expect(renameKey(handWritten, ['jobs', 'lint'], 'build').text).toBe(handWritten);
+    expect(renameKey(handWritten, ['jobs', 'nope'], 'x').text).toBe(handWritten);
   });
 });
