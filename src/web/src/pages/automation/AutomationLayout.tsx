@@ -1,6 +1,6 @@
 import { Download, FolderInput, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router';
+import { Outlet, useMatch, useNavigate, useParams } from 'react-router';
 import { downloadUrl, useAutomation, useDeleteAutomation, useMoveAutomation } from '../../api/automations';
 import { useFolder } from '../../api/folders';
 import { RenameAutomationDialog } from '../../dialogs/AutomationDialogs';
@@ -52,6 +52,8 @@ function AutomationPage({ context }: { context: AutomationContext }) {
   const navigate = useNavigate();
   const move = useMoveAutomation(automation.id);
   const remove = useDeleteAutomation(automation.id);
+  // The editor shows the canvas and the file side by side, so it takes the whole width.
+  const wide = useMatch('/automations/:id/edit') !== null;
   const editor = hasRole(automation.myRole, 'Editor');
   const dialog = (name: Open) => (next: boolean) => {
     if (!next) {
@@ -70,7 +72,7 @@ function AutomationPage({ context }: { context: AutomationContext }) {
     : [];
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-5 p-6">
+    <div className={`mx-auto flex flex-col gap-5 p-6 ${wide ? 'max-w-none' : 'max-w-5xl'}`}>
       <PageHeader
         title={automation.title}
         badges={<Badge tone="accent">Version {automation.currentVersion}</Badge>}

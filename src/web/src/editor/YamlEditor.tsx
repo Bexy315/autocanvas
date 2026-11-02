@@ -21,11 +21,15 @@ import { editorTheme, yamlHighlight } from './editorTheme';
 export interface YamlEditorHandle {
   /** Moves the cursor to a line and column (1-based) and focuses the editor. */
   focusAt: (line: number | string | null | undefined, column: number | string | null | undefined) => void;
+  /** Puts the cursor at the start of a line and scrolls it into view, leaving the focus where it is. */
+  revealLine: (line: number) => void;
 }
 
 export interface YamlEditorProps {
   value: string;
   onChange?: (value: string) => void;
+  /** The line (1-based) the cursor is on, whenever it moves. */
+  onCursor?: (line: number) => void;
   /** Ctrl+S / Cmd+S inside the editor. */
   onSave?: () => void;
   readOnly?: boolean;
@@ -46,6 +50,7 @@ export function YamlEditor({
   value,
   onChange,
   onSave,
+  onCursor,
   readOnly = false,
   diagnostics = noDiagnostics,
   completions,
@@ -55,10 +60,10 @@ export function YamlEditor({
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   // The editor is made once; it calls the latest callbacks through this.
-  const callbacks = useRef({ onChange, onSave, completions });
+  const callbacks = useRef({ onChange, onSave, onCursor, completions });
   const editable = useRef(new Compartment());
   useLayoutEffect(() => {
-    callbacks.current = { onChange, onSave, completions };
+    callbacks.current = { onChange, onSave, onCursor, completions };
   });
 
   // The editor is made once; later changes reach it as transactions below.
@@ -112,6 +117,9 @@ export function YamlEditor({
             if (update.docChanged) {
               callbacks.current.onChange?.(update.state.doc.toString());
             }
+            if (update.docChanged || update.selectionSet) {
+              callbacks.current.onCursor?.(update.state.doc.lineAt(update.state.selection.main.head).number);
+            }
           }),
         ],
       }),
@@ -154,6 +162,14 @@ export function YamlEditor({
       const at = offsetOf(current.state.doc, line, column);
       current.dispatch({ selection: { anchor: at }, scrollIntoView: true });
       current.focus();
+    },
+    revealLine: (line) => {
+      const current = view.current;
+      if (!current) {
+        return;
+      }
+      const at = offsetOf(current.state.doc, line, 1);
+      current.dispatch({ selection: { anchor: at }, effects: EditorView.scrollIntoView(at, { y: 'center' }) });
     },
   }));
 

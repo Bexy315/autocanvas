@@ -11,8 +11,8 @@ go back. The content is an ordinary [automation file](automations.md).
 :::note Status
 
 Managed automations can be created, organized, read, compared and edited as YAML in the web UI
-and through the HTTP API. Editing them on the canvas and running them from the web UI come with the
-next steps of S3.
+and through the HTTP API. Editing them on the canvas and running them from the web UI come with the next steps of S3; the canvas already
+shows them.
 
 :::
 
@@ -74,7 +74,16 @@ changed from the one before, with unchanged lines collapsed and canvas positions
 out, or its full file. **Restore** saves an old version's file as the newest version. The menu
 next to **Download** renames, moves and deletes the automation; it is there for editors only.
 
-**Editor** opens the file in a YAML editor. While you type, the server checks the file exactly
+**Editor** shows the automation as a graph on the canvas next to its file. The buttons
+**Canvas**, **Split** and **YAML** show either one or both; drag the line between them, or move it
+with the arrow keys, to share the width differently. The canvas draws the trigger, a card per job
+with its steps, and the lines between them: green when a job waits for success, red for failure,
+grey for always, violet for a switch's case, dashed into a `finally` job. It follows the file as you
+type; while the file cannot be read, it keeps the last readable state and says so. Choosing a card
+shows its job in the file, and the job your cursor is in is highlighted on the canvas. **List**
+shows the same as text. On the canvas you read for now; editing on it comes next.
+
+The file is edited in a YAML editor. While you type, the server checks the file exactly
 as a save would, including node types and triggers; problems are underlined in the file and listed
 below it with their [code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
 the keys allowed where the cursor is, the node types for a step's `type`, a node type's inputs

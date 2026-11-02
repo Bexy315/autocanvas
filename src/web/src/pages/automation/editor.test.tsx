@@ -213,4 +213,68 @@ describe('the editor', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
     expect(validations()).toHaveLength(0);
   });
+
+  it('shows the canvas next to the file and follows the cursor both ways', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+    const canvas = screen.getByRole('region', { name: 'Canvas' });
+
+    await user.click(within(canvas).getByRole('button', { name: 'List' }));
+    const jobs = await within(canvas).findByRole('list', { name: 'Jobs' });
+    await user.click(within(jobs).getByRole('button', { name: /^build/ }));
+    expect(view.state.doc.lineAt(view.state.selection.main.head).text).toBe('  build:');
+
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.line(1).from } }));
+    await waitFor(() =>
+      expect(within(jobs).getByRole('button', { name: /^build/ })).not.toHaveAttribute('aria-current'),
+    );
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.line(8).from } }));
+    await waitFor(() =>
+      expect(within(jobs).getByRole('button', { name: /^build/ })).toHaveAttribute('aria-current', 'true'),
+    );
+  });
+
+  it('follows the file while typing and keeps the last readable state', async () => {
+    server();
+    renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+    const canvas = screen.getByRole('region', { name: 'Canvas' });
+
+    act(() =>
+      replaceText(
+        view,
+        `${twoJobs}  test:
+    needs: [build]
+    steps: [{ run: make test }]
+`,
+      ),
+    );
+    expect(await within(canvas).findByLabelText('Job test, 1 step, needs build')).toBeInTheDocument();
+
+    act(() =>
+      replaceText(
+        view,
+        `${twoJobs}  broken: [
+`,
+      ),
+    );
+    expect(await within(canvas).findByText(/showing the last readable state/)).toBeInTheDocument();
+    expect(within(canvas).getByLabelText('Job test, 1 step, needs build')).toBeInTheDocument();
+  });
+
+  it('shows the canvas, the file or both, and remembers the choice', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    await editorView(label);
+    const views = screen.getByRole('group', { name: 'Show' });
+
+    await user.click(within(views).getByRole('button', { name: 'YAML' }));
+    expect(screen.getByRole('region', { name: 'Canvas', hidden: true })).toHaveClass('hidden');
+    expect(localStorage.getItem('autocanvas.editor.view')).toBe('yaml');
+    await user.click(within(views).getByRole('button', { name: 'Canvas' }));
+    expect(screen.getByRole('region', { name: 'File', hidden: true })).toHaveClass('hidden');
+    await user.click(within(views).getByRole('button', { name: 'Split' }));
+    expect(screen.getByRole('separator')).toBeInTheDocument();
+  });
 });

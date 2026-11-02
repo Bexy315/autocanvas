@@ -1,6 +1,10 @@
 import { CircleCheck, CircleAlert, LoaderCircle, Save, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker } from 'react-router';
+import { readSetting, writeSetting } from '../../app/storage';
+import { CanvasPane } from '../../canvas/CanvasPane';
+import { jobAtLine } from '../../canvas/lines';
+import { useCanvasGraph } from '../../canvas/useCanvasGraph';
 import { useNodeTypes, useSaveAutomation, type NodeTypeView } from '../../api/automations';
 import { api, unwrapWithTag } from '../../api/client';
 import { ApiError, type Diagnostic } from '../../api/problem';
@@ -8,7 +12,9 @@ import { ConfirmDialog } from '../../dialogs/ConfirmDialog';
 import { ConflictDialog, type Theirs } from '../../dialogs/ConflictDialog';
 import { automationSchema } from '../../editor/automationSchema';
 import { automationCompletions } from '../../editor/completion';
+import { SplitView, type ViewMode } from '../../editor/SplitView';
 import { useValidation, type ValidationStatus } from '../../editor/useValidation';
+import { ViewSwitch } from '../../editor/ViewSwitch';
 import { YamlEditor, type YamlEditorHandle } from '../../editor/YamlEditor';
 import { hasRole } from '../../lib/roles';
 import { Alert, ErrorAlert } from '../../ui/Alert';
@@ -24,6 +30,18 @@ interface Base {
 }
 
 const versionTag = (version: number) => `"${version}"`;
+export const viewKey = 'autocanvas.editor.view';
+export const splitKey = 'autocanvas.editor.split';
+
+function storedMode(): ViewMode {
+  const value = readSetting(viewKey);
+  return value === 'canvas' || value === 'yaml' ? value : 'split';
+}
+
+function storedRatio(): number {
+  const value = Number(readSetting(splitKey));
+  return Number.isFinite(value) && value >= 0.2 && value <= 0.8 ? value : 0.5;
+}
 const noNodeTypes: readonly NodeTypeView[] = [];
 
 /** Editing an automation's file, checked by the server while typing. Viewers read it here. */
@@ -38,6 +56,9 @@ export function EditorTab() {
   const [saveProblems, setSaveProblems] = useState<Diagnostic[] | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const [conflict, setConflict] = useState<{ theirs: Theirs | null; error: unknown } | null>(null);
+  const [mode, setMode] = useState<ViewMode>(storedMode);
+  const [ratio, setRatio] = useState(storedRatio);
+  const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const editor = useRef<YamlEditorHandle>(null);
   const dirty = draft !== base.yaml;
 
@@ -56,6 +77,24 @@ export function EditorTab() {
 
   const diagnostics = saveProblems ?? validation.result?.diagnostics ?? [];
   const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'Error').length;
+  const canvas = useCanvasGraph(draft, canEdit ? diagnostics : []);
+
+  const chooseMode = (next: ViewMode) => {
+    writeSetting(viewKey, next);
+    setMode(next);
+  };
+  const resize = (next: number) => {
+    writeSetting(splitKey, String(next));
+    setRatio(next);
+  };
+  // A card chosen on the canvas shows its job in the file, without taking the focus away.
+  const showJob = (id: string) => {
+    setSelectedJob(id);
+    const range = canvas.lines.get(id);
+    if (range) {
+      editor.current?.revealLine(range.from);
+    }
+  };
   const blockedReason = !dirty
     ? 'No changes to save.'
     : validation.status === 'invalid'
@@ -149,7 +188,7 @@ export function EditorTab() {
           </Button>
         </div>
       ) : (
-        <Alert tone="info">You can read this file here. Changing it needs the Editor role on its folder.</Alert>
+        <Alert tone="info">You can read this automation here. Changing it needs the Editor role on its folder.</Alert>
       )}
       {saved !== null && (
         <Alert tone="ok" title={`Saved version ${saved}`}>
@@ -161,15 +200,37 @@ export function EditorTab() {
           <ErrorAlert error={save.error} title="The file was not saved" />
         )}
 
-      <div className="h-[60vh] min-h-80 overflow-hidden rounded-panel border border-line">
-        <YamlEditor
-          ref={editor}
-          value={draft}
-          onSave={() => blockedReason === null && store(base.tag)}
-          readOnly={!canEdit}
-          diagnostics={canEdit ? diagnostics : []}
-          {...(canEdit ? { onChange: edit, completions } : {})}
-          label={`File of ${automation.title}`}
+      <div className="flex justify-end">
+        <ViewSwitch mode={mode} onMode={chooseMode} />
+      </div>
+      <div className="h-[68vh] min-h-96 overflow-hidden rounded-panel border border-line">
+        <SplitView
+          mode={mode}
+          ratio={ratio}
+          onRatio={resize}
+          leftLabel="Canvas"
+          rightLabel="File"
+          left={
+            <CanvasPane
+              graph={canvas.graph}
+              stale={canvas.stale}
+              selectedJob={selectedJob}
+              problemsByJob={canvas.problemsByJob}
+              onSelectJob={showJob}
+            />
+          }
+          right={
+            <YamlEditor
+              ref={editor}
+              value={draft}
+              onSave={() => blockedReason === null && store(base.tag)}
+              onCursor={(line) => setSelectedJob(jobAtLine(canvas.lines, line))}
+              readOnly={!canEdit}
+              diagnostics={canEdit ? diagnostics : []}
+              {...(canEdit ? { onChange: edit, completions } : {})}
+              label={`File of ${automation.title}`}
+            />
+          }
         />
       </div>
       {canEdit && (

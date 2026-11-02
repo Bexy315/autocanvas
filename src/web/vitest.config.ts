@@ -1,8 +1,11 @@
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+  // Tests read the automation schema and its examples from the repository root.
+  server: { fs: { allow: ['.', fileURLToPath(new URL('../../schema', import.meta.url))] } },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
