@@ -93,7 +93,9 @@ weeks. Runtime packages end up in the built UI; the others are build and test to
 | clsx | MIT | Joining class names |
 | @codemirror/state, view, language, commands, autocomplete, lint, search, lang-yaml | MIT | The YAML editor |
 | @lezer/highlight, @lezer/common, @lezer/lr | MIT | Syntax trees and highlighting under CodeMirror; `common` and `lr` are pinned directly (with `overrides`) because CodeMirror's ranges would otherwise take versions younger than two weeks |
-| yaml | ISC | Reading and changing automation files with their comments (the canvas, S3 step 5) |
+| yaml | ISC | Reading automation files for the canvas, and changing them with their comments (S3 step 5b) |
+| @xyflow/react | MIT | The canvas (React Flow); brings `@xyflow/system`, `zustand`, `classcat` and d3's drag, zoom and transition modules (ISC/BSD-3-Clause) |
+| @dagrejs/dagre | MIT | Laying out cards that have no saved position |
 | tailwindcss, @tailwindcss/vite | MIT | Styling with design tokens (build time) |
 | vite, @vitejs/plugin-react | MIT | Development server and build |
 | typescript | Apache-2.0 | Type checking (5.9: the API type generator does not support 7 yet) |

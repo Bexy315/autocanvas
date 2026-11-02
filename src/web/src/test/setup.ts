@@ -1,7 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
 import { fakeFetch, resetFakeServer } from './fakeServer';
+
+// The editor waits 400 ms before checking, then the canvas and the editor render; under a full,
+// coverage-instrumented run that can take longer than the default second.
+configure({ asyncUtilTimeout: 3000 });
 
 // Installed before any module creates its API client, which keeps a reference to fetch.
 globalThis.fetch = fakeFetch;

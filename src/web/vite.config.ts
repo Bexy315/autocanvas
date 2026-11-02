@@ -16,15 +16,22 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         // Libraries apart from the app: they change less often, so a new release leaves them cached.
-        // One group for all of node_modules (narrower groups once broke the origin's production
-        // build), except the editor's libraries, which load with the editor when it is opened.
+        // The editor's YAML and canvas libraries form groups of their own, imported only by the
+        // editor tab, so they load when the editor is first opened. Whole packages only, with the
+        // runtime in a chunk of its own: narrower groups once broke the origin's production build.
         codeSplitting: {
           groups: [
             {
-              name: 'vendor',
-              test: /node_modules[\\/](?!(@codemirror|@lezer|crelt|style-mod|w3c-keyname|@marijn|yaml)[\\/])/,
-              priority: 1,
+              name: 'yaml-editor',
+              test: /node_modules[\\/](@codemirror|@lezer|crelt|style-mod|w3c-keyname|@marijn)[\\/]/,
+              priority: 3,
             },
+            {
+              name: 'canvas',
+              test: /node_modules[\\/](@xyflow|@dagrejs|d3-[a-z]+|zustand|classcat|use-sync-external-store|yaml)[\\/]/,
+              priority: 2,
+            },
+            { name: 'vendor', test: /node_modules[\\/]/, priority: 1 },
           ],
         },
       },

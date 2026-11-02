@@ -89,8 +89,36 @@ the edited text (`dialogs/ConflictDialog.tsx`).
   light and dark without being rebuilt.
 - **Keyboard**: Tab indents; Esc, then Tab, leaves the editor (WCAG 2.1.2).
 
-The build splits libraries into a `vendor` chunk and the editor's libraries into the editor's own
-chunk (`vite.config.ts`), so releases that only change the app leave the libraries cached.
+The build splits the libraries into groups (`vite.config.ts`): `vendor` for the app as a whole,
+and `yaml-editor` (CodeMirror) and `canvas` (React Flow, dagre, the YAML parser), which only the
+editor tab imports, so they load when the editor is first opened. Releases that only change the app
+leave the libraries cached.
+
+## The canvas
+
+The canvas (`canvas/`) shows the file being edited as a graph, next to the YAML or alone; it reads
+the file and never writes it (S3 step 5b adds editing). Its logic is harvested from the origin's
+editor and rewritten for format v1.
+
+- **Model** (`canvas/model.ts`): `graphFromYaml` reads the text with the `yaml` package into the
+  trigger summary, one card per job (steps, switch cases, hints such as services, retry, limits),
+  and the lines between them: from `needs` (success, failure, always or a switch case), from the
+  trigger to every job without needs, and dashed into `finally` jobs from the jobs nothing waits
+  for. Those last two are drawn, never stored. A need of a job that does not exist is marked on
+  the card instead of dropped.
+- **Layout** (`canvas/layout.ts`): positions saved in `x-editor.layout` stay; cards without one are
+  placed by dagre, top to bottom; finally jobs are kept below the rest.
+- **Following the text**: the canvas reads the text 150 ms after typing stops. While the text cannot
+  be read, the last readable graph stays, dimmed, with a note. `canvas/lines.ts` knows which lines
+  each job takes, from the YAML document's node ranges: choosing a card puts the cursor on its job
+  without taking the focus, and the job the cursor is in is selected on the canvas. The canvas
+  reacts only to selections the user makes, so the two never echo each other.
+- **Accessibility**: every card has a label that says what it is, what it needs and how many
+  problems it has; cards are in reading order for Tab, and Enter or Space shows the job in the
+  file. The **List** view shows the same structure as text. Colors of lines are repeated as labels
+  (`on failure`, `always`, case names).
+- **Look**: the cards and React Flow's controls use the design tokens (`canvas/canvas.css`), so the
+  canvas follows light and dark.
 
 Pages tell the shell where they are with `usePageInfo`: their breadcrumbs, and the folder to
 highlight and expand in the folder tree. The tree follows the ARIA tree pattern (one tab stop,
