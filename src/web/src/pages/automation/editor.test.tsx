@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { editorView, replaceText } from '../../test/editor';
 import { automationView, folderView, page, twoJobs } from '../../test/fixtures';
 import { fakeServer, info, json, me, problem, requests, type Handler } from '../../test/fakeServer';
@@ -60,6 +60,12 @@ function server(extra: Record<string, Handler> = {}) {
 const validations = () => requests.filter((request) => request.url.endsWith('/validate'));
 
 describe('the editor', () => {
+  // The editor page is loaded on demand (CodeMirror, the canvas). Loaded once here, so the first test
+  // does not spend its time limit on the import when the whole suite runs in parallel.
+  beforeAll(async () => {
+    await import('./EditorTab');
+  }, 30_000);
+
   it('checks the file while typing and points at the problems', async () => {
     server();
     const { user } = renderApp('/automations/a1/edit');
