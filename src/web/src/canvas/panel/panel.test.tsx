@@ -130,7 +130,7 @@ describe('the panel model', () => {
 
 describe('the job panel', () => {
   it('changes job settings as they are typed, keeping the rest of the file', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
@@ -152,7 +152,7 @@ describe('the job panel', () => {
   });
 
   it('adds, edits, moves and deletes steps', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
@@ -184,7 +184,7 @@ describe('the job panel', () => {
   });
 
   it('shows inputs of every kind, and takes an expression instead', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
     await user.click(within(panel).getByRole('button', { name: 'Add step' }));
@@ -207,7 +207,7 @@ describe('the job panel', () => {
   });
 
   it('renames the job, with what names it, and refuses ids that cannot be', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const id = within(screen.getByRole('complementary')).getByLabelText('Id');
     await user.clear(id);
@@ -222,7 +222,7 @@ describe('the job panel', () => {
   });
 
   it('sets what a job waits for with the keyboard', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'deploy' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of deploy' });
     await user.selectOptions(within(panel).getByLabelText('Starts'), 'always');
@@ -241,7 +241,7 @@ describe('the job panel', () => {
   });
 
   it('adds services, checkouts and reports', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
@@ -269,7 +269,7 @@ describe('the job panel', () => {
   });
 
   it('edits a switch and its cases', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'route' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of route' });
     expect(within(panel).queryByRole('button', { name: 'Add step' })).not.toBeInTheDocument();
@@ -309,7 +309,7 @@ describe('the job panel', () => {
   });
 
   it('closes with Esc, but not when Esc only ends adding a name', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onClose = vi.fn<() => void>();
     render(
       <SidePanel
@@ -344,7 +344,7 @@ describe('the job panel', () => {
 
 describe('the automation panel', () => {
   it('sets what starts the automation and its settings', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'trigger' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of Automation' });
 
