@@ -24,6 +24,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/directory': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Find people and groups
+     * @description Users (not disabled) whose user name or display name contains `query`, and groups whose name does, ignoring case; names that start with it first, at most 20 of each. Needs at least 2 characters. Names only, never e-mail addresses. Everyone signed in may search, to share folders.
+     */
+    get: operations['SearchDirectory'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/node-types': {
     parameters: {
       query?: never;
@@ -1831,6 +1851,13 @@ export interface components {
        */
       column: null | number | string;
     };
+    /** @description People and groups found by a search, names whose start matches first. */
+    DirectoryView: {
+      /** @description Users that are not disabled, without their e-mail addresses. */
+      users: components['schemas']['UserSummary'][];
+      /** @description Groups. */
+      groups: components['schemas']['GroupSummary'][];
+    };
     /** @description A folder above the current one, for orientation. */
     FolderCrumb: {
       /**
@@ -3029,6 +3056,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ServerInfo'];
+        };
+      };
+    };
+  };
+  SearchDirectory: {
+    parameters: {
+      query?: {
+        query?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DirectoryView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
         };
       };
     };

@@ -31,6 +31,7 @@ public static class ApplicationServiceCollectionExtensions
         services.TryAddSingleton(new PasswordHashingOptions());
         services.AddSingleton<PasswordHasher>();
         services.AddScoped<UserService>();
+        services.AddScoped<DirectoryService>();
         services.AddScoped<GroupService>();
         services.AddOptions<SessionLifetimeOptions>();
         services.AddSingleton<LoginThrottle>();
