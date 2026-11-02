@@ -50,6 +50,34 @@ public sealed class ScriptStepTests : IAsyncDisposable
         completed.Error.ShouldContain(message);
     }
 
+    [Fact]
+    public async Task A_step_that_named_no_shell_runs_with_sh_when_the_image_has_no_bash()
+    {
+        runtime.Shells.Remove("bash");
+        var chosen = Script("echo hi");
+        chosen.Script.DefaultShell = true;
+
+        var fallback = await RunAsync(chosen, Cancel);
+        var named = await RunAsync(Script("echo hi"), Cancel);
+
+        fallback.Outcome.ShouldBe(StepOutcome.Succeeded);
+        named.Outcome.ShouldBe(StepOutcome.Errored);
+        named.Error.ShouldContain("has no bash");
+    }
+
+    [Fact]
+    public async Task Without_sh_either_a_step_without_a_shell_is_an_error_of_the_runner()
+    {
+        runtime.Shells.Clear();
+        var chosen = Script("echo hi");
+        chosen.Script.DefaultShell = true;
+
+        var completed = await RunAsync(chosen, Cancel);
+
+        completed.Outcome.ShouldBe(StepOutcome.Errored);
+        completed.Error.ShouldContain("has no bash");
+    }
+
     [Theory]
     [InlineData("../outside")]
     [InlineData("/etc")]

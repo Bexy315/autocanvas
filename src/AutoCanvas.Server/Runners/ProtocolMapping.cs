@@ -126,7 +126,7 @@ internal static class ProtocolMapping
         step.MaskValues.Add(resolved.MaskValues);
         if (resolved.Script is { } script)
         {
-            step.Script = new ScriptAction { Shell = script.Shell, Script = script.Text, WorkingDirectory = script.WorkingDirectory ?? string.Empty };
+            step.Script = new ScriptAction { Shell = script.Shell, Script = script.Text, WorkingDirectory = script.WorkingDirectory ?? string.Empty, DefaultShell = script.DefaultShell };
         }
         else if (resolved.Node is { } node)
         {

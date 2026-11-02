@@ -39,9 +39,17 @@ internal sealed class ScriptStep(JobServices services, JobPaths paths, string co
 
         try
         {
-            if (!await HasShellAsync(script.Shell, abort).ConfigureAwait(false))
+            var shell = script.Shell;
+            if (!await HasShellAsync(shell, abort).ConfigureAwait(false))
             {
-                return Errored(step, redactor, $"The job's image has no {script.Shell}, which the step runs in.");
+                // A shell the server chose (the step named none) falls back to sh, as the format promises.
+                if (!script.DefaultShell || string.Equals(shell, "sh", StringComparison.Ordinal) || !await HasShellAsync("sh", abort).ConfigureAwait(false))
+                {
+                    return Errored(step, redactor, $"The job's image has no {shell}, which the step runs in.");
+                }
+
+                log.Write(index, LogStream.System, $"The job's image has no {shell}; running the step with sh.", redactor);
+                shell = "sh";
             }
 
             Directory.CreateDirectory(paths.OnRunner(script.WorkingDirectory)!);
@@ -51,7 +59,7 @@ internal sealed class ScriptStep(JobServices services, JobPaths paths, string co
             await File.WriteAllTextAsync(outputFile, string.Empty, abort).ConfigureAwait(false);
 
             var env = new Dictionary<string, string>(step.Env, StringComparer.Ordinal) { ["AUTOCANVAS_OUTPUT"] = $"{JobPaths.ContainerMeta}/output-{number}" };
-            var exec = new ExecSpec(["sh", "-c", Wrapper, script.Shell, $"{JobPaths.ContainerMeta}/step-{number}", number], directory, env);
+            var exec = new ExecSpec(["sh", "-c", Wrapper, shell, $"{JobPaths.ContainerMeta}/step-{number}", number], directory, env);
             var (outcome, exitCode) = await ExecuteAsync(step, exec, redactor, cancel, abort).ConfigureAwait(false);
             var completed = Completed(step, outcome, exitCode);
             foreach (var (name, value) in await StepOutputs.ReadAsync(outputFile, abort).ConfigureAwait(false))

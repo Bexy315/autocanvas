@@ -115,7 +115,9 @@ automation's rules, such as `continue_on_error`. The runner only reports what ha
 ### Executing steps
 
 - **Script steps** run `script` with the given `shell` in `working_directory` (relative to the
-  workspace). Environment: the job's `env`, then the step's `env`, then `AUTOCANVAS_OUTPUT` — the
+  workspace). With `default_shell` set, the step named no shell and `shell` is the server's choice:
+  when the job's image does not have it, the runner runs the step with `sh` (and says so in the log)
+  instead of failing it. Environment: the job's `env`, then the step's `env`, then `AUTOCANVAS_OUTPUT` — the
   path of an empty file the runner creates per step. After the script exits, the runner reads that
   file as `name=value` lines and returns them as outputs. Exit code 0 is
   `STEP_OUTCOME_SUCCEEDED`, anything else `STEP_OUTCOME_FAILED`.

@@ -37,7 +37,7 @@ internal static class StepResolver
         switch (step)
         {
             case ScriptStep run:
-                script = new ResolvedScript(Shell(run.Shell, shells), reads.Render(run.Run), run.WorkingDirectory is null ? null : reads.Render(run.WorkingDirectory));
+                script = new ResolvedScript(Shell(run.Shell, shells), reads.Render(run.Run), run.WorkingDirectory is null ? null : reads.Render(run.WorkingDirectory), DefaultShell: run.Shell is null);
                 break;
             case NodeStep use:
                 node = new ResolvedNode(use.Type, Inputs(use.Inputs, reads));
