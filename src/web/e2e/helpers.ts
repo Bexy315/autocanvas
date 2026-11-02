@@ -23,6 +23,22 @@ async function shoot(page: Page, name: string, scheme: 'light' | 'dark') {
   });
 }
 
+/**
+ * Pictures for the user guide, of what is in view, light and dark, in `test-results/docs/`;
+ * `npm run docs:screenshots` copies them to `docs/user/img/`.
+ */
+export async function docsShot(page: Page, name: string) {
+  await picture(page, name, 'light');
+  await picture(page, name, 'dark');
+}
+
+async function picture(page: Page, name: string, scheme: 'light' | 'dark') {
+  await page.evaluate((value) => {
+    document.documentElement.dataset['theme'] = value;
+  }, scheme);
+  await page.screenshot({ path: `test-results/docs/${name}-${scheme}.png`, animations: 'disabled', caret: 'hide' });
+}
+
 /** The admin's session after the first sign-in, kept for the specs that follow (one worker runs them all). */
 let session: Cookie[] | null = null;
 

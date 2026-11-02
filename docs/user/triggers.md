@@ -43,6 +43,9 @@ tab:
 - **Rotate**: makes a new address; the old one stops working at once.
 - **Delete**: removes the address, so calls of it fail from then on.
 
+![A new webhook address](img/tour-webhook-light.png#gh-light-mode-only)
+![A new webhook address](img/tour-webhook-dark.png#gh-dark-mode-only)
+
 Calls start runs only while the file has `webhook: true`; the tab says so when it does not.
 
 ## Schedules

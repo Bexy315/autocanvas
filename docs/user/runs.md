@@ -34,6 +34,9 @@ A run's page fills the window:
 - **Actions**: **Cancel** stops the run while it runs, and **Run again** starts a new one; both need
   the Operator role.
 
+![A run with its live log](img/tour-run-log-light.png#gh-light-mode-only)
+![A run with its live log](img/tour-run-log-dark.png#gh-dark-mode-only)
+
 The page follows a run while it runs. The log arrives live:
 
 - **Steps**: lines are grouped by the step that wrote them; choose a step in the list, or its

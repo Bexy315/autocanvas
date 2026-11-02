@@ -30,8 +30,8 @@ machines where work runs.
 | `AutoCanvas.Server.Application` | Use cases: identity, folders and permissions, automations, variables and secrets, audit | users, groups, sessions and tokens; folders and permissions; managed automations; variables, secrets and the master key; audit log and its queries |
 | `AutoCanvas.Persistence` | EF Core model shared by all databases; one project per provider (PostgreSQL, SQLite) with its migrations ([ADR-0010](../adr/0010-database-providers.md), [ADR-0014](../adr/0014-data-access-with-ef-core.md)) | complete S1 model, both providers, migrations |
 | `AutoCanvas.Protocol` | C# generated from the runner protocol in `proto/`: messages, server and client stubs | runner protocol v1 |
-| `AutoCanvas.Runner` | Reference runner implementing the runner protocol | planned (S2) |
-| Web UI | Canvas editor, runs, logs, reports, administration | planned (S3) |
+| `AutoCanvas.Runner` | Reference runner implementing the runner protocol | jobs in Docker containers with services, checkouts, scripts and the built-in node types ([ADR-0016](../adr/0016-built-in-node-types-first.md)) |
+| Web UI (`src/web`) | Canvas editor, runs, logs, reports, administration | React SPA served by the server ([Web UI](web-ui.md), [ADR-0018](../adr/0018-web-ui.md)) |
 | `AutoCanvas.Forge` | Git and forge integrations | planned (S5) |
 
 The dependency direction is strict: Core and Reports depend on nothing in AutoCanvas; the server
@@ -39,7 +39,7 @@ and runner depend on them, never the reverse.
 
 ## Runtime: a pipeline run
 
-*Planned in the server; the decisions exist in Core.* A trigger (manual, schedule, webhook)
+A trigger (manual, schedule, webhook)
 creates a run; Core decides which jobs are ready (`RunPlanner`);
 the server enqueues them in its own job queue ([ADR-0010](../adr/0010-database-providers.md));
 a runner with matching labels leases a job over the [runner protocol](../protocol/runner-v1.md),

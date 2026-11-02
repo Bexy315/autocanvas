@@ -6,7 +6,39 @@ sidebar_position: 5.5
 
 The web UI is a React single-page app in `src/web`, built with Vite and served by the server itself
 from its web root, on the same origin as the API ([ADR-0018](../adr/0018-web-ui.md)). It uses only
-the public HTTP API under `/api/v1`, like any other client.
+the public HTTP API under `/api/v1`, like any other client. What users see is shown in
+[A tour of the web UI](../user/web-ui.md).
+
+## Overview
+
+```
+ Browser                                                     AutoCanvas server
+┌───────────────────────────────────────────────────────┐   ┌───────────────────────────┐
+│ pages/  (one per route: folders, automation tabs,     │   │ wwwroot: index.html and   │
+│          run page, admin, account)                    │   │ hashed /assets            │
+│    │ read and change through hooks                    │   │                           │
+│    ▼                                                  │   │                           │
+│ api/  hooks per area (TanStack Query: cache,          │   │                           │
+│       invalidation, retries)                          │   │                           │
+│    │ openapi-fetch + middleware (CSRF header, 401)    │──▶│ /api/v1 (JSON, problems,  │
+│    │ EventSource for live logs (api/logStream.ts)     │◀──│ ETags; SSE for logs)      │
+│                                                       │   └───────────────────────────┘
+│ editor:  one text, the automation file                │
+│   CodeMirror ◀──▶ canvas/yamlEdit.ts ◀──▶ canvas      │
+│   (YAML view)     (splices the text)      (React Flow,│
+│                                            side panel)│
+└───────────────────────────────────────────────────────┘
+```
+
+- **Pages** compose small components from `ui/` and read data only through the hooks in `api/`;
+  nothing else calls the network.
+- **The editor** keeps the automation file as its only state. The canvas and the side panel derive
+  their graph from the parsed file and change it through `canvas/operations.ts`, which splices the
+  text (`canvas/yamlEdit.ts`) so comments and formatting stay; CodeMirror shows the same text. Undo
+  is CodeMirror's history for both. The server validates the text while it is typed and when it is
+  saved ([ADR-0018](../adr/0018-web-ui.md)).
+- **Runs** are read again while they run, and the log arrives over Server-Sent Events into a
+  virtualised list.
 
 ## How it is served
 
@@ -268,3 +300,21 @@ npm run e2e              # Playwright against the built server and UI
 database, and saves screenshots of each screen in light and dark to `test-results/screenshots`
 (CI keeps them as the artifact `web-screenshots`). It needs a browser once:
 `npx playwright install chromium --only-shell`.
+
+## Tests
+
+- **Unit and component tests** (Vitest, jsdom): logic such as `yamlEdit`, the ANSI parser or the
+  flaky rule in plain tests; pages and flows with Testing Library by role and label, against
+  `src/test/fakeServer.ts`, an in-memory stand-in for the API.
+- **End-to-end tests** (Playwright, `e2e/`) run against the real server and the built UI, one
+  worker, numbered so they run in order (`01-smoke` sets the admin's password the others sign in
+  with). Most serve what a runner would produce through `page.route`.
+- **The walk-through** (`e2e/11-walk-through.spec.ts`) needs no stand-in: it registers the
+  reference runner (`e2e/runner.ts`, built with `dotnet build -c Release`) and runs it as a child
+  process with Docker. On the canvas it builds an automation with two jobs, a service and a node
+  step, saves and starts it, follows the log, reads the failed test and the coverage, starts it with
+  a signed webhook and shares the folder with a group. Without Docker it is skipped, except in CI.
+- **Pictures of the user guide** come from the walk-through: `npm run docs:screenshots` runs it and
+  copies its pictures (light and dark) to `docs/user/img/`. Run it when a change alters what they
+  show, and commit them; the pages show the one matching the theme (`#gh-light-mode-only`,
+  `#gh-dark-mode-only`, as on GitHub).
