@@ -40,6 +40,8 @@ internal static class AutomationEndpoints
 
         var automations = api.MapGroup("/automations").WithTags("Automations").RequireAuthorization();
 
+        MapValidateEndpoint(automations);
+
         automations.MapGet("/{id:guid}", GetAsync)
             .WithName("GetAutomation")
             .Produces<AutomationView>()
@@ -63,6 +65,11 @@ internal static class AutomationEndpoints
 
         MapChangeEndpoints(automations);
 
+        MapVersionEndpoints(automations);
+    }
+
+    private static void MapVersionEndpoints(RouteGroupBuilder automations)
+    {
         automations.MapGet("/{id:guid}/versions", ListVersionsAsync)
             .WithName("ListAutomationVersions")
             .Produces<Page<AutomationVersionSummary>>()
@@ -78,6 +85,15 @@ internal static class AutomationEndpoints
             .WithDescription("With its file. To restore it, save that file again as a new version.")
             .ProducesProblem(StatusCodes.Status404NotFound);
     }
+
+    private static void MapValidateEndpoint(RouteGroupBuilder automations) =>
+        automations.MapPost("/validate", ValidateAsync)
+            .WithName("ValidateAutomation")
+            .Produces<AutomationValidationView>()
+            .WithSummary("Check an automation file without saving it")
+            .WithDescription("Runs the checks a save runs, in the given folder: the file, its node types and its triggers. Answers 200 with every error and warning, also when the file is invalid; `valid` says whether a save would accept it. Needs Viewer on the folder.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
     private static void MapChangeEndpoints(RouteGroupBuilder automations)
     {
@@ -122,6 +138,9 @@ internal static class AutomationEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
+
+    private static async Task<IResult> ValidateAsync(ValidateAutomationRequest request, HttpContext context, AutomationService automations, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await automations.ValidateAsync(context.User.ToActor(), request.FolderId, request.AutomationId, request.Yaml, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> ListAsync(Guid folderId, int? limit, string? cursor, HttpContext context, AutomationService automations, CancellationToken cancellationToken) =>
         ApiResults.Ok(await automations.ListAsync(context.User.ToActor(), folderId, new PageRequest(limit, cursor), cancellationToken).ConfigureAwait(false));

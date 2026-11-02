@@ -37,6 +37,31 @@
         }
       }
     },
+    "/api/v1/node-types": {
+      "get": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "List the node types",
+        "description": "Every node type a step can use with `type:`, with the inputs it takes under `with` and the outputs it sets. Files using any other type are refused.",
+        "operationId": "ListNodeTypes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NodeTypeView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit": {
       "get": {
         "tags": [
@@ -2252,6 +2277,58 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/automations/validate": {
+      "post": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Check an automation file without saving it",
+        "description": "Runs the checks a save runs, in the given folder: the file, its node types and its triggers. Answers 200 with every error and warning, also when the file is invalid; `valid` says whether a save would accept it. Needs Viewer on the folder.",
+        "operationId": "ValidateAutomation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateAutomationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationValidationView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5191,6 +5268,27 @@
         },
         "description": "What starts runs of an automation, as its current version says."
       },
+      "AutomationValidationView": {
+        "required": [
+          "valid",
+          "diagnostics"
+        ],
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "description": "Whether saving it would be accepted: no errors, only warnings if any."
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticView"
+            },
+            "description": "Every error and warning, in the order they appear in the file."
+          }
+        },
+        "description": "What checking a file without saving it found."
+      },
       "AutomationVersionSummary": {
         "required": [
           "number",
@@ -6661,6 +6759,104 @@
           }
         },
         "description": "Where to move a folder."
+      },
+      "NodeInputKind": {
+        "enum": [
+          "Text",
+          "WholeNumber",
+          "Boolean",
+          "TextList",
+          "TextMap"
+        ],
+        "description": "What a node input takes. Any input may instead be an expression, checked when it runs."
+      },
+      "NodeInputView": {
+        "required": [
+          "name",
+          "kind",
+          "required",
+          "description",
+          "choices"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The key."
+          },
+          "kind": {
+            "description": "What it takes; any input may instead be an expression.",
+            "$ref": "#/components/schemas/NodeInputKind"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether a step must give it."
+          },
+          "description": {
+            "type": "string",
+            "description": "What it means."
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The values a text input may have, when there are few; empty for any."
+          }
+        },
+        "description": "One key a node type takes under `with`."
+      },
+      "NodeOutputView": {
+        "required": [
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The output's name."
+          },
+          "description": {
+            "type": "string",
+            "description": "What it holds."
+          }
+        },
+        "description": "An output a step of a node type sets, readable as `steps.ID.outputs.NAME`."
+      },
+      "NodeTypeView": {
+        "required": [
+          "name",
+          "description",
+          "inputs",
+          "outputs"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The value of `type`, such as `http_request`."
+          },
+          "description": {
+            "type": "string",
+            "description": "What it does."
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NodeInputView"
+            },
+            "description": "The keys it takes under `with`, required ones first."
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NodeOutputView"
+            },
+            "description": "The outputs a step of this type sets, by name."
+          }
+        },
+        "description": "A node type a step can use with `type:`, for editors and documentation."
       },
       "PageOfAuditEventView": {
         "required": [
@@ -8445,6 +8641,33 @@
         },
         "description": "A user as administrators and the user themselves see it; never the password hash."
       },
+      "ValidateAutomationRequest": {
+        "required": [
+          "yaml",
+          "folderId"
+        ],
+        "type": "object",
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "description": "The whole automation file."
+          },
+          "folderId": {
+            "type": "string",
+            "description": "The folder it would be saved in; its triggers are checked from there.",
+            "format": "uuid"
+          },
+          "automationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The automation being edited, if any; it must be in that folder.",
+            "format": "uuid"
+          }
+        },
+        "description": "A file to check without saving it."
+      },
       "VariableView": {
         "required": [
           "name",
@@ -8551,6 +8774,9 @@
       "name": "Server"
     },
     {
+      "name": "Automations"
+    },
+    {
       "name": "Audit"
     },
     {
@@ -8570,9 +8796,6 @@
     },
     {
       "name": "Folders"
-    },
-    {
-      "name": "Automations"
     },
     {
       "name": "Variables and secrets"

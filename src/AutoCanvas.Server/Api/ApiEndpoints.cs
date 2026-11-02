@@ -3,6 +3,7 @@ using AutoCanvas.Server.Api.Audit;
 using AutoCanvas.Server.Api.Automations;
 using AutoCanvas.Server.Api.Folders;
 using AutoCanvas.Server.Api.Identity;
+using AutoCanvas.Server.Api.Nodes;
 using AutoCanvas.Server.Api.Runners;
 using AutoCanvas.Server.Api.Runs;
 using AutoCanvas.Server.Api.Variables;
@@ -48,6 +49,7 @@ internal static class ApiEndpoints
         api.MapGroupEndpoints();
         api.MapFolderEndpoints();
         api.MapAutomationEndpoints();
+        api.MapNodeTypeEndpoints();
         api.MapVariableEndpoints();
         api.MapAuditEndpoints();
         api.MapRunEndpoints();

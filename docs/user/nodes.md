@@ -11,7 +11,8 @@ of the wrong kind (see [Diagnostics](diagnostics.md)). An input whose value is a
 (`${{ … }}`) is checked when the step runs, since only then is it known.
 
 A job with node steps goes to runners that announce those node types; the reference runner
-implements both.
+implements both. `GET /api/v1/node-types` lists them with their inputs and outputs, as the web UI's
+editor uses them for suggestions.
 
 ## `http_request`
 

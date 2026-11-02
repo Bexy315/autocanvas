@@ -71,6 +71,27 @@ src/web/
   e2e/                      Playwright tests against the real server
 ```
 
+## The YAML editor
+
+The editor tab (`pages/automation/EditorTab.tsx`) wraps CodeMirror 6 (`editor/YamlEditor.tsx`) and
+is loaded on demand, so the app's first load does not carry it. It keeps the version the edits are
+based on; Save sends its ETag as `If-Match`, and a `412` opens a comparison of the newer version with
+the edited text (`dialogs/ConflictDialog.tsx`).
+
+- **Checks** come from the server: `useValidation` sends the text to
+  `POST /api/v1/automations/validate` once typing pauses for 400 ms, cancels a check that is still
+  running when a newer one starts, and keeps the last result visible meanwhile. The browser holds no
+  copy of the rules (ADR-0018).
+- **Suggestions** come from `schema/automation.v1.json`, imported at build time, and the node type
+  catalog (`GET /api/v1/node-types`). `editor/yamlPath.ts` finds the path at the cursor from the
+  indentation, which works on half-typed lines; `editor/schemaKeys.ts` walks the schema along it.
+- **Colors** are the design tokens as CSS variables (`editor/editorTheme.ts`), so the editor follows
+  light and dark without being rebuilt.
+- **Keyboard**: Tab indents; Esc, then Tab, leaves the editor (WCAG 2.1.2).
+
+The build splits libraries into a `vendor` chunk and the editor's libraries into the editor's own
+chunk (`vite.config.ts`), so releases that only change the app leave the libraries cached.
+
 Pages tell the shell where they are with `usePageInfo`: their breadcrumbs, and the folder to
 highlight and expand in the folder tree. The tree follows the ARIA tree pattern (one tab stop,
 arrow keys, Home and End) and loads subfolders when one is expanded; the move dialog uses the same
