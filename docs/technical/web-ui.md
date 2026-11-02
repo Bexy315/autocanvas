@@ -225,6 +225,19 @@ A run's page switches between its jobs, tests and coverage with `?view=` (`runs/
   shared by several routes reads it itself (`ApiEndpoints.DeclareRouteValues`). The list endpoints
   of folder variables and secrets lacked them, so typed clients could not call them.
 
+## Sharing and administration
+
+- **Sharing** (`pages/FolderSharing.tsx`): a folder tab for owners. People and groups are found with
+  `ui/DirectoryPicker`, a search field over `GET /api/v1/directory` whose matches are buttons the
+  arrow keys move between.
+- **Administration** (`pages/admin/`) has a tab each for variables and secrets, users, groups and
+  runners. The runner list is read every ten seconds for the online state.
+- **The account page** lists sessions and API tokens.
+- **Shown once**: a password made up for someone (`lib/password.ts`, from `crypto.getRandomValues`,
+  without characters that look alike), a runner token, an API token and a webhook address are shown
+  in `ui/SecretOnce` (`OnceDialog`, `CopyValue`), which closes only once the user confirms they
+  saved them.
+
 ## Developing
 
 ```sh

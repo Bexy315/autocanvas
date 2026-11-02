@@ -71,6 +71,17 @@ subfolders and automations. Depending on your role it offers **New folder**, **N
 and in its menu **Rename**, **Move** and **Delete**. Moving opens the same tree as a picker, in which
 only folders where you are an editor can be chosen.
 
+A folder's **Sharing** tab is for its owners:
+- **Roles**: it lists the roles given on this folder, to people and to groups. Changing a role takes
+  effect at once.
+- **Share**: finds a person or a group by name and gives them a role. Typing two letters is enough;
+  only names are searched, never e-mail addresses.
+- **Remove**: takes a role away; removing your own Owner role warns you first.
+- **Restrict**: makes roles from the folders above stop applying, and **Lift the restriction**
+  undoes it.
+
+Others see that only owners see who has access.
+
 ## With the API
 
 ```sh

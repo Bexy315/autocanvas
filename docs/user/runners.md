@@ -12,8 +12,8 @@ job succeeded.
 :::note Status
 
 The reference runner runs jobs in containers with their services, checkouts, script steps and the
-node types `docker_build` and `http_request`, with logs, outputs and reports. Runners are managed
-through the HTTP API below; the web UI comes with S3.
+node types `docker_build` and `http_request`, with logs, outputs and reports. Admins manage runners in
+the web UI (**Administration**, **Runners**) or through the HTTP API below.
 
 :::
 
@@ -119,6 +119,18 @@ an earlier run of it left behind, after a crash say; containers of other runners
 host stay.
 
 Managing runners is for **admins**.
+
+## In the web UI
+
+**Administration** → **Runners** lists every runner:
+- whether it is **online** (heard from in the last two heartbeats);
+- what it announced (labels, executor, system, how many jobs at a time, version);
+- when it was last seen.
+
+**Pause** keeps it from taking new jobs and **Resume** lets it again; **Rename** and **Delete** are in
+its menu. **Register a runner** makes a registration token: it is shown once, with the `register`
+command for Docker and for .NET, using the server's runner address (which you can adjust). Open
+registration tokens are listed below the runners and can be deleted.
 
 ## Registering a runner
 
