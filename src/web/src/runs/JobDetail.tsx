@@ -1,12 +1,15 @@
 import { clsx } from 'clsx';
 import { Ban, CircleCheck, CircleDashed, CircleSlash, CircleX, Clock, LoaderCircle, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { useRunReports, type ReportSummary } from '../api/reports';
 import { useRunJob, type JobStep } from '../api/runs';
 import { duration } from '../lib/time';
 import { ErrorAlert } from '../ui/Alert';
 import { Badge, type BadgeTone } from '../ui/Badge';
 import { Loading } from '../ui/Spinner';
 import { LogView, type StepJump } from './log/LogView';
+import { coverageText, latestReports, testTotalsText } from './reports/reportModel';
 import { useAttemptLog } from './log/useAttemptLog';
 import { useNow } from './useNow';
 
@@ -52,6 +55,7 @@ export function JobDetail({
   const attempt = attempts.find((candidate) => Number(candidate.number) === attemptNumber) ?? attempts.at(-1) ?? null;
   const log = useAttemptLog(runId, attempt);
   const now = useNow(job.data?.status === 'Running');
+  const reports = useRunReports(runId, job.data?.status === 'Running');
 
   if (job.isError) {
     return <ErrorAlert error={job.error} title="The job could not be loaded" />;
@@ -73,6 +77,7 @@ export function JobDetail({
           )}
         </div>
         {detail.reason && <p className="text-sm text-muted">{detail.reason}</p>}
+        <JobReports reports={reports.data?.reports ?? []} jobKey={jobKey} />
         {outputs.length > 0 && (
           <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             {outputs.map(([name, value]) => (
@@ -157,5 +162,38 @@ export function JobDetail({
         </>
       )}
     </div>
+  );
+}
+
+/** What the job's reports found, in a line that leads to the run's tests or coverage. */
+function JobReports({ reports, jobKey }: { reports: readonly ReportSummary[]; jobKey: string }) {
+  const own = latestReports(reports).current.filter((report) => report.jobKey === jobKey);
+  const tests = own.flatMap((report) => (report.tests ? [report.tests] : []));
+  const coverage = own.find((report) => report.coverage)?.coverage;
+  if (tests.length === 0 && !coverage) {
+    return null;
+  }
+  const sum = (key: 'total' | 'passed' | 'failed' | 'skipped' | 'durationMs') =>
+    tests.reduce((total, entry) => total + Number(entry[key]), 0);
+  const failed = sum('failed');
+  return (
+    <p className="flex flex-wrap gap-x-3 text-xs">
+      {tests.length > 0 && (
+        <Link to="?view=tests" className={failed > 0 ? 'text-danger hover:underline' : 'text-muted hover:underline'}>
+          {testTotalsText({
+            total: sum('total'),
+            passed: sum('passed'),
+            failed,
+            skipped: sum('skipped'),
+            durationMs: sum('durationMs'),
+          })}
+        </Link>
+      )}
+      {coverage && (
+        <Link to="?view=coverage" className="text-muted hover:underline">
+          Coverage: {coverageText(coverage)}
+        </Link>
+      )}
+    </p>
   );
 }

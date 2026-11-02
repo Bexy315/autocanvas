@@ -3,27 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JobAttempt, LogChunk, RunJobDetail, RunSummary, RunView } from '../api/runs';
 import { automationView, folderView, page, twoJobs } from '../test/fixtures';
 import { fakeServer, info, json, me, problem, requests, type Handler } from '../test/fakeServer';
+import { withLayout } from '../test/layout';
 import { renderApp } from '../test/renderApp';
 import { LogView } from './log/LogView';
 import { mergeChunks } from './log/logModel';
 import { reconnectMs, useAttemptLog, type AttemptLog } from './log/useAttemptLog';
 
 // jsdom lays nothing out; the log draws only the lines that fit, so it is given a size to draw into.
-// The log's scrolling region is a window of 480 pixels; each of its rows is 20 high.
-const height = (element: HTMLElement) => (element.getAttribute('role') === 'log' ? 480 : 20);
-
-beforeEach(() => {
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function size(this: HTMLElement) {
-    return new DOMRect(0, 0, 800, height(this));
-  });
-  vi.spyOn(Element.prototype, 'clientHeight', 'get').mockImplementation(function size(this: HTMLElement) {
-    return height(this);
-  });
-  vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(800);
-});
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+withLayout();
 
 const team = folderView('team', 'Team');
 const yaml = `${twoJobs}  test:\n    needs: [build]\n    steps:\n      - run: make test\n`;

@@ -10,8 +10,8 @@ its outcome, duration, message and output, and how much of the code the tests re
 
 :::note Status
 
-The server stores the reports of every job; tests, coverage and the history of a test are read
-through the API. The web UI comes in a later milestone.
+The server stores the reports of every job; tests, coverage and the history of a test are shown
+on a run's page in the web UI (see [In the web UI](#in-the-web-ui)) and read through the API.
 
 :::
 
@@ -30,6 +30,28 @@ jobs:
 | `format` | `junit` or `trx` for test results; `cobertura` for coverage. |
 | `path` | A glob pattern, or a list of them, relative to the workspace. Every matching file is read. |
 | `name` | Optional label in the UI; useful when a job publishes several reports. |
+
+## In the web UI
+
+A run's page has three views: **Jobs**, **Tests** and **Coverage**. The tabs already say what the
+reports found ("3 failed", "82 %"), and each job names its own results with a link to them.
+
+- **Tests**:
+  - **Filters**: by outcome; the failed ones come first when there are any. A name search narrows
+    them further.
+  - **Reports**: one section per test report, with its totals. Reports of earlier attempts of a
+    retried job are kept apart, as they do not count in the totals.
+  - **Failed tests**: each shows its message, stack trace and output, each of them copyable.
+- **History** (the clock at a test): the test's newest results in the automation's runs, as a strip
+  of colored squares (oldest left, each a link to its run), with its durations and its failures
+  grouped by message. The test **looks flaky** when it failed and then passed on a retry in the same
+  run, or when it changed between passing and failing at least three times in its last 20 results
+  (skipped ones do not count).
+- **Coverage**:
+  - the run's line and branch coverage;
+  - each coverage report's packages, lowest coverage first (or by name);
+  - a package's classes, with the lines no test reached, by number (AutoCanvas keeps no source
+    code).
 
 ## Supported formats
 
