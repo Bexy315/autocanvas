@@ -1,12 +1,14 @@
+import { Outlet } from 'react-router';
 import { useMe } from '../../api/session';
 import { SecretsTable, VariablesTable } from '../../config/ScopeTables';
 import { usePageInfo } from '../../layout/pageContext';
 import { PageHeader } from '../../ui/PageHeader';
+import { TabLinks } from '../../ui/Tabs';
 import { NotFoundPage } from '../NotFoundPage';
 
 /**
- * Administration: the instance's variables and secrets, which every automation reads. Users,
- * groups and runners join it in S3 step 9. Admins only; the server refuses changes from others.
+ * Administration of the instance, for admins: variables and secrets, users, groups and runners.
+ * Others get "no page here"; the server refuses them either way.
  */
 export function AdminPage() {
   const me = useMe();
@@ -14,11 +16,28 @@ export function AdminPage() {
   if (me.data && !me.data.user.isAdmin) {
     return <NotFoundPage />;
   }
-  const scope = { kind: 'instance' } as const;
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 p-6">
       <PageHeader title="Administration">Settings of this AutoCanvas instance, for admins.</PageHeader>
-      <h2 className="text-base font-semibold">Variables and secrets</h2>
+      <TabLinks
+        label="Administration"
+        tabs={[
+          { to: '/admin', label: 'Variables and secrets', end: true },
+          { to: '/admin/users', label: 'Users' },
+          { to: '/admin/groups', label: 'Groups' },
+          { to: '/admin/runners', label: 'Runners' },
+        ]}
+      />
+      <Outlet />
+    </div>
+  );
+}
+
+/** The instance's variables and secrets, which every automation reads. */
+export function AdminVariables() {
+  const scope = { kind: 'instance' } as const;
+  return (
+    <div className="flex flex-col gap-4">
       <VariablesTable
         scope={scope}
         canEdit

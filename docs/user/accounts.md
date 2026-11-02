@@ -36,6 +36,12 @@ Changing the password signs you out everywhere else. `GET /api/v1/me/sessions` l
 signed in; `POST /api/v1/auth/sign-out-everywhere` ends all of it. After five wrong passwords in a
 row, the user name is locked for 15 minutes.
 
+## Your account
+
+**Account** in the user menu shows your profile and changes your password. It also lists **where you
+are signed in** (browser, address, since when), with **Sign out there** for the others, and your
+**API tokens**: **New token** shows the token once, with an example call.
+
 ## API tokens
 
 Scripts, CI jobs and other tools use a personal API token instead of a password. Create one while
@@ -112,6 +118,23 @@ When an admin creates a user or sets a new password for them, the user must chan
 at their next sign-in, so the admin never knows the password in use. Disabling a user signs them
 out everywhere; deleting a user also removes their group memberships. The audit log keeps every
 change with the name the user had at the time.
+
+In the web UI, **Administration** (in the sidebar for admins) has **Users** and **Groups** next to the
+instance's variables and secrets:
+
+- **New user**: the browser makes up a first password and shows it once, to pass on; the user
+  replaces it at the first sign-in.
+- **Per user**: **Change** (display name, e-mail, admin, disabled), **Reset password** (again a
+  password made up and shown once), **API tokens** (to revoke a leaked one) and **Delete**.
+- **Groups**: created, renamed and deleted. A group's members are added by finding them by name.
+
+## Finding people and groups
+
+Sharing a folder needs the names of people and groups, so everyone signed in may search them:
+`GET /api/v1/directory?query=ad` finds users (not disabled) whose user name or display name contains
+the query, and groups whose name does; names that start with it come first, at most 20 of each. The
+query needs two characters at least, and only names come back, never e-mail addresses. Listing all
+users and groups stays for admins.
 
 ## Groups
 

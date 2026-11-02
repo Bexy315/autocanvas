@@ -24,6 +24,7 @@ import { PageHeader } from '../ui/PageHeader';
 import { Loading } from '../ui/Spinner';
 import { TabLinks } from '../ui/Tabs';
 import { FolderConfiguration } from './FolderConfiguration';
+import { FolderSharing } from './FolderSharing';
 import { AutomationRow, FolderRow } from './folderRows';
 import { folderPageInfo } from './folderPageInfo';
 
@@ -55,6 +56,7 @@ function FolderContent({ folder, tag }: { folder: FolderView; tag: string | null
   const move = useMoveFolder(folder.id);
   const remove = useDeleteFolder(folder.id);
   const configuring = useMatch('/folders/:id/configuration') !== null;
+  const sharing = useMatch('/folders/:id/sharing') !== null;
   const editor = hasRole(folder.myRole, 'Editor');
   const owner = hasRole(folder.myRole, 'Owner');
   const dialog = (name: Open) => (next: boolean) => {
@@ -117,9 +119,12 @@ function FolderContent({ folder, tag }: { folder: FolderView; tag: string | null
         tabs={[
           { to: `/folders/${folder.id}`, label: 'Contents', end: true },
           { to: `/folders/${folder.id}/configuration`, label: 'Configuration' },
+          { to: `/folders/${folder.id}/sharing`, label: 'Sharing' },
         ]}
       />
-      {configuring ? (
+      {sharing ? (
+        <FolderSharing folder={folder} tag={tag} />
+      ) : configuring ? (
         <FolderConfiguration folder={folder} />
       ) : (
         <>

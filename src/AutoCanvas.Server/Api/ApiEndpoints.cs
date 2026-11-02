@@ -83,6 +83,7 @@ internal static partial class ApiEndpoints
         api.MapMeEndpoints();
         api.MapUserEndpoints();
         api.MapGroupEndpoints();
+        api.MapDirectoryEndpoints();
         api.MapFolderEndpoints();
         api.MapAutomationEndpoints();
         api.MapNodeTypeEndpoints();

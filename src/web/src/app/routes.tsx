@@ -9,7 +9,10 @@ import { OverviewTab } from '../pages/automation/OverviewTab';
 import { ConfigurationTab } from '../pages/automation/ConfigurationTab';
 import { RunsTab } from '../pages/automation/RunsTab';
 import { TriggersTab } from '../pages/automation/TriggersTab';
-import { AdminPage } from '../pages/admin/AdminPage';
+import { AdminPage, AdminVariables } from '../pages/admin/AdminPage';
+import { GroupsAdmin } from '../pages/admin/GroupsAdmin';
+import { RunnersAdmin } from '../pages/admin/RunnersAdmin';
+import { UsersAdmin } from '../pages/admin/UsersAdmin';
 import { VersionsTab } from '../pages/automation/VersionsTab';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 import { FolderPage } from '../pages/FolderPage';
@@ -84,6 +87,7 @@ export const routes: RouteObject[] = [
               { index: true, element: <StartPage /> },
               { path: 'folders/:id', element: <FolderPage /> },
               { path: 'folders/:id/configuration', element: <FolderPage /> },
+              { path: 'folders/:id/sharing', element: <FolderPage /> },
               {
                 path: 'automations/:id',
                 element: <AutomationLayout />,
@@ -99,7 +103,16 @@ export const routes: RouteObject[] = [
             ],
           },
           { path: 'runs', element: <RunsPage /> },
-          { path: 'admin', element: <AdminPage /> },
+          {
+            path: 'admin',
+            element: <AdminPage />,
+            children: [
+              { index: true, element: <AdminVariables /> },
+              { path: 'users', element: <UsersAdmin /> },
+              { path: 'groups', element: <GroupsAdmin /> },
+              { path: 'runners', element: <RunnersAdmin /> },
+            ],
+          },
           { path: 'account', element: <AccountPage />, handle: crumb('Account') },
           { path: '*', element: <NotFoundPage />, handle: crumb('Not found') },
         ],

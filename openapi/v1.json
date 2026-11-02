@@ -37,6 +37,47 @@
         }
       }
     },
+    "/api/v1/directory": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Find people and groups",
+        "description": "Users (not disabled) whose user name or display name contains `query`, and groups whose name does, ignoring case; names that start with it first, at most 20 of each. Needs at least 2 characters. Names only, never e-mail addresses. Everyone signed in may search, to share folders.",
+        "operationId": "SearchDirectory",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DirectoryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/node-types": {
       "get": {
         "tags": [
@@ -6196,6 +6237,30 @@
         },
         "description": "A problem in an automation file, as the API reports it."
       },
+      "DirectoryView": {
+        "required": [
+          "users",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            },
+            "description": "Users that are not disabled, without their e-mail addresses."
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupSummary"
+            },
+            "description": "Groups."
+          }
+        },
+        "description": "People and groups found by a search, names whose start matches first."
+      },
       "FolderCrumb": {
         "required": [
           "id",
@@ -8932,6 +8997,9 @@
       "name": "Server"
     },
     {
+      "name": "Users"
+    },
+    {
       "name": "Automations"
     },
     {
@@ -8945,9 +9013,6 @@
     },
     {
       "name": "Me"
-    },
-    {
-      "name": "Users"
     },
     {
       "name": "Groups"
