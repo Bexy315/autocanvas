@@ -11,10 +11,26 @@ enough in the folder tree, and every automation below it can use it.
 
 :::note Status
 
-Variables and secrets can be managed through the HTTP API, and the server already resolves them
-along the chain below. Runs that use them come with the next milestone.
+Variables and secrets are managed in the web UI (see [In the web UI](#in-the-web-ui)) and
+through the HTTP API, and runs read them along the chain below.
 
 :::
+
+## In the web UI
+
+- **Instance**: **Administration** in the sidebar (admins only) holds the instance's variables and
+  secrets.
+- **Folders**: a folder's **Configuration** tab holds its own.
+- **Automations**: an automation's **Configuration** tab holds its secrets, and shows the
+  variables of its file (changed in the editor).
+
+Variables are added, changed and deleted in a list. A secret is set in a dialog with a password
+field: its value is never shown, not even the one it replaces.
+
+**Where each value comes from**, on a folder's and an automation's Configuration tab, lists every
+name a run reads with the definition that wins and where it is (the instance, a folder, the
+automation). Unfold a name to see every definition from the instance down, those overridden
+struck through. Variable values need the Operator role; secret values are never shown.
 
 ## Where values are defined
 

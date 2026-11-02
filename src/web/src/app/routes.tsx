@@ -6,7 +6,10 @@ import { AccountPage } from '../pages/AccountPage';
 import { AutomationLayout } from '../pages/automation/AutomationLayout';
 import { EditorLayout } from '../pages/automation/EditorLayout';
 import { OverviewTab } from '../pages/automation/OverviewTab';
+import { ConfigurationTab } from '../pages/automation/ConfigurationTab';
 import { RunsTab } from '../pages/automation/RunsTab';
+import { TriggersTab } from '../pages/automation/TriggersTab';
+import { AdminPage } from '../pages/admin/AdminPage';
 import { VersionsTab } from '../pages/automation/VersionsTab';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 import { FolderPage } from '../pages/FolderPage';
@@ -80,12 +83,15 @@ export const routes: RouteObject[] = [
             children: [
               { index: true, element: <StartPage /> },
               { path: 'folders/:id', element: <FolderPage /> },
+              { path: 'folders/:id/configuration', element: <FolderPage /> },
               {
                 path: 'automations/:id',
                 element: <AutomationLayout />,
                 children: [
                   { index: true, element: <OverviewTab /> },
                   { path: 'runs', element: <RunsTab /> },
+                  { path: 'triggers', element: <TriggersTab /> },
+                  { path: 'configuration', element: <ConfigurationTab /> },
                   { path: 'versions', element: <VersionsTab /> },
                   { path: 'versions/:number', element: <VersionsTab /> },
                 ],
@@ -93,6 +99,7 @@ export const routes: RouteObject[] = [
             ],
           },
           { path: 'runs', element: <RunsPage /> },
+          { path: 'admin', element: <AdminPage /> },
           { path: 'account', element: <AccountPage />, handle: crumb('Account') },
           { path: '*', element: <NotFoundPage />, handle: crumb('Not found') },
         ],

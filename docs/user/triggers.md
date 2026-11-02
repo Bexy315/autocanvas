@@ -25,6 +25,26 @@ triggers:
 reacts to: its schedule entries with when each fires next and last fired, and the automation it
 follows.
 
+## In the web UI
+
+An automation's **Triggers** tab shows what the current version reacts to:
+- **By hand**: whether it starts by hand.
+- **Webhook**: its webhook and the address.
+- **Schedules**: each schedule with when it fires next and when it last fired.
+- **After another automation**: the automation it follows, and on which result.
+
+Triggers are changed in the file (**Change in the editor**). The webhook's address is managed in the
+tab:
+
+- **Create address**: anyone with the Operator role creates it, by default for signed calls only.
+  The dialog that follows shows the address and the signing secret **once**, with copy buttons and
+  an example call in **curl** and **PowerShell** that signs the body. It closes only once you
+  confirm you saved them.
+- **Rotate**: makes a new address; the old one stops working at once.
+- **Delete**: removes the address, so calls of it fail from then on.
+
+Calls start runs only while the file has `webhook: true`; the tab says so when it does not.
+
 ## Schedules
 
 - **`cron`** takes five fields — minute, hour, day of month, month, day of week — as in crontab:

@@ -1,6 +1,6 @@
 import { FolderInput, FolderOpen, FolderPlus, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useMatch, useNavigate, useParams } from 'react-router';
 import {
   useChildren,
   useDeleteFolder,
@@ -22,6 +22,8 @@ import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { PageHeader } from '../ui/PageHeader';
 import { Loading } from '../ui/Spinner';
+import { TabLinks } from '../ui/Tabs';
+import { FolderConfiguration } from './FolderConfiguration';
 import { AutomationRow, FolderRow } from './folderRows';
 import { folderPageInfo } from './folderPageInfo';
 
@@ -52,6 +54,7 @@ function FolderContent({ folder, tag }: { folder: FolderView; tag: string | null
   const automations = useFolderAutomations(folder.id);
   const move = useMoveFolder(folder.id);
   const remove = useDeleteFolder(folder.id);
+  const configuring = useMatch('/folders/:id/configuration') !== null;
   const editor = hasRole(folder.myRole, 'Editor');
   const owner = hasRole(folder.myRole, 'Owner');
   const dialog = (name: Open) => (next: boolean) => {
@@ -109,49 +112,62 @@ function FolderContent({ folder, tag }: { folder: FolderView; tag: string | null
         {folder.description}
       </PageHeader>
 
-      {loading && <Loading label="Loading the folder's content…" />}
-      {failed && <ErrorAlert error={failed} title="The content could not be loaded" />}
-      {!loading && !failed && subfolders.length === 0 && items.length === 0 && (
-        <EmptyState
-          Icon={FolderOpen}
-          title="This folder is empty"
-          action={
-            editor ? (
-              <Button variant="primary" onClick={() => setOpen('automation')}>
-                <Plus aria-hidden="true" size={16} />
-                New automation
-              </Button>
-            ) : undefined
-          }
-        >
-          {editor
-            ? 'Create an automation or a subfolder in it.'
-            : 'Automations and subfolders appear here once someone with the Editor role adds them.'}
-        </EmptyState>
-      )}
-      {(subfolders.length > 0 || items.length > 0) && (
-        <ul aria-label="Content" className="divide-y divide-line rounded-panel border border-line bg-surface">
-          {subfolders.map((child) => (
-            <FolderRow key={child.id} folder={child} />
-          ))}
-          {children.hasNextPage && (
-            <MoreRow
-              label="Show more folders"
-              busy={children.isFetchingNextPage}
-              onClick={() => void children.fetchNextPage()}
-            />
+      <TabLinks
+        label="Folder"
+        tabs={[
+          { to: `/folders/${folder.id}`, label: 'Contents', end: true },
+          { to: `/folders/${folder.id}/configuration`, label: 'Configuration' },
+        ]}
+      />
+      {configuring ? (
+        <FolderConfiguration folder={folder} />
+      ) : (
+        <>
+          {loading && <Loading label="Loading the folder's content…" />}
+          {failed && <ErrorAlert error={failed} title="The content could not be loaded" />}
+          {!loading && !failed && subfolders.length === 0 && items.length === 0 && (
+            <EmptyState
+              Icon={FolderOpen}
+              title="This folder is empty"
+              action={
+                editor ? (
+                  <Button variant="primary" onClick={() => setOpen('automation')}>
+                    <Plus aria-hidden="true" size={16} />
+                    New automation
+                  </Button>
+                ) : undefined
+              }
+            >
+              {editor
+                ? 'Create an automation or a subfolder in it.'
+                : 'Automations and subfolders appear here once someone with the Editor role adds them.'}
+            </EmptyState>
           )}
-          {items.map((automation) => (
-            <AutomationRow key={automation.id} automation={automation} />
-          ))}
-          {automations.hasNextPage && (
-            <MoreRow
-              label="Show more automations"
-              busy={automations.isFetchingNextPage}
-              onClick={() => void automations.fetchNextPage()}
-            />
+          {(subfolders.length > 0 || items.length > 0) && (
+            <ul aria-label="Content" className="divide-y divide-line rounded-panel border border-line bg-surface">
+              {subfolders.map((child) => (
+                <FolderRow key={child.id} folder={child} />
+              ))}
+              {children.hasNextPage && (
+                <MoreRow
+                  label="Show more folders"
+                  busy={children.isFetchingNextPage}
+                  onClick={() => void children.fetchNextPage()}
+                />
+              )}
+              {items.map((automation) => (
+                <AutomationRow key={automation.id} automation={automation} />
+              ))}
+              {automations.hasNextPage && (
+                <MoreRow
+                  label="Show more automations"
+                  busy={automations.isFetchingNextPage}
+                  onClick={() => void automations.fetchNextPage()}
+                />
+              )}
+            </ul>
           )}
-        </ul>
+        </>
       )}
 
       <CreateFolderDialog parent={folder} open={open === 'folder'} onOpenChange={dialog('folder')} />

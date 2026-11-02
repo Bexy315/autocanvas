@@ -1,8 +1,8 @@
 import { clsx } from 'clsx';
-import { History, PanelLeftClose, PanelLeftOpen, Workflow } from 'lucide-react';
+import { History, PanelLeftClose, PanelLeftOpen, Settings, Workflow } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
-import { useServerInfo } from '../api/session';
+import { useMe, useServerInfo } from '../api/session';
 import { readSetting, writeSetting } from '../app/storage';
 import { shortVersion } from '../app/version';
 import { LogoMark } from '../ui/Logo';
@@ -12,10 +12,11 @@ import { UserMenu } from './UserMenu';
 
 export const sidebarKey = 'autocanvas.sidebar';
 
-/** The areas of the app. More come with their S3 steps (runs, runners, admin). */
+/** The areas of the app; Administration only for admins. */
 const areas = [
-  { to: '/', label: 'Automations', Icon: Workflow, paths: ['/', '/folders/', '/automations/'] },
-  { to: '/runs', label: 'Runs', Icon: History, paths: ['/runs'] },
+  { to: '/', label: 'Automations', Icon: Workflow, paths: ['/', '/folders/', '/automations/'], admin: false },
+  { to: '/runs', label: 'Runs', Icon: History, paths: ['/runs'], admin: false },
+  { to: '/admin', label: 'Administration', Icon: Settings, paths: ['/admin'], admin: true },
 ] as const;
 
 function inArea(pathname: string, paths: readonly string[]): boolean {
@@ -26,6 +27,8 @@ function inArea(pathname: string, paths: readonly string[]): boolean {
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(() => readSetting(sidebarKey) === 'collapsed');
   const info = useServerInfo();
+  const me = useMe();
+  const isAdmin = me.data?.user.isAdmin === true;
   const location = useLocation();
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const pageContext = useMemo(() => ({ info: pageInfo, setInfo: setPageInfo }), [pageInfo]);
@@ -57,25 +60,27 @@ export function AppShell() {
             {!collapsed && <span className="font-semibold tracking-tight">AutoCanvas</span>}
           </div>
           <ul className="flex flex-1 flex-col gap-0.5 p-2">
-            {areas.map(({ to, label, Icon, paths }) => {
-              const active = inArea(location.pathname, paths);
-              return (
-                <li key={to}>
-                  <NavLink
-                    to={to}
-                    aria-current={active ? 'page' : undefined}
-                    title={collapsed ? label : undefined}
-                    className={clsx(
-                      'flex h-8 items-center gap-2.5 rounded-control px-2 text-sm',
-                      active ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-sunken hover:text-ink',
-                    )}
-                  >
-                    <Icon aria-hidden="true" size={16} className="shrink-0" />
-                    <span className={clsx(collapsed && 'sr-only')}>{label}</span>
-                  </NavLink>
-                </li>
-              );
-            })}
+            {areas
+              .filter((area) => !area.admin || isAdmin)
+              .map(({ to, label, Icon, paths }) => {
+                const active = inArea(location.pathname, paths);
+                return (
+                  <li key={to}>
+                    <NavLink
+                      to={to}
+                      aria-current={active ? 'page' : undefined}
+                      title={collapsed ? label : undefined}
+                      className={clsx(
+                        'flex h-8 items-center gap-2.5 rounded-control px-2 text-sm',
+                        active ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:bg-sunken hover:text-ink',
+                      )}
+                    >
+                      <Icon aria-hidden="true" size={16} className="shrink-0" />
+                      <span className={clsx(collapsed && 'sr-only')}>{label}</span>
+                    </NavLink>
+                  </li>
+                );
+              })}
           </ul>
           <div className="flex flex-col gap-1 border-t border-line p-2">
             <button
