@@ -119,15 +119,17 @@ function RecentRuns({ id }: { id: string }) {
       {runs.data && runs.data.items.length > 0 && (
         <ul className="divide-y divide-line">
           {runs.data.items.map((run) => (
-            <li key={run.id} className="flex items-center gap-3 px-4 py-2.5">
-              <span className="w-10 font-mono text-xs text-muted">#{run.number}</span>
-              <RunStateBadge state={run.state} />
-              <span className="min-w-0 flex-1 truncate text-muted">
-                {triggerNames[run.trigger] ?? run.trigger}, {run.triggeredByName}
-              </span>
-              <span className="text-xs text-muted">
-                <RelativeTime value={run.createdAt} />
-              </span>
+            <li key={run.id}>
+              <Link to={`/runs/${run.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-sunken">
+                <span className="w-10 font-mono text-xs text-muted">#{run.number}</span>
+                <RunStateBadge state={run.state} />
+                <span className="min-w-0 flex-1 truncate text-muted">
+                  {triggerNames[run.trigger] ?? run.trigger}, {run.triggeredByName}
+                </span>
+                <span className="text-xs text-muted">
+                  <RelativeTime value={run.createdAt} />
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

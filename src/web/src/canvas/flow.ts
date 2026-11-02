@@ -6,8 +6,17 @@ export interface TriggerNodeData extends Record<string, unknown> {
   triggers: string[];
 }
 
+/** How a job of a run is doing, when the canvas shows a run rather than a file. */
+export interface RunMark {
+  status: 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Cancelled' | 'Skipped';
+  /** The status in words, with how long it took or why: `Succeeded in 12 s`, `Skipped: case other`. */
+  text: string;
+}
+
 export interface JobNodeData extends Record<string, unknown> {
   job: JobData;
+  /** The job's status in the run shown. */
+  run?: RunMark;
   /** Problems the server found in this job's part of the file. */
   problemCount: number;
   /** Whether lines can be drawn from and to it (editors only). */
@@ -47,6 +56,7 @@ export function toFlow(
   positions: Positions,
   problemsByJob: Readonly<Record<string, number>> = {},
   editable = false,
+  marks: Readonly<Record<string, RunMark>> = {},
 ): { nodes: Node[]; edges: Edge[] } {
   const needs = (id: string) =>
     graph.edges
@@ -63,13 +73,16 @@ export function toFlow(
     },
     ...graph.jobs.map((job): Node => {
       const problemCount = problemsByJob[job.id] ?? 0;
+      const run = marks[job.id];
       return {
         id: job.id,
         type: nodeType[job.kind],
         position: positions[job.id] ?? { x: 0, y: 0 },
-        data: { job, problemCount, editable } satisfies JobNodeData,
+        data: { job, problemCount, editable, ...(run ? { run } : {}) } satisfies JobNodeData,
         deletable: editable,
-        ariaLabel: describe(job, needs(job.id), problemCount),
+        ariaLabel: run
+          ? `${describe(job, needs(job.id), problemCount)}: ${run.text}`
+          : describe(job, needs(job.id), problemCount),
       };
     }),
   ].toSorted((a, b) => a.position.y - b.position.y || a.position.x - b.position.x);

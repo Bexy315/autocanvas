@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 import { clsx } from 'clsx';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { toFlow } from './flow';
+import { toFlow, type RunMark } from './flow';
 import { freeSpot, layOut, type Positions } from './layout';
 import { triggerId, type Graph } from './model';
 import type { NewJobKind, NodeTypeView } from './operations';
@@ -26,6 +26,8 @@ interface Size {
   width: number;
   height: number;
 }
+
+const noMarks: Readonly<Record<string, RunMark>> = {};
 
 /** A line as the canvas knows it: from an output of one job to another job. */
 export interface Line {
@@ -56,6 +58,8 @@ export interface AutomationCanvasProps {
   problemsByJob?: Readonly<Record<string, number>>;
   /** A card was chosen (click, or Enter/Space on a focused card). */
   onSelectJob?: (id: string) => void;
+  /** For a run: each job's status, shown on its card. */
+  marks?: Readonly<Record<string, RunMark>>;
   /** The cards the user chose on the canvas (the trigger too), whenever that changes. */
   onPick?: (ids: string[]) => void;
   /** For editors: changes made on the canvas. Without it the canvas only shows. */
@@ -99,6 +103,7 @@ function Canvas({
   problemsByJob = noProblems,
   onSelectJob,
   onPick,
+  marks = noMarks,
   edits,
   paletteNodeTypes = noNodeTypes,
   fitKey = 0,
@@ -121,7 +126,7 @@ function Canvas({
 
   const positions = useMemo(() => layOut(graph), [graph]);
   const { nodes, edges } = useMemo(() => {
-    const built = toFlow(graph, { ...positions, ...dragged }, problemsByJob, editable);
+    const built = toFlow(graph, { ...positions, ...dragged }, problemsByJob, editable, marks);
     return {
       // toFlow builds new objects every time, so they can take the selection directly.
       nodes: built.nodes.map((node): Node =>
@@ -132,7 +137,7 @@ function Canvas({
       ),
       edges: built.edges.map((edge): Edge => Object.assign(edge, { selected: selection.edges.includes(edge.id) })),
     };
-  }, [graph, positions, dragged, problemsByJob, editable, selection, sizes]);
+  }, [graph, positions, dragged, problemsByJob, editable, selection, sizes, marks]);
 
   // A job chosen in the YAML is brought into view once, when it becomes the chosen one; later
   // changes to the graph (moves, Tidy up) leave the view where the user has it.

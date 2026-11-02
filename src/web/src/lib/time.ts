@@ -22,3 +22,21 @@ export function relativeTime(value: string | Date, now: Date = new Date()): stri
   }
   return format.format(Math.trunc(seconds / 60), 'minute');
 }
+
+/** How long something took: `850 ms`, `12 s`, `3 min 4 s`, `1 h 2 min`; up to now while it runs. */
+export function duration(from: string, to?: string | null, now: Date = new Date()): string {
+  const milliseconds = Math.max(0, (to ? new Date(to) : now).getTime() - new Date(from).getTime());
+  if (milliseconds < 1000) {
+    return `${milliseconds} ms`;
+  }
+  const seconds = Math.floor(milliseconds / 1000);
+  if (seconds < 60) {
+    return `${seconds} s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return seconds % 60 === 0 ? `${minutes} min` : `${minutes} min ${seconds % 60} s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  return minutes % 60 === 0 ? `${hours} h` : `${hours} h ${minutes % 60} min`;
+}

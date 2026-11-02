@@ -59,6 +59,23 @@
   --ac-danger-soft: #fbe6e6;
   --ac-focus: #4f46e5;
   --ac-grid: #d3d7de;
+  /* The 16 colors of terminal output in run logs, readable on this theme's background (AA). */
+  --log-0: #1a1e26;
+  --log-1: #b4232a;
+  --log-2: #17703f;
+  --log-3: #8a5300;
+  --log-4: #1d4ed8;
+  --log-5: #a21caf;
+  --log-6: #0e7490;
+  --log-7: #586070;
+  --log-8: #4b5563;
+  --log-9: #c81e1e;
+  --log-10: #15803d;
+  --log-11: #92400e;
+  --log-12: #2563eb;
+  --log-13: #a21caf;
+  --log-14: #0f766e;
+  --log-15: #1a1e26;
 }
 
 [data-theme='dark'] {
@@ -82,6 +99,23 @@
   --ac-danger-soft: #331718;
   --ac-focus: #a5a6f8;
   --ac-grid: #2a2e37;
+  /* The 16 colors of terminal output in run logs, readable on this theme's background (AA). */
+  --log-0: #9aa1ae;
+  --log-1: #f08a8a;
+  --log-2: #5cc98a;
+  --log-3: #e6b155;
+  --log-4: #7aa2f7;
+  --log-5: #d68ae8;
+  --log-6: #5fc8d6;
+  --log-7: #e5e7ec;
+  --log-8: #8b93a1;
+  --log-9: #ff9e9e;
+  --log-10: #7fe0a5;
+  --log-11: #f2c879;
+  --log-12: #9bb8ff;
+  --log-13: #e8a8f5;
+  --log-14: #8ee0ea;
+  --log-15: #ffffff;
 }
 
 @layer base {

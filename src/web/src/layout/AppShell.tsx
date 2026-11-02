@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { PanelLeftClose, PanelLeftOpen, Workflow } from 'lucide-react';
+import { History, PanelLeftClose, PanelLeftOpen, Workflow } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useServerInfo } from '../api/session';
@@ -13,7 +13,10 @@ import { UserMenu } from './UserMenu';
 export const sidebarKey = 'autocanvas.sidebar';
 
 /** The areas of the app. More come with their S3 steps (runs, runners, admin). */
-const areas = [{ to: '/', label: 'Automations', Icon: Workflow, paths: ['/', '/folders/', '/automations/'] }] as const;
+const areas = [
+  { to: '/', label: 'Automations', Icon: Workflow, paths: ['/', '/folders/', '/automations/'] },
+  { to: '/runs', label: 'Runs', Icon: History, paths: ['/runs'] },
+] as const;
 
 function inArea(pathname: string, paths: readonly string[]): boolean {
   return paths.some((path) => (path === '/' ? pathname === '/' : pathname.startsWith(path)));
