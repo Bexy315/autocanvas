@@ -90,6 +90,8 @@ function AutomationPage({ context }: { context: AutomationContext }) {
           { to: `/automations/${automation.id}`, label: 'Overview', end: true },
           { to: `/automations/${automation.id}/edit`, label: 'Editor' },
           { to: `/automations/${automation.id}/runs`, label: 'Runs' },
+          { to: `/automations/${automation.id}/triggers`, label: 'Triggers' },
+          { to: `/automations/${automation.id}/configuration`, label: 'Configuration' },
           { to: `/automations/${automation.id}/versions`, label: 'Versions' },
         ]}
       />

@@ -7,17 +7,19 @@ using AutoCanvas.Server.Api.Nodes;
 using AutoCanvas.Server.Api.Runners;
 using AutoCanvas.Server.Api.Runs;
 using AutoCanvas.Server.Api.Variables;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
 namespace AutoCanvas.Server.Api;
 
 /// <summary>The versioned HTTP API under <c>/api/v1</c> and its OpenAPI description.</summary>
-internal static class ApiEndpoints
+internal static partial class ApiEndpoints
 {
     public const string DocumentName = "v1";
 
     public static IServiceCollection AddAutoCanvasOpenApi(this IServiceCollection services) =>
-        services.AddOpenApi(DocumentName, options => options.AddDocumentTransformer((document, _, _) =>
+        services.AddOpenApi(DocumentName, options => options.AddOperationTransformer(DeclareRouteValues).AddDocumentTransformer((document, _, _) =>
         {
             document.Info = new OpenApiInfo
             {
@@ -31,6 +33,40 @@ internal static class ApiEndpoints
             document.Servers = [new OpenApiServer { Url = "/" }];
             return Task.CompletedTask;
         }));
+
+    /// <summary>
+    /// Declares every value of an operation's route as a required path parameter. A handler shared by
+    /// several routes (the variables of the instance and of a folder) reads the folder's id itself, so
+    /// ASP.NET Core does not see it; clients still need to know it is part of the path.
+    /// </summary>
+    private static Task DeclareRouteValues(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
+    {
+        foreach (Match match in RouteValue().Matches(context.Description.RelativePath ?? string.Empty))
+        {
+            var name = match.Groups["name"].Value;
+            operation.Parameters ??= [];
+            if (operation.Parameters.Any(parameter => parameter.In == ParameterLocation.Path && string.Equals(parameter.Name, name, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            operation.Parameters.Add(new OpenApiParameter
+            {
+                Name = name,
+                In = ParameterLocation.Path,
+                Required = true,
+                // Every {id} of the API is a GUID; other route values are text.
+                Schema = string.Equals(name, "id", StringComparison.Ordinal)
+                    ? new OpenApiSchema { Type = JsonSchemaType.String, Format = "uuid" }
+                    : new OpenApiSchema { Type = JsonSchemaType.String },
+            });
+        }
+
+        return Task.CompletedTask;
+    }
+
+    [GeneratedRegex(@"\{(?<name>[A-Za-z]+)(?::[^}]*)?\}", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex RouteValue();
 
     public static IEndpointRouteBuilder MapAutoCanvasApi(this IEndpointRouteBuilder endpoints)
     {

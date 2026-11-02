@@ -206,6 +206,25 @@ A run's page switches between its jobs, tests and coverage with `?view=` (`runs/
   where a view needs one: jsdom lays nothing out, so a virtualised list would draw nothing and the
   canvas would compute its view from nothing.
 
+## Triggers and configuration
+
+- **Pages and building blocks**:
+  - an automation's Triggers and Configuration tabs (`pages/automation/`);
+  - a folder's Configuration tab (`pages/FolderConfiguration.tsx`, the folder page switches by
+    route);
+  - Administration (`pages/admin/`, in the sidebar only for admins);
+  - shared building blocks in `src/config/`, which take a `Scope` (`api/configuration.ts`: the
+    instance, a folder or an automation).
+- **The webhook dialog** shows the token and secret of `POST …/webhook` once. Its examples
+  (`config/webhookExamples.ts`) quote for the shell and for PowerShell and sign the body as
+  `docs/user/triggers.md` describes. It cannot be dismissed until the user confirms they saved the
+  values.
+- **The variables of an automation's file** come from its configuration explanation (definitions
+  of kind `Automation`), not from parsing the file, so the tab does not load the YAML library.
+- **The OpenAPI document** declares every route value as a path parameter, also where a handler
+  shared by several routes reads it itself (`ApiEndpoints.DeclareRouteValues`). The list endpoints
+  of folder variables and secrets lacked them, so typed clients could not call them.
+
 ## Developing
 
 ```sh

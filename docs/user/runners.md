@@ -88,8 +88,9 @@ label) or from arguments (`--Runner:Server=…`).
 - **The workspace** is `/workspace`, the working directory of every step unless the step names
   another `working_directory` inside it. It starts empty and is deleted when the job ends.
 - **Script steps** run with the shell they ask for, `bash` by default. The runner offers `bash` and
-  `sh`; an image without the shell fails the step as an error of the runner, which
-  `continue_on_error` does not cover. Use `shell: sh` for images such as Alpine.
+  `sh`. A step that names no shell runs with `sh` when the image has no `bash` (such as Alpine), and
+  the log says so. A shell a step names that the image does not have fails the step as an error of
+  the runner, which `continue_on_error` does not cover.
 - **Outputs**: `AUTOCANVAS_OUTPUT` names a file outside the workspace; lines `name=value` written
   to it become the step's outputs.
 - **Services** run next to the job's container on a Docker network of the job's own, where steps

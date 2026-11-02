@@ -64,6 +64,8 @@ public abstract class JobProgressTests(DatabaseProvider provider) : IdentityTest
         first.Name.ShouldBe("Find the version");
         first.Timeout.ShouldBe(TimeSpan.FromMinutes(3));
         first.Script!.Shell.ShouldBe("bash");
+        // The first step names no shell: bash is the server's choice, which the runner may replace with sh.
+        first.Script.DefaultShell.ShouldBeTrue();
         first.MaskValues.ShouldBeEmpty();
         second.Script.ShouldBe(new ResolvedScript("sh", "echo building v1", "src"));
         second.Name.ShouldBe("Step 2");

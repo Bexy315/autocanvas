@@ -124,6 +124,9 @@ message ScriptAction {
   string script = 2;
   // Directory relative to the workspace; empty for the workspace root.
   string working_directory = 3;
+  // The step named no shell; `shell` is the server's choice. When the job's image does not have
+  // it, the runner runs the step with "sh" instead of failing it.
+  bool default_shell = 4;
 }
 
 // A node type step.

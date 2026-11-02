@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Cookie, type Page } from '@playwright/test';
 import { adminUserName } from '../playwright.config';
 
 /** The password the smoke test (01) gives the first admin; later specs sign in with it. */
@@ -23,11 +23,33 @@ async function shoot(page: Page, name: string, scheme: 'light' | 'dark') {
   });
 }
 
-/** Signs in as the first admin, after the smoke test chose the admin's own password. */
+/** The admin's session after the first sign-in, kept for the specs that follow (one worker runs them all). */
+let session: Cookie[] | null = null;
+
+/**
+ * Signs in as the first admin, after the smoke test chose the admin's own password. The session of
+ * the first sign-in is reused: the server allows only a few sign-ins a minute from one address.
+ */
 export async function signIn(page: Page) {
+  if (session) {
+    await page.context().addCookies(session);
+    await page.goto('/');
+    // Waits for the start page; a session that ended shows the sign-in page instead.
+    const signedIn = await page
+      .getByRole('heading', { name: 'Automations', level: 1 })
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (signedIn) {
+      return;
+    }
+  }
   await page.goto('/sign-in');
   await page.getByLabel('User name').fill(adminUserName);
   await page.getByLabel('Password').fill(newPassword);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Automations', level: 1 })).toBeVisible();
+  session = await page.context().cookies();
 }
