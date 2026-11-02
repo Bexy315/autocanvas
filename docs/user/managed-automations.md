@@ -81,7 +81,17 @@ with its steps, and the lines between them: green when a job waits for success, 
 grey for always, violet for a switch's case, dashed into a `finally` job. It follows the file as you
 type; while the file cannot be read, it keeps the last readable state and says so. Choosing a card
 shows its job in the file, and the job your cursor is in is highlighted on the canvas. **List**
-shows the same as text. On the canvas you read for now; editing on it comes next.
+shows the same as text.
+
+Editors build on the canvas too. The bar above it adds a **Job**, **Switch**, **Join** or **Finally**
+job, or a job with a step of a node type such as `http_request`: drag an entry to a place, or choose
+it to add it in the middle. Drag a line from the bottom of a card (green on success, red on failure,
+grey either way, or a switch's case) to the top of another to make it wait; choose a line or card and
+press Delete to remove it, and Shift-click or Shift-drag to choose several. Drag cards, or move a
+chosen one with the arrow keys; **Tidy up** arranges them all. Every change lands in the YAML at once,
+changing only the lines it must: your comments, blank lines and formatting stay. **Undo** and
+**Redo** (Ctrl+Z, Ctrl+Y) go back and forth through canvas changes and typing alike. Connecting jobs
+needs a mouse for now; with the keyboard, add `needs` in the YAML.
 
 The file is edited in a YAML editor. While you type, the server checks the file exactly
 as a save would, including node types and triggers; problems are underlined in the file and listed

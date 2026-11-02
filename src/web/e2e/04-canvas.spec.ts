@@ -95,7 +95,7 @@ test('the canvas draws the automation next to its file and follows it while typi
 
   // While the file cannot be read, the last readable state stays, marked as such.
   await replaceAll(page, `${release}  broken: [\n`);
-  await expect(canvas.getByText('The file cannot be read right now; showing the last readable state.')).toBeVisible();
+  await expect(canvas.getByText(/^The file cannot be read right now;/)).toBeVisible();
   await snapshot(page, 'canvas-2-unreadable');
 
   // Choosing a card shows its job in the file.

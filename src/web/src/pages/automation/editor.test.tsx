@@ -259,7 +259,7 @@ describe('the editor', () => {
 `,
       ),
     );
-    expect(await within(canvas).findByText(/showing the last readable state/)).toBeInTheDocument();
+    expect(await within(canvas).findByText(/fix it in the YAML to edit on the canvas again/)).toBeInTheDocument();
     expect(within(canvas).getByLabelText('Job test, 1 step, needs build')).toBeInTheDocument();
   });
 
@@ -276,5 +276,38 @@ describe('the editor', () => {
     expect(screen.getByRole('region', { name: 'File', hidden: true })).toHaveClass('hidden');
     await user.click(within(views).getByRole('button', { name: 'Split' }));
     expect(screen.getByRole('separator')).toBeInTheDocument();
+  });
+
+  it('adds a job from the palette into the file, as one step undo takes back', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+    const canvas = screen.getByRole('region', { name: 'Canvas' });
+
+    await user.click(within(canvas).getByRole('button', { name: /^Add Job:/ }));
+
+    const text = view.state.doc.toString();
+    expect(text).toContain('  job:\n    runs_on: linux\n');
+    expect(text).toContain('x-editor:\n  layout:\n');
+    expect(text.startsWith(twoJobs)).toBe(true);
+    expect(await within(canvas).findByText('Added job job')).toBeInTheDocument();
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+
+    await user.click(within(canvas).getByRole('button', { name: 'Undo (Ctrl+Z)' }));
+    expect(view.state.doc.toString()).toBe(twoJobs);
+    await user.click(within(canvas).getByRole('button', { name: 'Redo (Ctrl+Y)' }));
+    expect(view.state.doc.toString()).toBe(text);
+
+    await user.click(within(canvas).getByRole('button', { name: 'Tidy up' }));
+    expect(view.state.doc.toString()).toContain('    trigger: {x:');
+  });
+
+  it('offers no palette to viewers', async () => {
+    server({ 'GET /api/v1/automations/a1': () => json(automationView('a1', 'team', { role: 'Viewer' })) });
+    renderApp('/automations/a1/edit');
+    await editorView(label);
+
+    expect(screen.queryByRole('toolbar', { name: 'Add to the canvas' })).not.toBeInTheDocument();
+    expect(screen.getByText('You can read the canvas; changing it needs the Editor role.')).toBeInTheDocument();
   });
 });

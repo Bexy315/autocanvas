@@ -96,9 +96,8 @@ leave the libraries cached.
 
 ## The canvas
 
-The canvas (`canvas/`) shows the file being edited as a graph, next to the YAML or alone; it reads
-the file and never writes it (S3 step 5b adds editing). Its logic is harvested from the origin's
-editor and rewritten for format v1.
+The canvas (`canvas/`) shows the file being edited as a graph, next to the YAML or alone, and lets
+editors change it. Its logic is harvested from the origin's editor and rewritten for format v1.
 
 - **Model** (`canvas/model.ts`): `graphFromYaml` reads the text with the `yaml` package into the
   trigger summary, one card per job (steps, switch cases, hints such as services, retry, limits),
@@ -117,6 +116,18 @@ editor and rewritten for format v1.
   problems it has; cards are in reading order for Tab, and Enter or Space shows the job in the
   file. The **List** view shows the same structure as text. Colors of lines are repeated as labels
   (`on failure`, `always`, case names).
+- **Editing** (editors, while the file can be read): the canvas reports intents (move, add,
+  connect, disconnect, remove, undo, redo); `canvas/operations.ts` turns each into a new text, and
+  the editor tab hands that to CodeMirror as the smallest change (`editor/smallestChange.ts`), so
+  there is one undo history for typing and canvas. Operations always start from the editor's
+  current text, as React Flow can report two in one event (a card and its lines deleted). Before
+  the first change, every card without a saved place gets the place it is shown at
+  (`pinUnplaced`), so nothing jumps as the graph changes.
+- **Changing the text** (`canvas/yamlEdit.ts`): `setIn`, `deleteIn`, `appendItem` and `removeItem`
+  splice the text at the ranges of the parsed YAML document and render new values in the file's
+  style, instead of writing the whole document, which would normalise unrelated lines. Each result
+  is parsed again and compared (ignoring key order) with the same change on the document; when it
+  differs, the whole document is written as a last resort and the change is marked `rewritten`.
 - **Look**: the cards and React Flow's controls use the design tokens (`canvas/canvas.css`), so the
   canvas follows light and dark.
 

@@ -10,6 +10,8 @@ export interface JobNodeData extends Record<string, unknown> {
   job: JobData;
   /** Problems the server found in this job's part of the file. */
   problemCount: number;
+  /** Whether lines can be drawn from and to it (editors only). */
+  editable?: boolean;
 }
 
 export interface EdgeData extends Record<string, unknown> {
@@ -44,6 +46,7 @@ export function toFlow(
   graph: Graph,
   positions: Positions,
   problemsByJob: Readonly<Record<string, number>> = {},
+  editable = false,
 ): { nodes: Node[]; edges: Edge[] } {
   const needs = (id: string) =>
     graph.edges
@@ -64,7 +67,8 @@ export function toFlow(
         id: job.id,
         type: nodeType[job.kind],
         position: positions[job.id] ?? { x: 0, y: 0 },
-        data: { job, problemCount } satisfies JobNodeData,
+        data: { job, problemCount, editable } satisfies JobNodeData,
+        deletable: editable,
         ariaLabel: describe(job, needs(job.id), problemCount),
       };
     }),
@@ -77,8 +81,10 @@ export function toFlow(
     sourceHandle: edge.sourceHandle,
     type: edge.kind === 'finally' ? 'finally' : 'automation',
     data: { kind: edge.kind, ...(edge.label ? { label: edge.label } : {}) } satisfies EdgeData,
-    focusable: false,
-    selectable: false,
+    // Lines drawn from `needs` can be chosen and deleted; the drawn-only ones (start, finally) cannot.
+    ...(editable && edge.kind !== 'start' && edge.kind !== 'finally'
+      ? { focusable: true, selectable: true, deletable: true }
+      : { focusable: false, selectable: false, deletable: false }),
   }));
 
   return { nodes, edges };

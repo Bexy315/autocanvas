@@ -38,11 +38,14 @@ export function widthOf(job: JobData | undefined): number {
 /** Space between the lowest card and a finally job moved below it. */
 const finallyGap = 96;
 
-/** Positions for every card: saved ones as they are, missing ones from dagre, finally jobs last. */
-export function layOut(graph: Graph): Positions {
+/**
+ * Positions for every card: saved ones as they are, missing ones from dagre, finally jobs last.
+ * With `all`, every card is placed anew (Tidy up), overriding what was saved.
+ */
+export function layOut(graph: Graph, { all = false }: { all?: boolean } = {}): Positions {
   const ids = [triggerId, ...graph.jobs.map((job) => job.id)];
   const byId = new Map(graph.jobs.map((job) => [job.id, job]));
-  const positions: Positions = { ...graph.positions };
+  const positions: Positions = all ? {} : { ...graph.positions };
   const missing = ids.filter((id) => !(id in positions));
 
   if (missing.length > 0) {
@@ -89,4 +92,19 @@ function keepFinallyLast(graph: Graph, positions: Positions): Positions {
     }
   }
   return result;
+}
+
+/**
+ * The nearest place to `at` where a new card does not cover another: moved down in steps until it
+ * is clear, so cards added in the middle of the view do not end up on top of each other.
+ */
+export function freeSpot(at: { x: number; y: number }, positions: Positions): { x: number; y: number } {
+  const taken = Object.values(positions);
+  const clear = (y: number) =>
+    taken.every((other) => Math.abs(other.x - at.x) >= cardWidth || Math.abs(other.y - y) >= 140);
+  let y = at.y;
+  for (let step = 0; step < 40 && !clear(y); step += 1) {
+    y += 40;
+  }
+  return { x: at.x, y };
 }

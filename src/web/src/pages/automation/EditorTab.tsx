@@ -2,8 +2,20 @@ import { CircleCheck, CircleAlert, LoaderCircle, Save, Undo2 } from 'lucide-reac
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker } from 'react-router';
 import { readSetting, writeSetting } from '../../app/storage';
+import type { CanvasEdits } from '../../canvas/AutomationCanvas';
 import { CanvasPane } from '../../canvas/CanvasPane';
-import { jobAtLine } from '../../canvas/lines';
+import { jobAtLine, jobLines } from '../../canvas/lines';
+import {
+  addJob,
+  connect,
+  connectionProblem,
+  deleteJobs,
+  disconnect,
+  movePositions,
+  pinUnplaced,
+  tidy,
+  type Change,
+} from '../../canvas/operations';
 import { useCanvasGraph } from '../../canvas/useCanvasGraph';
 import { useNodeTypes, useSaveAutomation, type NodeTypeView } from '../../api/automations';
 import { api, unwrapWithTag } from '../../api/client';
@@ -95,6 +107,51 @@ export function EditorTab() {
       editor.current?.revealLine(range.from);
     }
   };
+
+  // Changes made on the canvas: each works on the text as the editor has it right now (two can
+  // come in one event, such as deleting a card and its lines) and goes into the editor as one step
+  // of its undo history.
+  const [announcement, setAnnouncement] = useState('');
+  const [tidied, setTidied] = useState(0);
+  const currentText = () => editor.current?.text() ?? draft;
+  // Cards keep the place they are shown at once something changes on the canvas (pinUnplaced).
+  const pinnedText = () => pinUnplaced(currentText());
+  const applyChange = (change: Change | null) => {
+    if (!change) {
+      return;
+    }
+    editor.current?.apply(change.text);
+    setAnnouncement(change.summary);
+    if (change.focus) {
+      setSelectedJob(change.focus);
+      const range = jobLines(change.text).get(change.focus);
+      if (range) {
+        editor.current?.revealLine(range.from);
+      }
+    }
+  };
+  const edits: CanvasEdits = {
+    move: (positions) => applyChange(movePositions(pinnedText(), positions)),
+    add: (kind, at) => applyChange(addJob(pinnedText(), kind, at)),
+    connect: ({ source, handle, target }) => applyChange(connect(pinnedText(), source, handle, target)),
+    canConnect: (source, target) => connectionProblem(currentText(), source, target) === null,
+    disconnect: (lines) => {
+      let text = pinnedText();
+      let last: Change | null = null;
+      for (const line of lines) {
+        const change = disconnect(text, line.source, line.handle, line.target);
+        if (change) {
+          text = change.text;
+          last = change;
+        }
+      }
+      applyChange(last && lines.length > 1 ? { text, summary: `Disconnected ${lines.length} lines` } : last);
+    },
+    remove: (ids) => applyChange(deleteJobs(pinnedText(), ids)),
+    undo: () => editor.current?.undo(),
+    redo: () => editor.current?.redo(),
+  };
+
   const blockedReason = !dirty
     ? 'No changes to save.'
     : validation.status === 'invalid'
@@ -217,6 +274,18 @@ export function EditorTab() {
               selectedJob={selectedJob}
               problemsByJob={canvas.problemsByJob}
               onSelectJob={showJob}
+              announcement={announcement}
+              {...(canEdit
+                ? {
+                    edits,
+                    onTidy: () => {
+                      applyChange(tidy(currentText()));
+                      setTidied((count) => count + 1);
+                    },
+                    paletteNodeTypes: nodeTypeList,
+                    fitKey: tidied,
+                  }
+                : {})}
             />
           }
           right={
