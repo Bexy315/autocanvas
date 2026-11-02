@@ -117,11 +117,19 @@ function Canvas({
     };
   }, [graph, positions, dragged, problemsByJob, editable, selection]);
 
-  // A job chosen in the YAML is brought into view.
+  // A job chosen in the YAML is brought into view once, when it becomes the chosen one; later
+  // changes to the graph (moves, Tidy up) leave the view where the user has it.
+  const centered = useRef<string | null>(null);
   useEffect(() => {
+    if (selectedJob === centered.current) {
+      return;
+    }
     const at = selectedJob ? positions[selectedJob] : undefined;
     if (at) {
+      centered.current = selectedJob;
       void flow.setCenter(at.x + 130, at.y + 60, { zoom: Math.max(flow.getZoom(), 0.8), duration: 250 });
+    } else if (!selectedJob) {
+      centered.current = null;
     }
   }, [selectedJob, positions, flow]);
 

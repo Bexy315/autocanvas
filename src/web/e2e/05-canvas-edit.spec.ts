@@ -96,6 +96,8 @@ test('jobs are added, wired, moved, deleted and saved on the canvas, keeping the
 
   await canvas.getByRole('button', { name: 'Tidy up' }).click();
   await expect(file(page)).toContainText('trigger: {x:');
+  // The view is fitted to the new layout.
+  await page.waitForTimeout(400);
 
   // The hand-written parts are as they were.
   await expect(file(page)).toContainText('# Built on the canvas');
