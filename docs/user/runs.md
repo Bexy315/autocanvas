@@ -10,12 +10,45 @@ A **run** is one execution of an automation: its jobs, in the order and under th
 :::note Status
 
 Runs start by hand, on a schedule, through a webhook or when another automation finishes (see
-[Triggers](triggers.md)), and are followed and cancelled through the HTTP API; the web UI comes with
-S3. The server hands jobs to [runners](runners.md), decides every step and keeps the jobs' logs and
+[Triggers](triggers.md)), and are followed and cancelled in the web UI (see
+[In the web UI](#in-the-web-ui)) or through the HTTP API. The server hands jobs to [runners](runners.md), decides every step and keeps the jobs' logs and
 [reports](reports.md). Until a runner is connected, jobs that should run stay *running* while they
 wait for one.
 
 :::
+
+## In the web UI
+
+**Runs** in the sidebar lists the newest runs of every automation you may see, filtered by state if
+you like; the start page shows the latest five. An automation's **Runs** tab lists its own, with
+**Run** to start one by hand.
+
+A run's page fills the window:
+
+- **On the left, the run as a graph**: the file it ran, with each job's status on its card (waiting,
+  running for how long, succeeded or failed in how long, skipped and why).
+- **On the right, the job you choose**:
+  - its status, outputs (secret ones are shown as *hidden*) and attempts, the last one first;
+  - the steps of the attempt with their status, exit code and duration;
+  - below them, its **log**.
+- **Actions**: **Cancel** stops the run while it runs, and **Run again** starts a new one; both need
+  the Operator role.
+
+The page follows a run while it runs. The log arrives live:
+
+- **Steps**: lines are grouped by the step that wrote them; choose a step in the list, or its
+  heading in the log, to jump there or fold it away.
+- **Colors**: they appear as the program wrote them.
+- **Following**: the log stays at its end while it grows. Scroll up to read, and **Jump to the end**
+  follows again.
+- **Search** (Enter and Shift+Enter move between matches) works on the whole log, also on lines out
+  of view.
+- **Lines**: they can wrap or show their time.
+- **Links**: a line number links to that line (`#L120`).
+- **Download** saves the log as text.
+
+The job and attempt shown are part of the address (`?job=build&attempt=2`), so a link shows the
+same.
 
 ## Starting a run
 
@@ -141,7 +174,8 @@ that is only possible once its automations have been deleted or moved.
 |---|---|
 | `POST /api/v1/automations/{id}/runs` | start a run by hand |
 | `GET /api/v1/automations/{id}/runs` | the automation's runs, newest first |
-| `GET /api/v1/runs/{id}` | one run with its jobs |
+| `GET /api/v1/runs?state=Failed` | the newest runs of every automation you may see; `state` is optional |
+| `GET /api/v1/runs/{id}` | one run with its jobs and the file it runs (`yaml`) |
 | `GET /api/v1/runs/{id}/jobs/{key}` | one job with its outputs, attempts and steps |
 | `GET /api/v1/runs/{id}/attempts/{attemptId}/log` | a part of an attempt's log |
 | `GET /api/v1/runs/{id}/attempts/{attemptId}/log/stream` | follow an attempt's log live |

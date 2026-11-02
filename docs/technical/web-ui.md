@@ -163,6 +163,33 @@ tree as a picker.
 All colors come from the tokens in `theme.css`; light and dark share token names, and
 `<html data-theme>` picks the values. Text and accent pairs meet WCAG AA.
 
+## Runs
+
+The runs pages (`src/runs/`, `pages/RunsPage.tsx`, `pages/automation/RunsTab.tsx`) read the run
+API (`api/runs.ts`):
+
+- **Polling**: a run, its jobs and lists with running runs are read again every two seconds while
+  something runs (`refetchInterval`); a run has no live stream of its own.
+- **The run page** (`/runs/:id`) fills the window like the editor and loads on demand.
+  - It draws the run's own file (`yaml` of the run, so a run stays readable after the automation
+    changed) with the canvas, read-only, with each job's status on its card (`RunMark` in
+    `canvas/flow.ts`).
+  - The chosen job and attempt are in the address.
+- **The log** (`src/runs/log/`):
+  - *Following*: a finished attempt's log is read page by page (`readLog`). A running one is
+    followed over Server-Sent Events (`api/logStream.ts`). That is the one call outside `api`:
+    `EventSource` is not `fetch`, and a GET on the same origin with the session cookie needs neither
+    the CSRF header nor the middleware.
+  - *Reconnecting*: the browser reconnects with `Last-Event-ID`. When it gives up, the log follows
+    again from the last chunk known after three seconds. Chunks are kept by sequence, so one that
+    arrives twice counts once (`logModel.ts`).
+  - *Drawing*: lines are drawn with `@tanstack/react-virtual`, only those in view. Search,
+    line links and the download work on the data, not on what is drawn.
+  - *Colors*: `ansi.ts` turns SGR escape sequences into styled text segments: the 16 colors with
+    the theme's `--log-N` tokens (AA in light and dark), 256 colors and RGB as they are. Every other
+    sequence is removed, and a line redrawn with `\r` shows its last state. It never produces
+    HTML.
+
 ## Developing
 
 ```sh

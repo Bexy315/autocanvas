@@ -1062,6 +1062,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List recent runs
+     * @description The newest runs of every automation you may view (Viewer on its folder), one page at a time; `state` keeps only runs in that state.
+     */
+    get: operations['ListRecentRuns'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/runs/{id}': {
     parameters: {
       query?: never;
@@ -2495,6 +2515,11 @@ export interface components {
       automationId: null | string;
       /** @description The automation's name when the run started. */
       automationName: string;
+      /**
+       * Format: uuid
+       * @description The folder the run belongs to.
+       */
+      folderId: string;
       /** @description Running, Succeeded, Failed or Cancelled. */
       state: components['schemas']['RunState'];
       /** @description What started the run. */
@@ -2568,6 +2593,8 @@ export interface components {
       finishedAt: null | string;
       /** @description Its jobs in the order of the automation file. */
       jobs: components['schemas']['RunJobView'][];
+      /** @description The automation file the run runs, as it was when the run started. */
+      yaml: string;
     };
     /** @description A new version of an automation. */
     SaveAutomationRequest: {
@@ -5911,6 +5938,39 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ListRecentRuns: {
+    parameters: {
+      query?: {
+        state?: components['schemas']['RunState'];
+        limit?: number | string;
+        cursor?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PageOfRunSummary'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
         };
       };
     };

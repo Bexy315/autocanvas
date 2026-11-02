@@ -6,8 +6,22 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { clsx } from 'clsx';
 import type { ReactNode } from 'react';
-import { CircleAlert, GitBranch, Merge, Play, Plug, SquareTerminal, Zap } from 'lucide-react';
-import type { JobNodeData, TriggerNodeData } from './flow';
+import {
+  Ban,
+  CircleAlert,
+  CircleCheck,
+  CircleDashed,
+  CircleSlash,
+  CircleX,
+  GitBranch,
+  LoaderCircle,
+  Merge,
+  Play,
+  Plug,
+  SquareTerminal,
+  Zap,
+} from 'lucide-react';
+import type { JobNodeData, RunMark, TriggerNodeData } from './flow';
 
 /** The three ways a job can be waited for; colors match the lines they start. */
 const outputs = [
@@ -16,11 +30,49 @@ const outputs = [
   { id: 'always', color: 'var(--color-muted)', title: 'either way' },
 ] as const;
 
-function frame(selected: boolean | undefined, problems: number, extra?: string): string {
+const runBorders: Record<RunMark['status'], string> = {
+  Pending: 'border-line-strong',
+  Running: 'border-accent',
+  Succeeded: 'border-ok',
+  Failed: 'border-danger',
+  Cancelled: 'border-line-strong',
+  Skipped: 'border-line-strong opacity-60',
+};
+
+function frame(selected: boolean | undefined, problems: number, extra?: string, run?: RunMark): string {
   return clsx(
     'rounded-panel border bg-surface text-ink shadow-sm',
-    problems > 0 ? 'border-danger' : selected ? 'border-accent ring-2 ring-accent/30' : 'border-line-strong',
+    run
+      ? clsx(runBorders[run.status], selected && 'ring-2 ring-accent/30')
+      : problems > 0
+        ? 'border-danger'
+        : selected
+          ? 'border-accent ring-2 ring-accent/30'
+          : 'border-line-strong',
     extra,
+  );
+}
+
+const runIcons: Record<RunMark['status'], { Icon: typeof CircleCheck; className: string }> = {
+  Pending: { Icon: CircleDashed, className: 'text-muted' },
+  Running: { Icon: LoaderCircle, className: 'animate-spin text-accent' },
+  Succeeded: { Icon: CircleCheck, className: 'text-ok' },
+  Failed: { Icon: CircleX, className: 'text-danger' },
+  Cancelled: { Icon: Ban, className: 'text-muted' },
+  Skipped: { Icon: CircleSlash, className: 'text-muted' },
+};
+
+/** The job's status in the run shown, under its title. */
+function RunLine({ run }: { run: RunMark | undefined }) {
+  if (!run) {
+    return null;
+  }
+  const { Icon, className } = runIcons[run.status];
+  return (
+    <p className="flex items-center gap-1.5 border-b border-line px-3 py-1 text-[11px]">
+      <Icon aria-hidden="true" size={12} className={clsx('shrink-0', className)} />
+      <span className="truncate">{run.text}</span>
+    </p>
   );
 }
 
@@ -62,16 +114,17 @@ export function TriggerNode({ data, selected }: NodeProps) {
 }
 
 export function JobNode({ data, selected }: NodeProps) {
-  const { job, problemCount, editable } = data as JobNodeData;
+  const { job, problemCount, editable, run } = data as JobNodeData;
   const problems = problemCount + job.problems.length;
   return (
-    <div className={frame(selected, problems, clsx('w-65', job.isFinally && 'border-dashed'))}>
+    <div className={frame(selected, problems, clsx('w-65', job.isFinally && 'border-dashed'), run)}>
       <Target editable={editable} />
       <Header
         icon={job.isFinally ? <Play aria-hidden="true" size={14} /> : <SquareTerminal aria-hidden="true" size={14} />}
         title={job.title}
         problems={problems}
       />
+      <RunLine run={run} />
       <ol className="flex flex-col py-1 text-xs">
         {job.steps.length === 0 && <li className="px-3 py-1 text-muted">No steps</li>}
         {job.steps.map((step, index) => (
@@ -128,12 +181,13 @@ export function JobNode({ data, selected }: NodeProps) {
 }
 
 export function SwitchNode({ data, selected }: NodeProps) {
-  const { job, problemCount, editable } = data as JobNodeData;
+  const { job, problemCount, editable, run } = data as JobNodeData;
   const problems = problemCount + job.problems.length;
   return (
-    <div className={frame(selected, problems, 'w-65')}>
+    <div className={frame(selected, problems, 'w-65', run)}>
       <Target editable={editable} />
       <Header icon={<GitBranch aria-hidden="true" size={14} />} title={job.title} problems={problems} />
+      <RunLine run={run} />
       <p className="truncate border-b border-line px-3 py-1.5 font-mono text-[11px] text-muted">{job.expression}</p>
       <div className="flex justify-around gap-1 px-2 pt-1.5 pb-3 text-[11px]">
         {job.cases.map((entry) => (
@@ -165,16 +219,17 @@ export function SwitchNode({ data, selected }: NodeProps) {
 }
 
 export function JoinNode({ data, selected }: NodeProps) {
-  const { job, problemCount, editable } = data as JobNodeData;
+  const { job, problemCount, editable, run } = data as JobNodeData;
   const problems = problemCount + job.problems.length;
   return (
-    <div className={frame(selected, problems, 'w-45')}>
+    <div className={frame(selected, problems, 'w-45', run)}>
       <Target editable={editable} />
       <div className="flex items-center gap-2 px-3 py-2.5">
         <Merge aria-hidden="true" size={14} className="text-muted" />
         <span className="truncate font-medium">{job.title}</span>
         {problems > 0 && <CircleAlert aria-label={`${problems} problems`} size={12} className="text-danger" />}
       </div>
+      {run && <RunLine run={run} />}
       <Handle
         id="success"
         type="source"

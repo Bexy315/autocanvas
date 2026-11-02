@@ -87,6 +87,7 @@ weeks. Runtime packages end up in the built UI; the others are build and test to
 | react, react-dom | MIT | The UI library |
 | react-router | MIT | Pages and navigation |
 | @tanstack/react-query | MIT | Loading and caching API data |
+| @tanstack/react-virtual | MIT | Draws only the visible lines of long run logs |
 | openapi-fetch | MIT | The typed API client |
 | @radix-ui/react-dropdown-menu, @radix-ui/react-dialog | MIT | Accessible menus and dialogs |
 | lucide-react | ISC | Icons |

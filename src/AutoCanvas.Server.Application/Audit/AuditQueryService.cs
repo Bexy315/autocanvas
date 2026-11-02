@@ -78,7 +78,7 @@ public sealed class AuditQueryService(AutoCanvasDbContext database)
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(page);
         var limit = page.ResolveLimit();
-        var after = AuditCursor.Decode(page.Cursor);
+        var after = TimeCursor.Decode(page.Cursor);
         if ((limit.Error ?? after.Error) is { } invalid)
         {
             return UseCase.Failure<Page<AuditEventView>>(invalid);
@@ -105,7 +105,7 @@ public sealed class AuditQueryService(AutoCanvasDbContext database)
         {
             var last = items[^1].OccurredAt;
             var sameInstant = items.Count(e => e.OccurredAt == last) + (after.Value is { } previous && previous.At == last ? previous.SameInstant : 0);
-            next = AuditCursor.Encode(last, sameInstant);
+            next = TimeCursor.Encode(last, sameInstant);
         }
 
         return UseCase.Success(new Page<AuditEventView>([.. items.Select(AuditEventView.From)], next));
@@ -152,38 +152,5 @@ public sealed class AuditQueryService(AutoCanvasDbContext database)
         }
 
         return events;
-    }
-
-    /// <summary>Where the previous page ended: its last instant and how many entries of that instant it covered.</summary>
-    private sealed record AuditCursor(DateTimeOffset At, int SameInstant)
-    {
-        public static string Encode(DateTimeOffset at, int sameInstant) =>
-            Base64Url.EncodeToString(Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"{at.UtcTicks}:{sameInstant}")));
-
-        public static UseCaseResult<AuditCursor?> Decode(string? cursor)
-        {
-            if (cursor is null)
-            {
-                return UseCase.Success<AuditCursor?>(null);
-            }
-
-            try
-            {
-                var parts = Encoding.UTF8.GetString(Base64Url.DecodeFromChars(cursor)).Split(':');
-                if (parts.Length == 2
-                    && long.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var ticks)
-                    && ticks <= DateTimeOffset.MaxValue.UtcTicks
-                    && int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var same))
-                {
-                    return UseCase.Success<AuditCursor?>(new AuditCursor(new DateTimeOffset(ticks, TimeSpan.Zero), same));
-                }
-            }
-            catch (FormatException)
-            {
-                // Falls through to the error below.
-            }
-
-            return UseCase.Failure<AuditCursor?>(UseCaseError.Invalid("cursor", "cursor is not a value from a previous page."));
-        }
     }
 }

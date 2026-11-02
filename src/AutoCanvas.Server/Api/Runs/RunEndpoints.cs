@@ -1,3 +1,4 @@
+using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Authentication;
@@ -12,6 +13,12 @@ namespace AutoCanvas.Server.Api.Runs;
 internal static class RunEndpoints
 {
     public static void MapRunEndpoints(this RouteGroupBuilder api)
+    {
+        MapAutomationRuns(api);
+        MapRuns(api);
+    }
+
+    private static void MapAutomationRuns(RouteGroupBuilder api)
     {
         var ofAutomation = api.MapGroup("/automations/{automationId:guid}/runs").WithTags("Runs").RequireAuthorization();
 
@@ -32,8 +39,18 @@ internal static class RunEndpoints
             .WithDescription("Newest first, one page at a time. Needs Viewer.")
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound);
+    }
 
+    private static void MapRuns(RouteGroupBuilder api)
+    {
         var runs = api.MapGroup("/runs").WithTags("Runs").RequireAuthorization();
+
+        runs.MapGet("/", ListRecentAsync)
+            .WithName("ListRecentRuns")
+            .Produces<Page<RunSummary>>()
+            .WithSummary("List recent runs")
+            .WithDescription("The newest runs of every automation you may view (Viewer on its folder), one page at a time; `state` keeps only runs in that state.")
+            .ProducesValidationProblem();
 
         runs.MapGet("/{id:guid}", GetAsync)
             .WithName("GetRun")
@@ -79,6 +96,9 @@ internal static class RunEndpoints
 
     private static async Task<IResult> ListAsync(Guid automationId, int? limit, string? cursor, HttpContext context, RunService runs, CancellationToken cancellationToken) =>
         ApiResults.Ok(await runs.ListAsync(context.User.ToActor(), automationId, new PageRequest(limit, cursor), cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> ListRecentAsync(RunState? state, int? limit, string? cursor, HttpContext context, RunService runs, CancellationToken cancellationToken) =>
+        ApiResults.Ok(await runs.ListRecentAsync(context.User.ToActor(), state, new PageRequest(limit, cursor), cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> GetJobAsync(Guid id, string key, HttpContext context, RunLogService logs, CancellationToken cancellationToken) =>
         ApiResults.Ok(await logs.GetJobAsync(context.User.ToActor(), id, key, cancellationToken).ConfigureAwait(false));

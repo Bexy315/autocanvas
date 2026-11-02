@@ -89,6 +89,7 @@ function AutomationPage({ context }: { context: AutomationContext }) {
         tabs={[
           { to: `/automations/${automation.id}`, label: 'Overview', end: true },
           { to: `/automations/${automation.id}/edit`, label: 'Editor' },
+          { to: `/automations/${automation.id}/runs`, label: 'Runs' },
           { to: `/automations/${automation.id}/versions`, label: 'Versions' },
         ]}
       />

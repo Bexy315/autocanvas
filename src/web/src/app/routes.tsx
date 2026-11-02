@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router';
+import { Outlet, type RouteObject } from 'react-router';
 import { AppShell } from '../layout/AppShell';
 import { AutomationsLayout } from '../layout/AutomationsLayout';
 import type { CrumbHandle } from '../layout/Breadcrumbs';
@@ -6,10 +6,12 @@ import { AccountPage } from '../pages/AccountPage';
 import { AutomationLayout } from '../pages/automation/AutomationLayout';
 import { EditorLayout } from '../pages/automation/EditorLayout';
 import { OverviewTab } from '../pages/automation/OverviewTab';
+import { RunsTab } from '../pages/automation/RunsTab';
 import { VersionsTab } from '../pages/automation/VersionsTab';
 import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 import { FolderPage } from '../pages/FolderPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { RunsPage } from '../pages/RunsPage';
 import { SignInPage } from '../pages/SignInPage';
 import { StartPage } from '../pages/StartPage';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
@@ -51,6 +53,18 @@ export const routes: RouteObject[] = [
         ],
       },
       {
+        // A run fills the window like the editor; its page (the log, the run's graph) loads on demand.
+        path: '/runs/:id',
+        element: (
+          <RequireSession>
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+          </RequireSession>
+        ),
+        children: [{ index: true, lazy: async () => ({ Component: (await import('../runs/RunPage')).RunPage }) }],
+      },
+      {
         path: '/',
         element: (
           <RequireSession>
@@ -71,12 +85,14 @@ export const routes: RouteObject[] = [
                 element: <AutomationLayout />,
                 children: [
                   { index: true, element: <OverviewTab /> },
+                  { path: 'runs', element: <RunsTab /> },
                   { path: 'versions', element: <VersionsTab /> },
                   { path: 'versions/:number', element: <VersionsTab /> },
                 ],
               },
             ],
           },
+          { path: 'runs', element: <RunsPage /> },
           { path: 'account', element: <AccountPage />, handle: crumb('Account') },
           { path: '*', element: <NotFoundPage />, handle: crumb('Not found') },
         ],
