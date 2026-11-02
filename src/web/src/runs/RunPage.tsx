@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useAutomation } from '../api/automations';
 import { ApiError } from '../api/problem';
+import { useRunReports } from '../api/reports';
 import { useCancelRun, useRun, useStartRun, type RunView } from '../api/runs';
 import { AutomationCanvas } from '../canvas/AutomationCanvas';
 import { graphFromYaml } from '../canvas/model';
@@ -19,6 +20,8 @@ import { Button } from '../ui/Button';
 import { RelativeTime } from '../ui/RelativeTime';
 import { Loading } from '../ui/Spinner';
 import { JobDetail } from './JobDetail';
+import { viewOf } from './reports/reportModel';
+import { ReportsMain, RunTabs } from './reports/RunTabs';
 import { jobMark, startedText } from './runText';
 import { useNow } from './useNow';
 
@@ -57,6 +60,8 @@ function RunScreen({ run }: { run: RunView }) {
   const chosen = params.get('job') ?? firstOfInterest(run);
   const attempt = params.get('attempt');
   const choose = (key: string) => setParams({ job: key }, { replace: true });
+  const view = viewOf(params.get('view'));
+  const reports = useRunReports(run.id, running);
 
   const graph = useMemo(() => graphFromYaml(run.yaml).graph ?? null, [run.yaml]);
   const marks = useMemo(() => Object.fromEntries(run.jobs.map((job) => [job.key, jobMark(job, now)])), [run.jobs, now]);
@@ -106,52 +111,63 @@ function RunScreen({ run }: { run: RunView }) {
         {announcement}
       </output>
 
-      <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <section
-          aria-label="Jobs of the run"
-          className="min-h-64 border-b border-line lg:w-[45%] lg:border-r lg:border-b-0"
-        >
-          {graph ? (
-            <AutomationCanvas
-              graph={graph}
-              stale={false}
-              selectedJob={chosen}
-              problemsByJob={{}}
-              marks={marks}
-              onSelectJob={choose}
-            />
-          ) : (
-            <ul className="flex flex-col gap-1 p-3">
-              {run.jobs.map((job) => (
-                <li key={job.key}>
-                  <button
-                    type="button"
-                    aria-current={job.key === chosen}
-                    onClick={() => choose(job.key)}
-                    className="flex w-full justify-between rounded-control px-2 py-1 text-left text-sm hover:bg-sunken aria-[current=true]:bg-accent-soft"
-                  >
-                    <span>{job.name}</span>
-                    <span className="text-muted">{jobMark(job, now).text}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-        <section aria-label="The chosen job" className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {chosen ? (
-            <JobDetail
-              key={chosen}
-              runId={run.id}
-              jobKey={chosen}
-              attemptNumber={attempt === null ? null : Number(attempt)}
-              onAttempt={(number) => setParams({ job: chosen, attempt: String(number) }, { replace: true })}
-            />
-          ) : (
-            <p className="p-4 text-sm text-muted">The run has no jobs.</p>
-          )}
-        </section>
-      </main>
+      <RunTabs view={view} reports={reports.data} />
+      {view !== 'jobs' ? (
+        <ReportsMain
+          view={view}
+          runId={run.id}
+          automationId={run.automationId ?? null}
+          reports={reports.data}
+          error={reports.error}
+        />
+      ) : (
+        <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <section
+            aria-label="Jobs of the run"
+            className="min-h-64 border-b border-line lg:w-[45%] lg:border-r lg:border-b-0"
+          >
+            {graph ? (
+              <AutomationCanvas
+                graph={graph}
+                stale={false}
+                selectedJob={chosen}
+                problemsByJob={{}}
+                marks={marks}
+                onSelectJob={choose}
+              />
+            ) : (
+              <ul className="flex flex-col gap-1 p-3">
+                {run.jobs.map((job) => (
+                  <li key={job.key}>
+                    <button
+                      type="button"
+                      aria-current={job.key === chosen}
+                      onClick={() => choose(job.key)}
+                      className="flex w-full justify-between rounded-control px-2 py-1 text-left text-sm hover:bg-sunken aria-[current=true]:bg-accent-soft"
+                    >
+                      <span>{job.name}</span>
+                      <span className="text-muted">{jobMark(job, now).text}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section aria-label="The chosen job" className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {chosen ? (
+              <JobDetail
+                key={chosen}
+                runId={run.id}
+                jobKey={chosen}
+                attemptNumber={attempt === null ? null : Number(attempt)}
+                onAttempt={(number) => setParams({ job: chosen, attempt: String(number) }, { replace: true })}
+              />
+            ) : (
+              <p className="p-4 text-sm text-muted">The run has no jobs.</p>
+            )}
+          </section>
+        </main>
+      )}
     </div>
   );
 }

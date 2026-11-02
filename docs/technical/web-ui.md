@@ -190,6 +190,22 @@ API (`api/runs.ts`):
     sequence is removed, and a line redrawn with `\r` shows its last state. It never produces
     HTML.
 
+## Tests and coverage
+
+A run's page switches between its jobs, tests and coverage with `?view=` (`runs/reports/`), from
+`api/reports.ts`:
+
+- **Paging**: tests and classes are read one page at a time per report, with `outcome` or `package`
+  given to the server, not filtered in the browser. Only the name search filters what is loaded.
+- **What counts**: `latestReports` keeps the reports of each job's latest attempt, as the server's
+  totals do; the others are shown apart.
+- **Flaky**: `flakiness` calls a test flaky when it passed on a retry within a run, or flipped
+  between passing and failing three times or more in its last 20 results, skipped ones left out.
+  The rule is in `reportModel.ts` and the user docs.
+- **Tests and the layout**: the tests give elements a size with `test/layout.ts` (`withLayout`),
+  where a view needs one: jsdom lays nothing out, so a virtualised list would draw nothing and the
+  canvas would compute its view from nothing.
+
 ## Developing
 
 ```sh
