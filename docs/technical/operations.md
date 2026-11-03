@@ -155,7 +155,9 @@ A server without accounts starts in **setup mode** ([ADR-0020](../adr/0020-first
 
 1. It logs a warning with the setup address, such as
    `http://localhost:5080/setup?token=…`, built from the public address if one is configured,
-   otherwise from the address it listens on. The token changes with every start.
+   otherwise from the address it listens on. The token changes with every start. On a server without
+   a browser, open `/setup` on any address of the server from another machine and paste the token
+   from the log; the page asks for it when the address has none.
 2. Until setup is finished, the HTTP API answers only `/api/v1/setup` and `/api/v1/info`;
    everything else gets `503` with a [setup required](api.md#setup-required) problem. The web UI
    and the health checks work as usual.
@@ -170,8 +172,8 @@ off.
 
 ## Instance settings
 
-The public address and the runner address can be set in the web UI (**Administration**) and through
-`GET`/`PUT /api/v1/instance`; they are kept in the database. When `Server:PublicUrl` or
+The public address and the runner address can be set in the web UI (**Administration** →
+**Instance**) and through `GET`/`PUT /api/v1/instance`; they are kept in the database. When `Server:PublicUrl` or
 `Runners:PublicUrl` is set in the configuration, that value wins and the web UI shows it as locked.
 The public address decides, with the request, whether the session cookie is marked `Secure`.
 

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router';
-import { ApiError, describeError } from '../api/problem';
+import { ApiError, describeError, isSetupRequired } from '../api/problem';
 import { useMe, useSignIn } from '../api/session';
 import { returnQuery, safeReturnTo } from '../app/returnTo';
 import { AuthLayout } from '../layout/AuthLayout';
@@ -31,6 +31,9 @@ export function SignInPage() {
 
   if (me.isPending) {
     return <Loading />;
+  }
+  if (isSetupRequired(me.error)) {
+    return <Navigate to="/setup" replace />;
   }
   if (me.data && !signIn.isPending) {
     return <Navigate to={returnTo} replace />;

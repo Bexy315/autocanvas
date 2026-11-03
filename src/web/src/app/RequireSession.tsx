@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
+import { isSetupRequired } from '../api/problem';
 import { useMe } from '../api/session';
 import { ErrorAlert } from '../ui/Alert';
 import { Button } from '../ui/Button';
@@ -9,7 +10,7 @@ import { returnQuery } from './returnTo';
 /**
  * Shows its children only with a session. Without one it sends the user to sign in, and while a
  * password set by someone else is still in use, to change it first (the API refuses everything
- * else until then).
+ * else until then). An installation that is not set up yet goes to the setup.
  */
 export function RequireSession({
   children,
@@ -24,6 +25,9 @@ export function RequireSession({
 
   if (me.isPending) {
     return <Loading />;
+  }
+  if (me.isError && isSetupRequired(me.error)) {
+    return <Navigate to="/setup" replace />;
   }
   if (me.isError) {
     return (

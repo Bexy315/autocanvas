@@ -262,13 +262,31 @@ A run's page switches between its jobs, tests and coverage with `?view=` (`runs/
 - **Sharing** (`pages/FolderSharing.tsx`): a folder tab for owners. People and groups are found with
   `ui/DirectoryPicker`, a search field over `GET /api/v1/directory` whose matches are buttons the
   arrow keys move between.
-- **Administration** (`pages/admin/`) has a tab each for variables and secrets, users, groups and
-  runners. The runner list is read every ten seconds for the online state.
+- **Administration** (`pages/admin/`) has a tab each for variables and secrets, users, groups,
+  runners and the instance's addresses. The runner list is read every ten seconds for the online state.
 - **The account page** lists sessions and API tokens.
 - **Shown once**: a password made up for someone (`lib/password.ts`, from `crypto.getRandomValues`,
   without characters that look alike), a runner token, an API token and a webhook address are shown
   in `ui/SecretOnce` (`OnceDialog`, `CopyValue`), which closes only once the user confirms they
   saved them.
+
+## Setup
+
+`/setup` (`pages/setup/`) sets a fresh installation up (ADR-0020), outside the app shell like the
+sign-in. While setup mode is on, every API request but the setup's own is answered with `503` and
+the problem type `setup-required`: `isSetupRequired` in `api/problem.ts` tells it from an
+unreachable server, and the session guard and the sign-in page send the browser to `/setup`. A wrong
+setup token (401) is an answer, not an ended session, so the client's 401 handling leaves it alone.
+
+The page keeps the steps' values in its own state and the token in the query key of
+`GET /api/v1/setup`, so a typed token is checked by the same query as one from the address; one from
+the address is dropped from it at once. After `POST /api/v1/setup` the answer's account is put into
+the cache, so the browser is signed in; the master key is shown with `CopyValue` until the user
+confirms it is stored, and the bundled runner is waited for by reading the runners every three
+seconds.
+
+**Administration** → **Instance** (`pages/admin/InstanceAdmin.tsx`) changes the addresses; the
+runner registration dialog fills in the runner address from there.
 
 ## Developing
 

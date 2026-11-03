@@ -7,7 +7,8 @@ import { TabLinks } from '../../ui/Tabs';
 import { NotFoundPage } from '../NotFoundPage';
 
 /**
- * Administration of the instance, for admins: variables and secrets, users, groups and runners.
+ * Administration of the instance, for admins: variables and secrets, users, groups, runners and
+ * the instance's addresses.
  * Others get "no page here"; the server refuses them either way.
  */
 export function AdminPage() {
@@ -26,6 +27,7 @@ export function AdminPage() {
           { to: '/admin/users', label: 'Users' },
           { to: '/admin/groups', label: 'Groups' },
           { to: '/admin/runners', label: 'Runners' },
+          { to: '/admin/instance', label: 'Instance' },
         ]}
       />
       <Outlet />

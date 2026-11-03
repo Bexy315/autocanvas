@@ -11,6 +11,7 @@ import { RunsTab } from '../pages/automation/RunsTab';
 import { TriggersTab } from '../pages/automation/TriggersTab';
 import { AdminPage, AdminVariables } from '../pages/admin/AdminPage';
 import { GroupsAdmin } from '../pages/admin/GroupsAdmin';
+import { InstanceAdmin } from '../pages/admin/InstanceAdmin';
 import { RunnersAdmin } from '../pages/admin/RunnersAdmin';
 import { UsersAdmin } from '../pages/admin/UsersAdmin';
 import { VersionsTab } from '../pages/automation/VersionsTab';
@@ -18,6 +19,7 @@ import { ChangePasswordPage } from '../pages/ChangePasswordPage';
 import { FolderPage } from '../pages/FolderPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { RunsPage } from '../pages/RunsPage';
+import { SetupPage } from '../pages/setup/SetupPage';
 import { SignInPage } from '../pages/SignInPage';
 import { StartPage } from '../pages/StartPage';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
@@ -32,6 +34,7 @@ export const routes: RouteObject[] = [
     element: <SessionExpiry />,
     children: [
       { path: '/sign-in', element: <SignInPage /> },
+      { path: '/setup', element: <SetupPage /> },
       {
         path: '/change-password',
         element: (
@@ -111,6 +114,7 @@ export const routes: RouteObject[] = [
               { path: 'users', element: <UsersAdmin /> },
               { path: 'groups', element: <GroupsAdmin /> },
               { path: 'runners', element: <RunnersAdmin /> },
+              { path: 'instance', element: <InstanceAdmin /> },
             ],
           },
           { path: 'account', element: <AccountPage />, handle: crumb('Account') },

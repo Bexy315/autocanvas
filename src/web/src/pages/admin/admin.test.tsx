@@ -368,6 +368,11 @@ describe('runners', () => {
           201,
         ),
       'DELETE /api/v1/runner-registration-tokens/t1': () => noContent(),
+      'GET /api/v1/instance': () =>
+        json({
+          publicAddress: { value: null, source: 'None' },
+          runnerAddress: { value: 'http://runners.example.org:5081/', source: 'Database' },
+        }),
     });
     const { user: person } = renderApp('/admin/runners');
     await person.click(await screen.findByRole('button', { name: 'Register a runner' }));
@@ -378,7 +383,9 @@ describe('runners', () => {
     expect(within(shown).getAllByText(/register --token acrt_secret --name build-1/, { selector: 'pre' })).toHaveLength(
       2,
     );
+    // The address set for the instance, without the server's slash.
     const address = within(shown).getByLabelText(/runner address/);
+    expect(address).toHaveValue('http://runners.example.org:5081');
     await person.clear(address);
     await person.type(address, 'http://ci.example.org:5081');
     expect(within(shown).getAllByText(/ci\.example\.org:5081/).length).toBeGreaterThan(0);

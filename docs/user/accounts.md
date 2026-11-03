@@ -68,10 +68,23 @@ user under `/api/v1/users/{id}/tokens`, for example when one has leaked.
 A fresh installation has no accounts. Create the first admin in one of three ways.
 
 **In the browser**, with the setup: a server without accounts logs an address such as
-`http://localhost:5080/setup?token=…`. Open it and choose the first admin's name and password, the
-installation's addresses and whether to create an example automation
-([Operations](../technical/operations.md#setting-up-a-fresh-installation)). Only someone who can
-read the server's log has the token, and it changes when the server restarts.
+`http://localhost:5080/setup?token=…`, and every page of the web UI leads to the setup. On a server
+without a browser, open `/setup` from another machine and paste the token from the log. Only
+someone who can read the server's log has the token, and it changes when the server restarts. The
+setup has four steps:
+
+1. **Token**: taken from the address, or typed in.
+2. **Admin**: the first admin's user name, display name, e-mail and password (at least 12
+   characters). The admin chose the password, so it need not be changed at the first sign-in.
+3. **Addresses**: where people and runners reach the server, filled in from the browser; an address
+   set by the server's configuration is shown locked. They can be changed later under
+   **Administration** → **Instance**.
+4. **Options**: register the runner that came with the package, and create an example automation.
+
+**Set up AutoCanvas** signs the new admin in. If the server generated its master key, the setup
+shows it once, to be stored apart from the database
+([Operations](../technical/operations.md#master-key)); then it waits for the bundled runner to come
+online, which can be skipped.
 
 **From the command line**, on the machine the server runs on, with the same settings as the server
 (for example the same `AUTOCANVAS_Database__…` variables):

@@ -23,6 +23,10 @@ describe('problems', () => {
       new TypeError('Failed to fetch'),
       'The server cannot be reached right now. It may be starting or restarting; try again in a moment.',
     ],
+    [
+      new ApiError(503, { type: 'https://bexy315.github.io/autocanvas/technical/api#setup-required' }),
+      "AutoCanvas is not set up yet. Open the setup page and enter the setup token from the server's log.",
+    ],
     [new Error('Broken.'), 'Broken.'],
     ['a string', 'Something went wrong.'],
   ])('describes %s in one sentence', (error, sentence) => {
