@@ -30,8 +30,10 @@ public static class ExampleAutomation
             runs_on: linux
             image: alpine:3.22
             steps:
-              - run: echo "Hello from AutoCanvas on $(uname -m)"
-              - run: |-
+              - name: Greet
+                run: echo "Hello from AutoCanvas on $(uname -m)"
+              - name: Write a test and a coverage report
+                run: |-
                   cat > TEST-hello.xml <<'EOF'
                   <testsuite name="hello" tests="3" skipped="1">
                     <testcase classname="Hello.Greeting" name="says_hello" time="0.004"/>

@@ -283,6 +283,54 @@ keeps the settings. CI installs the package with the script, sets it up through 
 example automation on the bundled runner, with SQLite and with PostgreSQL
 (`deploy/test/compose-smoke.sh`).
 
+### Backing up the package
+
+The state lives in volumes named after the compose project (`COMPOSE_PROJECT_NAME` in `.env`,
+`autocanvas` by default). From the instance's directory:
+
+```sh
+# The master key, once and separately from everything else:
+docker run --rm -v autocanvas_keys:/from:ro -v "$PWD":/to alpine:3.22 cp /from/master.key /to/master.key
+
+# SQLite: stop the server for a consistent copy of the data volume.
+docker compose stop server
+docker run --rm -v autocanvas_data:/from:ro -v "$PWD":/to alpine:3.22 tar -czf /to/data.tar.gz -C /from .
+docker compose start server
+
+# PostgreSQL: a dump while it runs.
+docker compose exec -T postgres pg_dump -U autocanvas autocanvas > autocanvas.sql
+```
+
+To restore, create the instance with the install script, stop it, put the files back into the
+volumes the same way (or `psql` the dump into the `postgres` service), and start it. The runner's
+volume needs no backup: a runner can be registered again.
+
+### Updating the package
+
+Run the install script again with the same directory. It builds the images from the current checkout
+and `docker compose up -d` recreates the containers whose image changed; schema migrations run when
+the server starts (`Database:MigrateOnStart`). Running jobs end when the runner restarts and are
+retried by their run's rules.
+
+### A proxy in front
+
+To serve AutoCanvas under a name with HTTPS, put a reverse proxy in front of port 5080, for example
+Caddy in the same compose project (`compose.override.yaml` next to `compose.yaml`):
+
+```yaml
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports: ["443:443", "80:80"]
+    command: caddy reverse-proxy --from autocanvas.example.org --to server:5080
+```
+
+Then set the public address to `https://autocanvas.example.org` under **Administration** →
+**Instance**, and `AUTOCANVAS_TRUSTED_PROXIES` in `.env` to the compose network (for example
+`172.16.0.0/12`) so the server sees the clients' addresses. Runners on other machines keep using port
+5081, or a gRPC route of the proxy ([Reverse proxies and HTTPS](#reverse-proxies-and-https)).
+
 ## Health endpoints
 
 | Endpoint | Answers `200` when | Use it for |

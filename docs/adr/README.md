@@ -24,4 +24,4 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0017](0017-runner-endpoint-and-credentials.md) | Serve runners on their own HTTP/2 port, with their own credentials | Accepted |
 | [0018](0018-web-ui.md) | Web UI: a React SPA served by the server, with YAML as the editor's source of truth | Accepted |
 | [0019](0019-npm-licenses.md) | Check npm licenses against the shared list, with named build-time exceptions | Accepted |
-| [0020](0020-first-start-setup.md) | Set up a fresh instance in the browser, with a token from the log | Proposed |
+| [0020](0020-first-start-setup.md) | Set up a fresh instance in the browser, with a token from the log | Accepted |

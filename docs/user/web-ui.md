@@ -4,7 +4,8 @@ sidebar_position: 1.5
 
 # A tour of the web UI
 
-The web UI comes with the server: open its address in a browser and sign in. The first admin signs
+The web UI comes with the server ([Installation](installation.md)): open its address in a browser
+and sign in. The first admin signs
 in with the password set at installation and chooses their own right away; everyone else gets an
 account from an admin ([Users and groups](accounts.md)).
 

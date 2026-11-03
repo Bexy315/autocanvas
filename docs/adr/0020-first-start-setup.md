@@ -1,7 +1,7 @@
 # 0020. Set up a fresh instance in the browser, with a token from the log
 
-- Status: Proposed
-- Date: 2026-11-03
+- Status: Accepted
+- Date: 2026-11-03 (accepted 2026-11-04)
 
 ## Context
 

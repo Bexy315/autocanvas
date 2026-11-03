@@ -134,7 +134,10 @@ export function SetupPage() {
                   ? 'The server restarted, so its setup token changed. Enter the new one from its log.'
                   : null
           }
-          onContinue={() => setCheckedToken(typedToken.trim())}
+          onContinue={(value) => {
+            setTypedToken(value);
+            setCheckedToken(value);
+          }}
         />
       )}
       {current === 'admin' && (
@@ -213,15 +216,16 @@ function StepForm({
   busy = false,
   children,
 }: {
-  onSubmit: () => void;
+  /** Gets the form, to read what was typed as it is now rather than from the last render. */
+  onSubmit: (form: HTMLFormElement) => void;
   onBack?: () => void;
   submitLabel?: string;
   busy?: boolean;
   children: ReactNode;
 }) {
-  const submit = (event: FormEvent) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onSubmit();
+    onSubmit(event.currentTarget);
   };
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
@@ -253,16 +257,18 @@ function TokenStep({
   onToken: (token: string) => void;
   checking: boolean;
   problem: string | null;
-  onContinue: () => void;
+  onContinue: (token: string) => void;
 }) {
   const [empty, setEmpty] = useState(false);
   return (
     <StepForm
       busy={checking}
-      onSubmit={() => {
-        setEmpty(token.trim() === '');
-        if (token.trim() !== '') {
-          onContinue();
+      onSubmit={(form) => {
+        // The field's value as it is now: a quick click right after typing must not send an older one.
+        const value = String(new FormData(form).get('token') ?? '').trim();
+        setEmpty(value === '');
+        if (value !== '') {
+          onContinue(value);
         }
       }}
     >
@@ -271,6 +277,7 @@ function TokenStep({
       </p>
       <TextField
         label="Setup token"
+        name="token"
         value={token}
         autoComplete="off"
         spellCheck={false}
