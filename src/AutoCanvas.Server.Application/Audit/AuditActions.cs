@@ -143,4 +143,10 @@ public static class AuditActions
 
     /// <summary>A runner was deleted and its credential revoked; details: <c>name</c>.</summary>
     public const string RunnerDeleted = "runner.deleted";
+
+    /// <summary>A fresh installation was set up in the browser; details: <c>userName</c>, <c>example</c>, <c>bundledRunner</c>.</summary>
+    public const string SetupCompleted = "setup.completed";
+
+    /// <summary>The installation's addresses changed; details: <c>changed</c>, <c>publicAddress</c>, <c>runnerAddress</c>.</summary>
+    public const string InstanceUpdated = "instance.updated";
 }

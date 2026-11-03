@@ -115,3 +115,5 @@ part of the log.
 | `runner.registered` | the runner | runner | `name`, `tokenId` |
 | `runner.updated` | admin | runner | `name`, `changed` (field names), `isPaused` |
 | `runner.deleted` | admin | runner | `name` |
+| `setup.completed` | the new admin | instance | `userName`, `example`, `bundledRunner` |
+| `instance.updated` | admin | instance | `changed` (field names), `publicAddress`, `runnerAddress` |

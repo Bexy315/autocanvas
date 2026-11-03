@@ -132,7 +132,13 @@ Status 500 and above. Something went wrong on the server; the `traceId` identifi
 Status 429. Too many sign-in attempts: either from one network address (10 per minute; the
 `Retry-After` header says how many seconds to wait), or for one user name (5 failures within 15
 minutes lock it for 15 minutes). Also too many calls of one webhook address (`Webhooks:PerMinute`,
-30 a minute by default).
+30 a minute by default), or more than 20 setup requests a minute from one address.
+
+### Setup required
+
+Status 503. The installation is not set up yet: until someone finishes the setup with the token from
+the server's log, only `/api/v1/setup`, `/api/v1/info` and the health checks answer
+([Operations](operations.md#setting-up-a-fresh-installation)).
 
 ### Too large
 

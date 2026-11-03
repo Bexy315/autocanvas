@@ -200,7 +200,7 @@ internal static class ServerCommandLine
     private static async Task RunServerAsync(string[] args, CancellationToken cancellationToken)
     {
         var builder = WebApplication.CreateBuilder(args);
-        builder.AddAutoCanvasServer();
+        builder.AddAutoCanvasServer(runsServer: true);
 
         var app = builder.Build();
         await using (app.ConfigureAwait(false))

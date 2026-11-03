@@ -420,6 +420,118 @@
         }
       }
     },
+    "/api/v1/setup": {
+      "get": {
+        "tags": [
+          "Setup"
+        ],
+        "summary": "Whether setup is needed",
+        "description": "`open` is true while the installation has no account. With the setup token from the server's log in `X-AutoCanvas-Setup-Token`, also what the setup asks about. A wrong token is refused with 401; too many attempts from one address with 429.",
+        "operationId": "GetSetup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Setup"
+        ],
+        "summary": "Set the installation up",
+        "description": "Creates the first admin and stores the addresses in one go, optionally with the example automation and a registration token for the bundled runner, and signs the admin in. Needs the setup token in `X-AutoCanvas-Setup-Token`. Afterwards setup mode is over for good: this answers 404.",
+        "operationId": "CompleteSetup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupCompleted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/sign-in": {
       "post": {
         "tags": [
@@ -5248,6 +5360,78 @@
           }
         }
       }
+    },
+    "/api/v1/instance": {
+      "get": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Read the installation's addresses",
+        "description": "The address people reach the server at and the one runners reach it at, each with where it comes from: `configuration` (set in the server's settings, which wins and cannot be changed here), `database` or `none`.",
+        "operationId": "GetInstanceSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceSettingsView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Server"
+        ],
+        "summary": "Change the installation's addresses",
+        "description": "Sets both addresses: absolute http or https, without a path; empty clears one. An address the configuration sets must be sent empty or unchanged (409 otherwise).",
+        "operationId": "UpdateInstanceSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstanceSettingsChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstanceSettingsView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6591,6 +6775,48 @@
           }
         }
       },
+      "InstanceSettingsChange": {
+        "required": [
+          "publicAddress",
+          "runnerAddress"
+        ],
+        "type": "object",
+        "properties": {
+          "publicAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address people and other systems reach the server at."
+          },
+          "runnerAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address runners reach the runner endpoint at."
+          }
+        },
+        "description": "Both addresses of the installation; empty clears one."
+      },
+      "InstanceSettingsView": {
+        "required": [
+          "publicAddress",
+          "runnerAddress"
+        ],
+        "type": "object",
+        "properties": {
+          "publicAddress": {
+            "description": "The address people and other systems reach the server at.",
+            "$ref": "#/components/schemas/SettingValue"
+          },
+          "runnerAddress": {
+            "description": "The address runners reach the runner endpoint at.",
+            "$ref": "#/components/schemas/SettingValue"
+          }
+        },
+        "description": "The installation's addresses (ADR-0020)."
+      },
       "JobAttemptView": {
         "required": [
           "id",
@@ -6919,6 +7145,32 @@
           "System"
         ],
         "description": "Where a log line came from."
+      },
+      "MasterKeyBackup": {
+        "required": [
+          "key",
+          "file"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key (base64)."
+          },
+          "file": {
+            "type": "string",
+            "description": "Where the server keeps it."
+          }
+        },
+        "description": "The master key the server generated, shown once so it can be kept apart from the database."
+      },
+      "MasterKeyOrigin": {
+        "enum": [
+          "Configured",
+          "Generated",
+          "DefaultFile"
+        ],
+        "description": "Where the server's master key comes from."
       },
       "MeView": {
         "required": [
@@ -8304,6 +8556,197 @@
         },
         "description": "Whether grants from above apply to a folder."
       },
+      "SettingSource": {
+        "enum": [
+          "None",
+          "Database",
+          "Configuration"
+        ],
+        "description": "Where a setting's value comes from."
+      },
+      "SettingValue": {
+        "required": [
+          "value",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The value in effect, if any.",
+            "format": "uri"
+          },
+          "source": {
+            "description": "Where it comes from.",
+            "$ref": "#/components/schemas/SettingSource"
+          }
+        },
+        "description": "A setting's value in effect and where it comes from."
+      },
+      "SetupAdmin": {
+        "required": [
+          "userName",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The name shown to other people; defaults to the user name."
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Contact address; information only."
+          }
+        },
+        "description": "The first admin of a setup."
+      },
+      "SetupCompleted": {
+        "required": [
+          "me",
+          "masterKey",
+          "runnerTokenWritten",
+          "exampleAutomationId"
+        ],
+        "type": "object",
+        "properties": {
+          "me": {
+            "description": "The new admin, signed in.",
+            "$ref": "#/components/schemas/MeView"
+          },
+          "masterKey": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The generated master key, unless the operator configured one.",
+                "$ref": "#/components/schemas/MasterKeyBackup"
+              }
+            ]
+          },
+          "runnerTokenWritten": {
+            "type": "boolean",
+            "description": "Whether the bundled runner was handed a registration token."
+          },
+          "exampleAutomationId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The example automation, when one was created.",
+            "format": "uuid"
+          }
+        },
+        "description": "The result of the setup; the response also signs the new admin in."
+      },
+      "SetupDetails": {
+        "required": [
+          "publicAddress",
+          "runnerAddress",
+          "bundledRunner",
+          "masterKey"
+        ],
+        "type": "object",
+        "properties": {
+          "publicAddress": {
+            "description": "The address people reach the server at; locked when the configuration sets it.",
+            "$ref": "#/components/schemas/SettingValue"
+          },
+          "runnerAddress": {
+            "description": "The address runners reach it at; locked when the configuration sets it.",
+            "$ref": "#/components/schemas/SettingValue"
+          },
+          "bundledRunner": {
+            "type": "boolean",
+            "description": "Whether a runner came with the package and can be handed a token."
+          },
+          "masterKey": {
+            "description": "Where the master key comes from.",
+            "$ref": "#/components/schemas/MasterKeyOrigin"
+          }
+        },
+        "description": "What the setup asks about, as it stands."
+      },
+      "SetupRequest": {
+        "required": [
+          "admin",
+          "publicAddress",
+          "runnerAddress",
+          "bundledRunner",
+          "example"
+        ],
+        "type": "object",
+        "properties": {
+          "admin": {
+            "description": "The first admin; they chose the password, so they need not change it.",
+            "$ref": "#/components/schemas/SetupAdmin"
+          },
+          "publicAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address the server is reached at, if known."
+          },
+          "runnerAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address runners reach it at, if known."
+          },
+          "bundledRunner": {
+            "type": "boolean",
+            "description": "Hand a registration token to the runner that came with the package."
+          },
+          "example": {
+            "type": "boolean",
+            "description": "Create the example automation."
+          }
+        },
+        "description": "What the person setting up an installation chose (ADR-0020)."
+      },
+      "SetupStatus": {
+        "required": [
+          "open",
+          "details"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean",
+            "description": "Setup mode is on: there is no account yet."
+          },
+          "details": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Only with a valid setup token.",
+                "$ref": "#/components/schemas/SetupDetails"
+              }
+            ]
+          }
+        },
+        "description": "Whether this installation still needs to be set up, and with the right token, what the setup needs to know."
+      },
       "SetValueRequest": {
         "required": [
           "value"
@@ -9007,6 +9450,9 @@
     },
     {
       "name": "Triggers"
+    },
+    {
+      "name": "Setup"
     },
     {
       "name": "Authentication"

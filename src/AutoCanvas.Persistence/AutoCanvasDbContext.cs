@@ -2,6 +2,7 @@ using AutoCanvas.Persistence.Audit;
 using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
+using AutoCanvas.Persistence.Instance;
 using AutoCanvas.Persistence.Reports;
 using AutoCanvas.Persistence.Runners;
 using AutoCanvas.Persistence.Runs;
@@ -107,6 +108,9 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>One-time tokens runners register with.</summary>
     public DbSet<RunnerRegistrationToken> RunnerRegistrationTokens => Set<RunnerRegistrationToken>();
 
+    /// <summary>The installation's settings changed in the web UI; at most one row.</summary>
+    public DbSet<InstanceSettings> InstanceSettings => Set<InstanceSettings>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -151,5 +155,6 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AutomationWebhookConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerConfiguration());
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new InstanceSettingsConfiguration());
     }
 }

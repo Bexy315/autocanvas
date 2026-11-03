@@ -124,6 +124,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/setup': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Whether setup is needed
+     * @description `open` is true while the installation has no account. With the setup token from the server's log in `X-AutoCanvas-Setup-Token`, also what the setup asks about. A wrong token is refused with 401; too many attempts from one address with 429.
+     */
+    get: operations['GetSetup'];
+    put?: never;
+    /**
+     * Set the installation up
+     * @description Creates the first admin and stores the addresses in one go, optionally with the example automation and a registration token for the bundled runner, and signs the admin in. Needs the setup token in `X-AutoCanvas-Setup-Token`. Afterwards setup mode is over for good: this answers 404.
+     */
+    post: operations['CompleteSetup'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/auth/sign-in': {
     parameters: {
       query?: never;
@@ -1422,6 +1446,30 @@ export interface paths {
     patch: operations['UpdateRunner'];
     trace?: never;
   };
+  '/api/v1/instance': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Read the installation's addresses
+     * @description The address people reach the server at and the one runners reach it at, each with where it comes from: `configuration` (set in the server's settings, which wins and cannot be changed here), `database` or `none`.
+     */
+    get: operations['GetInstanceSettings'];
+    /**
+     * Change the installation's addresses
+     * @description Sets both addresses: absolute http or https, without a path; empty clears one. An address the configuration sets must be sent empty or unchanged (409 otherwise).
+     */
+    put: operations['UpdateInstanceSettings'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2009,6 +2057,20 @@ export interface components {
         [key: string]: string[];
       };
     };
+    /** @description Both addresses of the installation; empty clears one. */
+    InstanceSettingsChange: {
+      /** @description The address people and other systems reach the server at. */
+      publicAddress: null | string;
+      /** @description The address runners reach the runner endpoint at. */
+      runnerAddress: null | string;
+    };
+    /** @description The installation's addresses (ADR-0020). */
+    InstanceSettingsView: {
+      /** @description The address people and other systems reach the server at. */
+      publicAddress: components['schemas']['SettingValue'];
+      /** @description The address runners reach the runner endpoint at. */
+      runnerAddress: components['schemas']['SettingValue'];
+    };
     /** @description One try to run a job. */
     JobAttemptView: {
       /**
@@ -2150,6 +2212,18 @@ export interface components {
      * @enum {unknown}
      */
     LogSource: 'Stdout' | 'Stderr' | 'System';
+    /** @description The master key the server generated, shown once so it can be kept apart from the database. */
+    MasterKeyBackup: {
+      /** @description The key (base64). */
+      key: string;
+      /** @description Where the server keeps it. */
+      file: string;
+    };
+    /**
+     * @description Where the server's master key comes from.
+     * @enum {unknown}
+     */
+    MasterKeyOrigin: 'Configured' | 'Generated' | 'DefaultFile';
     /** @description The signed-in user's own account with their groups. */
     MeView: {
       /** @description The account. */
@@ -2720,6 +2794,73 @@ export interface components {
       /** @description True to stop inheritance at this folder; false to lift that. */
       isRestricted: boolean;
     };
+    /**
+     * @description Where a setting's value comes from.
+     * @enum {unknown}
+     */
+    SettingSource: 'None' | 'Database' | 'Configuration';
+    /** @description A setting's value in effect and where it comes from. */
+    SettingValue: {
+      /**
+       * Format: uri
+       * @description The value in effect, if any.
+       */
+      value: null | string;
+      /** @description Where it comes from. */
+      source: components['schemas']['SettingSource'];
+    };
+    /** @description The first admin of a setup. */
+    SetupAdmin: {
+      userName: string;
+      password: string;
+      /** @description The name shown to other people; defaults to the user name. */
+      displayName?: null | string;
+      /** @description Contact address; information only. */
+      email?: null | string;
+    };
+    /** @description The result of the setup; the response also signs the new admin in. */
+    SetupCompleted: {
+      /** @description The new admin, signed in. */
+      me: components['schemas']['MeView'];
+      masterKey: null | components['schemas']['MasterKeyBackup'];
+      /** @description Whether the bundled runner was handed a registration token. */
+      runnerTokenWritten: boolean;
+      /**
+       * Format: uuid
+       * @description The example automation, when one was created.
+       */
+      exampleAutomationId: null | string;
+    };
+    /** @description What the setup asks about, as it stands. */
+    SetupDetails: {
+      /** @description The address people reach the server at; locked when the configuration sets it. */
+      publicAddress: components['schemas']['SettingValue'];
+      /** @description The address runners reach it at; locked when the configuration sets it. */
+      runnerAddress: components['schemas']['SettingValue'];
+      /** @description Whether a runner came with the package and can be handed a token. */
+      bundledRunner: boolean;
+      /** @description Where the master key comes from. */
+      masterKey: components['schemas']['MasterKeyOrigin'];
+    };
+    /** @description What the person setting up an installation chose (ADR-0020). */
+    SetupRequest: {
+      /** @description The first admin; they chose the password, so they need not change it. */
+      admin: components['schemas']['SetupAdmin'];
+      /** @description The address the server is reached at, if known. */
+      publicAddress: null | string;
+      /** @description The address runners reach it at, if known. */
+      runnerAddress: null | string;
+      /** @description Hand a registration token to the runner that came with the package. */
+      bundledRunner: boolean;
+      /** @description Create the example automation. */
+      example: boolean;
+    };
+    /** @description Whether this installation still needs to be set up, and with the right token, what the setup needs to know. */
+    SetupStatus: {
+      /** @description Setup mode is on: there is no account yet. */
+      open: boolean;
+      details: null | components['schemas']['SetupDetails'];
+    };
     /** @description The value of a variable or secret to create or replace. */
     SetValueRequest: {
       /** @description At most 64 KiB. Variables may be empty; secrets may not. A secret's value is never shown again. */
@@ -3265,6 +3406,104 @@ export interface operations {
       };
       /** @description Payload Too Large */
       413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  GetSetup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SetupStatus'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  CompleteSetup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SetupRequest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SetupCompleted'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -6778,6 +7017,68 @@ export interface operations {
       };
       /** @description Precondition Failed */
       412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  GetInstanceSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InstanceSettingsView'];
+        };
+      };
+    };
+  };
+  UpdateInstanceSettings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InstanceSettingsChange'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['InstanceSettingsView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };

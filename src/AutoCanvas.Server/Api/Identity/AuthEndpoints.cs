@@ -1,7 +1,6 @@
 using AutoCanvas.Server.Application.Identity;
 using AutoCanvas.Server.Authentication;
-using AutoCanvas.Server.Configuration;
-using Microsoft.Extensions.Options;
+using AutoCanvas.Server.Application.Instance;
 
 namespace AutoCanvas.Server.Api.Identity;
 
@@ -43,7 +42,7 @@ internal static class AuthEndpoints
         SignInRequest request,
         HttpContext context,
         SignInService signIn,
-        IOptions<ServerOptions> server,
+        InstanceSettingsService instance,
         CancellationToken cancellationToken)
     {
         var result = await signIn.SignInAsync(
@@ -58,37 +57,47 @@ internal static class AuthEndpoints
         }
 
         var signedIn = result.Value!;
-        context.Response.Cookies.Append(AutoCanvasAuthenticationHandler.SessionCookie, signedIn.SessionToken, CookieOptions(context, server.Value, signedIn.ExpiresAt));
+        await SetSessionCookieAsync(context, instance, signedIn, cancellationToken).ConfigureAwait(false);
         return TypedResults.Ok(new SignInResponse(signedIn.Me, signedIn.ExpiresAt));
     }
 
-    private static async Task<IResult> SignOutAsync(HttpContext context, SessionService sessions, IOptions<ServerOptions> server, CancellationToken cancellationToken)
+    private static async Task<IResult> SignOutAsync(HttpContext context, SessionService sessions, InstanceSettingsService instance, CancellationToken cancellationToken)
     {
         if (context.User.GetSessionId() is { } sessionId)
         {
             await sessions.EndAsync(context.User.GetUserId(), sessionId, cancellationToken).ConfigureAwait(false);
         }
 
-        context.Response.Cookies.Delete(AutoCanvasAuthenticationHandler.SessionCookie, CookieOptions(context, server.Value, expires: null));
+        context.Response.Cookies.Delete(AutoCanvasAuthenticationHandler.SessionCookie, CookieOptions(context, await PublicAddressAsync(instance, cancellationToken).ConfigureAwait(false), expires: null));
         return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> SignOutEverywhereAsync(HttpContext context, SessionService sessions, IOptions<ServerOptions> server, CancellationToken cancellationToken)
+    private static async Task<IResult> SignOutEverywhereAsync(HttpContext context, SessionService sessions, InstanceSettingsService instance, CancellationToken cancellationToken)
     {
         await sessions.EndAllAsync(context.User.GetUserId(), cancellationToken).ConfigureAwait(false);
-        context.Response.Cookies.Delete(AutoCanvasAuthenticationHandler.SessionCookie, CookieOptions(context, server.Value, expires: null));
+        context.Response.Cookies.Delete(AutoCanvasAuthenticationHandler.SessionCookie, CookieOptions(context, await PublicAddressAsync(instance, cancellationToken).ConfigureAwait(false), expires: null));
         return TypedResults.NoContent();
     }
 
+    /// <summary>Sets the cookie of a new session, as signing in does; the setup signs its new admin in too.</summary>
+    internal static async Task SetSessionCookieAsync(HttpContext context, InstanceSettingsService instance, SignInResult signedIn, CancellationToken cancellationToken) =>
+        context.Response.Cookies.Append(
+            AutoCanvasAuthenticationHandler.SessionCookie,
+            signedIn.SessionToken,
+            CookieOptions(context, await PublicAddressAsync(instance, cancellationToken).ConfigureAwait(false), signedIn.ExpiresAt));
+
+    private static async Task<Uri?> PublicAddressAsync(InstanceSettingsService instance, CancellationToken cancellationToken) =>
+        (await instance.GetAsync(cancellationToken).ConfigureAwait(false)).PublicAddress.Value;
+
     /// <summary>
-    /// <c>Secure</c> when the request came over HTTPS or the public URL is HTTPS (TLS ends at a
+    /// <c>Secure</c> when the request came over HTTPS or the public address is HTTPS (TLS ends at a
     /// proxy), so plain-HTTP test installations still work.
     /// </summary>
-    private static CookieOptions CookieOptions(HttpContext context, ServerOptions server, DateTimeOffset? expires) => new()
+    private static CookieOptions CookieOptions(HttpContext context, Uri? publicAddress, DateTimeOffset? expires) => new()
     {
         HttpOnly = true,
         SameSite = SameSiteMode.Strict,
-        Secure = context.Request.IsHttps || (server.PublicUrl?.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ?? false),
+        Secure = context.Request.IsHttps || string.Equals(publicAddress?.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal),
         Path = "/",
         Expires = expires,
         IsEssential = true,
