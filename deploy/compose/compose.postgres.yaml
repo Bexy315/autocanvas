@@ -1,0 +1,29 @@
+# PostgreSQL instead of SQLite, added to compose.yaml through COMPOSE_FILE in .env
+# (COMPOSE_FILE=compose.yaml:compose.postgres.yaml; on Windows separated by ';').
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: autocanvas
+      POSTGRES_DB: autocanvas
+      POSTGRES_PASSWORD: ${AUTOCANVAS_POSTGRES_PASSWORD:?set AUTOCANVAS_POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autocanvas -d autocanvas"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  server:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AUTOCANVAS_Database__Provider: Postgres
+      AUTOCANVAS_Database__ConnectionString: Host=postgres;Database=autocanvas;Username=autocanvas;Password=${AUTOCANVAS_POSTGRES_PASSWORD}
+
+volumes:
+  postgres:

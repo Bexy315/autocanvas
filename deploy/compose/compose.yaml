@@ -1,0 +1,49 @@
+# AutoCanvas: the server with its web UI, and a runner that runs jobs in Docker containers.
+# deploy/install.sh (or install.ps1) puts this file into an instance directory and writes its .env;
+# see docs/user/installation.md. To install by hand, copy .env.example to .env and fill it in.
+
+services:
+  server:
+    image: ${AUTOCANVAS_SERVER_IMAGE:-autocanvas-server:local}
+    restart: unless-stopped
+    ports:
+      - "${AUTOCANVAS_PORT:-5080}:5080" # the web UI and the HTTP API
+      - "${AUTOCANVAS_RUNNER_PORT:-5081}:5081" # runners on other machines
+    environment:
+      # The setup hands the bundled runner its registration token through this file (ADR-0020).
+      AUTOCANVAS_SETUP_RUNNER_TOKEN_FILE: /var/lib/autocanvas-handoff/runner-token
+      AUTOCANVAS_TRUSTED_PROXIES: ${AUTOCANVAS_TRUSTED_PROXIES:-}
+    volumes:
+      - data:/var/lib/autocanvas
+      # The master key the server generates on its first start, apart from the data: back it up
+      # separately (docs/technical/operations.md, Master key).
+      - keys:/var/lib/autocanvas/keys
+      - handoff:/var/lib/autocanvas-handoff
+
+  runner:
+    image: ${AUTOCANVAS_RUNNER_IMAGE:-autocanvas-runner:local}
+    restart: unless-stopped
+    depends_on:
+      - server
+    # The group that owns the Docker socket, so the runner can start job containers.
+    group_add:
+      - "${AUTOCANVAS_DOCKER_GID:-0}"
+    environment:
+      AUTOCANVAS_RUNNER__SERVER: http://server:5081
+      AUTOCANVAS_RUNNER__REGISTRATIONTOKENFILE: /var/lib/autocanvas-handoff/runner-token
+      AUTOCANVAS_RUNNER__NAME: ${AUTOCANVAS_RUNNER_NAME:-bundled}
+      AUTOCANVAS_RUNNER__LABELS__0: linux
+      AUTOCANVAS_RUNNER__LABELS__1: docker
+      # Where the runner's volume is on the Docker host: job containers mount their workspaces from
+      # there. The install script reads it from 'docker volume inspect'.
+      AUTOCANVAS_RUNNER__HOSTDATADIRECTORY: ${AUTOCANVAS_RUNNER_HOST_DATA:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - handoff:/var/lib/autocanvas-handoff:ro
+      - runner:/var/lib/autocanvas-runner
+
+volumes:
+  data:
+  keys:
+  handoff:
+  runner:

@@ -259,6 +259,30 @@ docker run -d --name autocanvas -p 5080:5080 -p 5081:5081 -v autocanvas-data:/va
   -e AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD='a first password' autocanvas-server
 ```
 
+Without the master key and the bootstrap settings, the server generates a key into
+`/var/lib/autocanvas/keys` (a volume of its own in the compose package) and opens the setup.
+
+## Compose package
+
+`deploy/compose/` holds the package that `deploy/install.sh` and `deploy/install.ps1` install
+([Installation](../user/installation.md)):
+
+- **`compose.yaml`**: the server (ports 5080 and 5081; volumes for the data, the generated master key
+  and the handoff to the runner) and the bundled runner. The runner gets the Docker socket and the
+  socket's group (`AUTOCANVAS_DOCKER_GID`), registers itself with the token the setup writes to the
+  shared `handoff` volume, and announces `linux` and `docker`. Its data lives in a volume; job
+  containers mount their workspaces from that volume's path on the Docker host
+  (`AUTOCANVAS_RUNNER_HOST_DATA`, from `docker volume inspect`), which works the same with Docker
+  Engine and Docker Desktop.
+- **`compose.postgres.yaml`**: adds PostgreSQL 17 and points the server at it; chosen through
+  `COMPOSE_FILE` in `.env`.
+- **`.env.example`**: every variable with a comment.
+
+The install script writes `.env` only once (mode 600), so running it again updates the images and
+keeps the settings. CI installs the package with the script, sets it up through the API and runs the
+example automation on the bundled runner, with SQLite and with PostgreSQL
+(`deploy/test/compose-smoke.sh`).
+
 ## Health endpoints
 
 | Endpoint | Answers `200` when | Use it for |

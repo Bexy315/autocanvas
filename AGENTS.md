@@ -32,6 +32,7 @@ MIT-licensed. Pre-alpha — the current milestone plan is in [`docs/plans/`](doc
 | `docs/protocol/` | Runner protocol specification (prose around the `.proto` files) |
 | `docs/adr/` | Architecture decision records |
 | `docs/plans/` | Milestone plans; the active one says what to work on |
+| `deploy/` | The `docker compose` package and its install scripts; `deploy/test/` checks it end to end in CI |
 | `docs-site/` | Docusaurus app that renders `docs/` (except `plans/`) to GitHub Pages |
 | `build/` | Build and CI support files |
 | `.claude/skills/` | Task playbooks — any agent can read them (see below) |
