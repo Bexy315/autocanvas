@@ -11,10 +11,15 @@ const readingMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
 export const sessionEvents = new EventTarget();
 export const sessionExpired = 'expired';
 
-/** Requests whose 401 is an answer ("not signed in", "wrong password"), not a session that ended. */
+/** Requests whose 401 is an answer ("not signed in", "wrong password", "wrong setup token"), not a session that ended. */
 function answersWithoutSession(request: Request): boolean {
   const path = new URL(request.url).pathname;
-  return path === '/api/v1/auth/sign-in' || (path === '/api/v1/me' && request.method === 'GET');
+  return (
+    path === '/api/v1/auth/sign-in' ||
+    // A wrong setup token (ADR-0020): nobody was signed in to begin with.
+    path === '/api/v1/setup' ||
+    (path === '/api/v1/me' && request.method === 'GET')
+  );
 }
 
 export const sessionMiddleware: Middleware = {

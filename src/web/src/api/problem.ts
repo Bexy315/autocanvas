@@ -62,11 +62,25 @@ const gatewayStatuses = new Set([502, 503, 504]);
  * reverse proxy, the dev server's proxy) answering for it. Worth trying again in a moment.
  */
 export function isUnreachable(error: unknown): boolean {
-  return error instanceof TypeError || (error instanceof ApiError && gatewayStatuses.has(error.status));
+  return (
+    error instanceof TypeError ||
+    (error instanceof ApiError && gatewayStatuses.has(error.status) && !isSetupRequired(error))
+  );
+}
+
+/**
+ * Whether the server answered that the installation is not set up yet (503 with the problem type
+ * `setup-required`, ADR-0020): then only the setup page can go on.
+ */
+export function isSetupRequired(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 503 && (error.problem.type ?? '').endsWith('#setup-required');
 }
 
 /** A sentence for any error, for places that show one message. */
 export function describeError(error: unknown): string {
+  if (isSetupRequired(error)) {
+    return "AutoCanvas is not set up yet. Open the setup page and enter the setup token from the server's log.";
+  }
   if (isUnreachable(error)) {
     return 'The server cannot be reached right now. It may be starting or restarting; try again in a moment.';
   }

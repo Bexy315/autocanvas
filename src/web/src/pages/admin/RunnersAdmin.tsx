@@ -14,7 +14,9 @@ import {
   useUpdateRunner,
   type RunnerView,
 } from '../../api/admin';
+import { useInstanceSettings } from '../../api/instance';
 import { ConfirmDialog } from '../../dialogs/ConfirmDialog';
+import { guessRunnerAddress } from '../../lib/runnerAddress';
 import { ActionsMenu } from '../../ui/ActionsMenu';
 import { ErrorAlert } from '../../ui/Alert';
 import { Badge } from '../../ui/Badge';
@@ -30,6 +32,7 @@ type Open = { kind: 'rename' | 'delete'; runner: RunnerView } | null;
 
 export function RunnersAdmin() {
   const runners = useRunners();
+  const instance = useInstanceSettings();
   const [registering, setRegistering] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [open, setOpen] = useState<Open>(null);
@@ -68,7 +71,13 @@ export function RunnersAdmin() {
           }}
         />
       )}
-      {token && <TokenDialog token={token} onClose={() => setToken(null)} />}
+      {token && (
+        <TokenDialog
+          token={token}
+          address={instance.data?.runnerAddress.value?.replace(/\/$/, '') ?? guessRunnerAddress()}
+          onClose={() => setToken(null)}
+        />
+      )}
       {open?.kind === 'rename' && <RenameDialog runner={open.runner} onClose={() => setOpen(null)} />}
       {open?.kind === 'delete' && <DeleteRunnerDialog runner={open.runner} onClose={() => setOpen(null)} />}
     </div>
@@ -187,13 +196,8 @@ function RegisterDialog({ onClose, onCreated }: { onClose: () => void; onCreated
   );
 }
 
-/** The runner endpoint as seen from a runner: this host, the default runner port. */
-function defaultRunnerAddress(): string {
-  return `${globalThis.location.protocol}//${globalThis.location.hostname}:5081`;
-}
-
-function TokenDialog({ token, onClose }: { token: string; onClose: () => void }) {
-  const [server, setServer] = useState(defaultRunnerAddress);
+function TokenDialog({ token, address, onClose }: { token: string; address: string; onClose: () => void }) {
+  const [server, setServer] = useState(address);
   const docker = [
     'docker run --rm -it \\',
     '  -v /var/lib/autocanvas-runner:/var/lib/autocanvas-runner \\',
@@ -210,7 +214,7 @@ function TokenDialog({ token, onClose }: { token: string; onClose: () => void })
       <TextField
         label="The server's runner address, as the runner reaches it"
         value={server}
-        hint="Port 5081 unless Runners:Urls says otherwise."
+        hint="Filled in from Administration → Instance, where it is set once for every new runner."
         onChange={(event) => setServer(event.target.value)}
       />
       {[
