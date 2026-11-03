@@ -136,14 +136,17 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Build the server
+      # The walk-through (e2e/11) registers the reference runner and runs its jobs on Docker.
+      - name: Build the server and the runner
         working-directory: .
-        run: dotnet build src/AutoCanvas.Server --configuration Release
+        run: |
+          dotnet build src/AutoCanvas.Server --configuration Release
+          dotnet build src/AutoCanvas.Runner --configuration Release
 
       - name: Browsers
         run: npx playwright install --with-deps chromium --only-shell
 
-      - name: End-to-end smoke test
+      - name: End-to-end tests
         run: npm run e2e
 
       # Screenshots of every screen the smoke test passes, light and dark, for review without a local start.
@@ -152,7 +155,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: web-screenshots
-          path: src/web/test-results/screenshots/
+          path: |
+            src/web/test-results/screenshots/
+            src/web/test-results/docs/
           if-no-files-found: ignore
 
       - name: Upload reports

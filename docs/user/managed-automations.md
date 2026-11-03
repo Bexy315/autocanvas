@@ -10,9 +10,8 @@ go back. The content is an ordinary [automation file](automations.md).
 
 :::note Status
 
-Managed automations can be created, organized, read, compared and edited as YAML in the web UI
-and through the HTTP API. Editing them on the canvas and running them from the web UI come with the next steps of S3; the canvas already
-shows them.
+Managed automations are created, organized, compared, edited on the canvas or as YAML, and run in
+the web UI (see [A tour of the web UI](web-ui.md)) and through the HTTP API.
 
 :::
 
@@ -85,6 +84,9 @@ type; while the file cannot be read, it keeps the last readable state and says s
 shows its job in the file, and the job your cursor is in is highlighted on the canvas. **List**
 shows the same as text.
 
+![The editor: canvas and file side by side](img/tour-editor-light.png#gh-light-mode-only)
+![The editor: canvas and file side by side](img/tour-editor-dark.png#gh-dark-mode-only)
+
 Editors build on the canvas too. The bar above it adds a **Job**, **Switch**, **Join** or **Finally**
 job, or a job with a step of a node type such as `http_request`: drag an entry to a place, or choose
 it to add it in the middle. Drag a line from the bottom of a card (green on success, red on failure,
@@ -97,6 +99,9 @@ changing only the lines it must: your comments, blank lines and formatting stay.
 Choose a card (click it, or press Enter on it) to open its **side panel**; Esc or the × closes it, and
 it follows when you choose another card or move the cursor in the file to another job. What you type
 there lands in the file at once, and one undo takes back a value you typed.
+
+![A job's settings next to the canvas](img/tour-canvas-light.png#gh-light-mode-only)
+![A job's settings next to the canvas](img/tour-canvas-dark.png#gh-dark-mode-only)
 
 - **A job**: a rail at the top lists its settings and its steps. **Job settings** holds the id (other
   jobs, its place on the canvas and `${{ jobs.ID… }}` in expressions follow when it changes), name

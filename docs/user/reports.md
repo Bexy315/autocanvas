@@ -42,6 +42,10 @@ reports found ("3 failed", "82 %"), and each job names its own results with a li
   - **Reports**: one section per test report, with its totals. Reports of earlier attempts of a
     retried job are kept apart, as they do not count in the totals.
   - **Failed tests**: each shows its message, stack trace and output, each of them copyable.
+
+![The failed test of a run](img/tour-tests-light.png#gh-light-mode-only)
+![The failed test of a run](img/tour-tests-dark.png#gh-dark-mode-only)
+
 - **History** (the clock at a test): the test's newest results in the automation's runs, as a strip
   of colored squares (oldest left, each a link to its run), with its durations and its failures
   grouped by message. The test **looks flaky** when it failed and then passed on a retry in the same
@@ -52,6 +56,9 @@ reports found ("3 failed", "82 %"), and each job names its own results with a li
   - each coverage report's packages, lowest coverage first (or by name);
   - a package's classes, with the lines no test reached, by number (AutoCanvas keeps no source
     code).
+
+![Coverage by class](img/tour-coverage-light.png#gh-light-mode-only)
+![Coverage by class](img/tour-coverage-dark.png#gh-dark-mode-only)
 
 ## Supported formats
 

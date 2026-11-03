@@ -1,7 +1,7 @@
 # 0018. Web UI: a React SPA served by the server, with YAML as the editor's source of truth
 
-- Status: Proposed
-- Date: 2026-11-01
+- Status: Accepted
+- Date: 2026-11-01 (accepted 2026-11-03)
 
 ## Context
 

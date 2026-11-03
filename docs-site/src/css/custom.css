@@ -18,3 +18,16 @@
   --ifm-color-primary-lighter: #9fa8fb;
   --ifm-color-primary-lightest: #bec4fc;
 }
+
+/* Pictures of the UI come in a light and a dark version, marked as GitHub marks them, so the docs
+   show the one that matches the theme here and on GitHub alike. */
+[data-theme='light'] img[src$='#gh-dark-mode-only'],
+[data-theme='dark'] img[src$='#gh-light-mode-only'] {
+  display: none;
+}
+
+/* A thin frame keeps a picture of the UI apart from the page around it. */
+.markdown img[src*='#gh-'] {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+}

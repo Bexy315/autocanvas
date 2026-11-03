@@ -1,7 +1,7 @@
 # 0019. Check npm licenses against the shared list, with named build-time exceptions
 
-- Status: Proposed
-- Date: 2026-11-01
+- Status: Accepted
+- Date: 2026-11-01 (accepted 2026-11-03)
 
 ## Context
 

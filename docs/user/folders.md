@@ -80,6 +80,9 @@ A folder's **Sharing** tab is for its owners:
 - **Restrict**: makes roles from the folders above stop applying, and **Lift the restriction**
   undoes it.
 
+![A folder shared with a group](img/tour-sharing-light.png#gh-light-mode-only)
+![A folder shared with a group](img/tour-sharing-dark.png#gh-dark-mode-only)
+
 Others see that only owners see who has access.
 
 ## With the API
