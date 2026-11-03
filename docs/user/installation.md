@@ -55,18 +55,47 @@ Open http://<this machine's address>:5080/setup in a browser and enter the setup
 
 ## Set it up in the browser
 
-Open `/setup` on the machine's address, from any computer that reaches it, and enter the token. The
-setup asks for the first admin, the addresses and two options, then shows the master key once
-([Users and groups](accounts.md#the-first-admin)):
+Open `/setup` on the machine's address, from any computer that reaches it, and enter the token.
+
+![The setup asks for the token from the log](img/install-1-token-light.png#gh-light-mode-only)
+![The setup asks for the token from the log](img/install-1-token-dark.png#gh-dark-mode-only)
+
+The setup asks for the first admin, then the addresses (filled in from the browser) and two
+options, and shows the master key once ([Users and groups](accounts.md#the-first-admin)).
+
+![The first admin](img/install-2-admin-light.png#gh-light-mode-only)
+![The first admin](img/install-2-admin-dark.png#gh-dark-mode-only)
+
 
 - **Register the bundled runner**: the runner of the package registers itself and runs jobs right
   away, with the labels `linux` and `docker`.
 - **Create an example automation**: a folder *Getting started* with an automation `hello`. Start it
   with **Run** to see a log, tests and coverage.
 
+![The options](img/install-3-options-light.png#gh-light-mode-only)
+![The options](img/install-3-options-dark.png#gh-dark-mode-only)
+
+![The master key, shown once](img/install-4-master-key-light.png#gh-light-mode-only)
+![The master key, shown once](img/install-4-master-key-dark.png#gh-dark-mode-only)
+
+
 **Keep the master key** somewhere safe, apart from the server: without it, the secrets in a backup
 cannot be read again. The token changes when the server restarts; `docker compose logs server` in the
 instance's directory shows the current one.
+
+When the bundled runner is online, AutoCanvas is ready.
+
+![Set up, with the runner online](img/install-5-done-light.png#gh-light-mode-only)
+![Set up, with the runner online](img/install-5-done-dark.png#gh-dark-mode-only)
+
+## Your first run
+
+**Open the example** leads to the automation `hello`. On its **Runs** tab, **Run** starts it on the
+bundled runner: the run page follows the log live, and the tabs **Tests** and **Coverage** show its
+small reports. [A tour of the web UI](web-ui.md) shows the rest.
+
+![The first run of the example](img/install-6-first-run-light.png#gh-light-mode-only)
+![The first run of the example](img/install-6-first-run-dark.png#gh-dark-mode-only)
 
 ## Updating
 

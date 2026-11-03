@@ -1,5 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { expect, type APIRequestContext } from '@playwright/test';
@@ -82,15 +82,57 @@ export async function startRunner(request: APIRequestContext, name: string): Pro
         child.kill();
         await exited;
       }
-      // What a job left running when the runner was stopped (its sweeper would remove it at its next
-      // start, but this runner does not start again).
-      const left = spawnSync('docker', ['ps', '--all', '--quiet', '--filter', `label=autocanvas.runner=${id}`], {
-        encoding: 'utf8',
-      })
-        .stdout.split(/\s+/)
-        .filter(Boolean);
-      if (left.length > 0) {
-        spawnSync('docker', ['rm', '--force', ...left], { stdio: 'ignore' });
+      removeLeftovers(id);
+      rmSync(dataDirectory, { recursive: true, force: true });
+    },
+  };
+}
+
+/**
+ * Removes what a runner's jobs left running when it was stopped: its sweeper would at its next
+ * start, but a test's runner does not start again.
+ */
+function removeLeftovers(runnerId: string) {
+  if (!runnerId) {
+    return;
+  }
+  const left = spawnSync('docker', ['ps', '--all', '--quiet', '--filter', `label=autocanvas.runner=${runnerId}`], {
+    encoding: 'utf8',
+  })
+    .stdout.split(/\s+/)
+    .filter(Boolean);
+  if (left.length > 0) {
+    spawnSync('docker', ['rm', '--force', ...left], { stdio: 'ignore' });
+  }
+}
+
+/**
+ * The runner as the compose package runs it (ADR-0020): unregistered, it waits for the token the
+ * setup writes to `tokenFile`, registers itself as `bundled` and runs.
+ */
+export function startBundledRunner(server: string, tokenFile: string): { stop(): Promise<void> } {
+  const dataDirectory = mkdtempSync(join(tmpdir(), 'autocanvas-e2e-bundled-'));
+  const child: ChildProcess = spawn('dotnet', [runnerDll], {
+    env: {
+      ...process.env,
+      AUTOCANVAS_RUNNER__SERVER: server,
+      AUTOCANVAS_RUNNER__DATADIRECTORY: dataDirectory,
+      AUTOCANVAS_RUNNER__REGISTRATIONTOKENFILE: tokenFile,
+      AUTOCANVAS_RUNNER__NAME: 'bundled',
+      AUTOCANVAS_RUNNER__LABELS__0: 'linux',
+    },
+    stdio: 'ignore',
+  });
+  const exited = new Promise<void>((done) => child.once('exit', () => done()));
+  return {
+    async stop() {
+      if (child.exitCode === null) {
+        child.kill();
+        await exited;
+      }
+      const credential = join(dataDirectory, 'credential.json');
+      if (existsSync(credential)) {
+        removeLeftovers((JSON.parse(readFileSync(credential, 'utf8')) as { runnerId: string }).runnerId);
       }
       rmSync(dataDirectory, { recursive: true, force: true });
     },
