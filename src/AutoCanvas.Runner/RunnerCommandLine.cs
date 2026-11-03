@@ -75,12 +75,10 @@ internal static class RunnerCommandLine
             return 1;
         }
 
-        RegisterResponse registered;
+        RunnerCredential credential;
         try
         {
-            registered = await server.Registration.RegisterAsync(
-                new RegisterRequest { RegistrationToken = token, Name = name, Capabilities = RunnerCapabilities.Of(options) },
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+            credential = await RunnerRegistration.RegisterAsync(server, options, token, name, cancellationToken).ConfigureAwait(false);
         }
         catch (RpcException exception)
         {
@@ -88,8 +86,7 @@ internal static class RunnerCommandLine
             return 1;
         }
 
-        await new RunnerCredential(Guid.Parse(registered.RunnerId), registered.Credential).WriteAsync(options.CredentialFile, cancellationToken).ConfigureAwait(false);
-        await output.WriteLineAsync($"Registered runner '{name}' ({registered.RunnerId}). Its credential is in {Path.GetFullPath(options.CredentialFile)}; keep that file private.").ConfigureAwait(false);
+        await output.WriteLineAsync($"Registered runner '{name}' ({credential.RunnerId}). Its credential is in {Path.GetFullPath(options.CredentialFile)}; keep that file private.").ConfigureAwait(false);
         return 0;
     }
 }

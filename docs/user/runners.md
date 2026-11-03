@@ -82,6 +82,17 @@ label) or from arguments (`--Runner:Server=…`).
 | `Runner:BuildKitImage` | `moby/buildkit:v0.34.0-rootless` | Rootless BuildKit, which `docker_build` builds with |
 | `Runner:BuildCacheVolume` | `autocanvas-buildkit-cache` | The Docker volume BuildKit keeps its cache in |
 | `Runner:ShutdownTimeout` | `00:10:00` | How long a stopping runner lets running jobs finish before it cancels them |
+| `Runner:RegistrationTokenFile` | none | A file a registration token appears in; an unregistered runner waits for it and registers itself (see below) |
+| `Runner:Name` | the machine's name | The name a runner that registers itself takes |
+
+### Registering itself
+
+The runner of the compose package registers itself: it starts with `Runner:RegistrationTokenFile`
+pointing at a file on a volume it shares with the server, and the setup writes a registration token
+there ([ADR-0020](../adr/0020-first-start-setup.md)). Without a credential, such a runner waits for
+the file, registers with its token under `Runner:Name`, stores its credential and runs. A token the
+server refuses stops it with a message, as an unregistered runner without the setting does. Once it
+has its credential, the file no longer matters; the token in it was for one registration only.
 
 ### What a job sees
 

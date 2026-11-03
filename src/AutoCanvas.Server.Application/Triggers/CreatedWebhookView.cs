@@ -6,4 +6,11 @@ namespace AutoCanvas.Server.Application.Triggers;
 /// <param name="SigningSecret">The secret calls are signed with; <see langword="null"/> for unsigned calls.</param>
 /// <param name="Hint">The token's start and end, as shown later.</param>
 /// <param name="Enabled">Whether the current version allows webhook calls yet.</param>
-public sealed record CreatedWebhookView(string Path, string Token, string? SigningSecret, string Hint, bool Enabled);
+public sealed record CreatedWebhookView(string Path, string Token, string? SigningSecret, string Hint, bool Enabled)
+{
+    /// <summary>
+    /// The whole address, from the installation's public address; <see langword="null"/> while none
+    /// is set, so clients put the path after the address they reach the server at.
+    /// </summary>
+    public Uri? Url { get; init; }
+}

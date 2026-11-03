@@ -29,6 +29,7 @@ A few frequently used settings also have a short name. If both forms are set, th
 | `AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD` | `Bootstrap:AdminPassword` | That admin's initial password; must be changed at the first sign-in |
 | `AUTOCANVAS_MASTER_KEY` | `Secrets:MasterKey` | The master key that encrypts secrets (see [Master key](#master-key)) |
 | `AUTOCANVAS_MASTER_KEY_FILE` | `Secrets:MasterKeyFile` | A file holding the master key instead, e.g. a container secret |
+| `AUTOCANVAS_TRUSTED_PROXIES` | `Server:TrustedProxies` | Reverse proxies whose forwarded headers are believed (see [Reverse proxies and HTTPS](#reverse-proxies-and-https)) |
 | `AUTOCANVAS_SETUP_RUNNER_TOKEN_FILE` | `Setup:RunnerTokenFile` | Where the setup hands a registration token to the bundled runner (see [Setting up a fresh installation](#setting-up-a-fresh-installation)) |
 
 Settings are checked when the server starts. An invalid value stops it with a message that names the
@@ -40,6 +41,7 @@ setting and what is expected, instead of failing later on first use.
 | `Runners:PublicUrl` | none | Absolute `http`/`https` URL runners reach the runner endpoint at, shown in the commands to register one; wins over the web UI's |
 | `Setup:Enabled` | `true` | Whether a server without accounts opens the setup; `false` leaves the first admin to `admin create` and the bootstrap settings |
 | `Setup:RunnerTokenFile` | none | A file the setup writes a registration token to, for a runner that reads it from a shared volume |
+| `Server:TrustedProxies` | none | Reverse proxies whose `X-Forwarded-For` and `X-Forwarded-Proto` are believed: addresses or networks (`10.0.0.0/8`), separated by commas (see [Reverse proxies and HTTPS](#reverse-proxies-and-https)) |
 | `Server:DataDirectory` | `data` | Where the server keeps its files, such as the default SQLite database; relative to the server's directory |
 | `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
 | `Database:ConnectionString` | SQLite file `autocanvas.db` in the data directory | Required for PostgreSQL |
@@ -210,10 +212,17 @@ are back within `Queue:LeaseDuration`.
 
 ## Reverse proxies and HTTPS
 
-The session cookie is marked `Secure` when the server sees an HTTPS request or when
-`Server:PublicUrl` starts with `https://`. Behind a proxy that ends TLS, set `Server:PublicUrl` to
-the public HTTPS address. Sign-in attempts are limited per client address; until forwarded headers
-are supported (S4), all requests through one proxy count as one address.
+The session cookie is marked `Secure` when the server sees an HTTPS request or when the public
+address starts with `https://`. Behind a proxy that ends TLS, set the public address to the public
+HTTPS address (**Administration** → **Instance**, or `Server:PublicUrl`).
+
+**Trusted proxies**: set `Server:TrustedProxies` (`AUTOCANVAS_TRUSTED_PROXIES`) to the proxy's
+address or network, such as `172.16.0.0/12` for a proxy in a Docker network. The server then believes
+the `X-Forwarded-For` and `X-Forwarded-Proto` headers that come from there: sign-in and setup limits
+count per client, the audit log and the session list show the client's address, and a request the
+proxy took over HTTPS counts as HTTPS. The proxy must set those headers and overwrite any a client
+sent. Without trusted proxies the headers are ignored, and all requests through a proxy count as
+one address.
 
 Webhook calls (`POST /api/v1/hooks/…`) come from other systems; a proxy in front of the API must
 let request bodies of up to 1 MiB through for them, and should not log request paths, which hold

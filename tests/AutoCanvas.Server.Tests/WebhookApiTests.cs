@@ -21,6 +21,18 @@ public abstract class WebhookApiTests(DatabaseProvider provider) : DatabaseTest(
         """;
 
     [Fact]
+    public async Task The_whole_address_follows_the_public_address()
+    {
+        await using var factory = Factory().With("Server:PublicUrl", "http://autocanvas.example.org");
+        var ada = await factory.SignedInAsync("ada");
+        var automation = await AutomationAsync(ada, Hooked);
+
+        var hook = await (await ada.PostAsJsonAsync($"/api/v1/automations/{automation}/webhook", new { }, Cancel)).JsonAsync();
+
+        hook.GetProperty("url").GetString().ShouldBe($"http://autocanvas.example.org{hook.GetProperty("path").GetString()}");
+    }
+
+    [Fact]
     public async Task Another_system_starts_runs_through_the_address_without_signing_in()
     {
         await using var factory = Factory();
@@ -30,6 +42,7 @@ public abstract class WebhookApiTests(DatabaseProvider provider) : DatabaseTest(
         var hook = await created.JsonAsync();
         var path = hook.GetProperty("path").GetString()!;
         var secret = hook.GetProperty("signingSecret").GetString()!;
+        hook.GetProperty("url").ValueKind.ShouldBe(JsonValueKind.Null);
         using var outsider = factory.CreateClient();
         const string Body = """{ "ref": "main" }""";
 

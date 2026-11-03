@@ -1,3 +1,5 @@
+using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Triggers;
 using AutoCanvas.Server.Authentication;
 
@@ -64,10 +66,22 @@ internal static class WebhookEndpoints
     private static async Task<IResult> GetAsync(Guid automationId, HttpContext context, WebhookService webhooks, CancellationToken cancellationToken) =>
         ApiResults.Ok(await webhooks.GetAsync(context.User.ToActor(), automationId, cancellationToken).ConfigureAwait(false));
 
-    private static async Task<IResult> CreateAsync(Guid automationId, CreateWebhookRequest? request, HttpContext context, WebhookService webhooks, CancellationToken cancellationToken) =>
-        ApiResults.Created(
-            await webhooks.CreateAsync(context.User.ToActor(), automationId, request?.RequireSignature ?? false, cancellationToken).ConfigureAwait(false),
-            _ => $"/api/v1/automations/{automationId}/webhook");
+    private static async Task<IResult> CreateAsync(
+        Guid automationId,
+        CreateWebhookRequest? request,
+        HttpContext context,
+        WebhookService webhooks,
+        InstanceSettingsService instance,
+        CancellationToken cancellationToken)
+    {
+        var created = await webhooks.CreateAsync(context.User.ToActor(), automationId, request?.RequireSignature ?? false, cancellationToken).ConfigureAwait(false);
+        if (created.Value is { } view && (await instance.GetAsync(cancellationToken).ConfigureAwait(false)).PublicAddress.Value is { } address)
+        {
+            created = UseCase.Success(view with { Url = new Uri(address, view.Path) });
+        }
+
+        return ApiResults.Created(created, _ => $"/api/v1/automations/{automationId}/webhook");
+    }
 
     private static async Task<IResult> DeleteAsync(Guid automationId, HttpContext context, WebhookService webhooks, CancellationToken cancellationToken) =>
         ApiResults.NoContent(await webhooks.DeleteAsync(context.User.ToActor(), automationId, cancellationToken).ConfigureAwait(false));

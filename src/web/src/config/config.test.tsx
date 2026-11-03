@@ -1,10 +1,11 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { ConfigurationView, VariableView } from '../api/configuration';
 import { automationView, folderView, page } from '../test/fixtures';
 import { fakeServer, info, json, me, noContent, problem, requests, type Handler } from '../test/fakeServer';
 import { renderApp } from '../test/renderApp';
 import { curlExample, powerShellExample } from './webhookExamples';
+import { WebhookCreatedDialog } from './WebhookCreatedDialog';
 
 describe('webhook examples', () => {
   it('call the address unsigned, or signed with the secret', () => {
@@ -274,5 +275,25 @@ describe('administration', () => {
     renderApp('/admin');
     expect(await screen.findByRole('heading', { name: 'There is no page here' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Administration' })).not.toBeInTheDocument();
+  });
+});
+
+describe('the webhook dialog', () => {
+  it('shows the whole address the server names, behind a proxy too', () => {
+    render(
+      <WebhookCreatedDialog
+        created={{
+          path: '/api/v1/hooks/ach_abcdefyz',
+          url: 'https://autocanvas.example.org/api/v1/hooks/ach_abcdefyz',
+          token: 'ach_abcdefyz',
+          signingSecret: null,
+          hint: 'ach_ab…yz',
+          enabled: true,
+        }}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText('https://autocanvas.example.org/api/v1/hooks/ach_abcdefyz')).toBeInTheDocument();
   });
 });

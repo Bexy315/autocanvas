@@ -12,6 +12,7 @@ using AutoCanvas.Server.Runners;
 using AutoCanvas.Server.Setup;
 using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Setup;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -116,6 +117,7 @@ internal static class ServerBuilderExtensions
 
     public static WebApplication MapAutoCanvasServer(this WebApplication app)
     {
+        UseTrustedProxies(app);
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseAutoCanvasWebUi();
@@ -129,6 +131,30 @@ internal static class ServerBuilderExtensions
         app.MapAutoCanvasWebUi();
 
         return app;
+    }
+
+    /// <summary>
+    /// Believes the client address and scheme that trusted reverse proxies forward
+    /// (<c>Server:TrustedProxies</c>), so rate limits, the audit log and the <c>Secure</c> cookie see
+    /// the real client. Without trusted proxies nothing changes.
+    /// </summary>
+    private static void UseTrustedProxies(WebApplication app)
+    {
+        var networks = app.Services.GetRequiredService<IOptions<ServerOptions>>().Value.TrustedNetworks();
+        if (networks.Count == 0)
+        {
+            return;
+        }
+
+        var forwarded = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
+        forwarded.KnownProxies.Clear();
+        forwarded.KnownIPNetworks.Clear();
+        foreach (var network in networks)
+        {
+            forwarded.KnownIPNetworks.Add(network);
+        }
+
+        app.UseForwardedHeaders(forwarded);
     }
 
     /// <summary>

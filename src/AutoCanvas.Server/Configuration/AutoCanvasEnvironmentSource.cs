@@ -26,6 +26,7 @@ internal sealed class AutoCanvasEnvironmentSource(
         ["AUTOCANVAS_MASTER_KEY"] = "Secrets:MasterKey",
         ["AUTOCANVAS_MASTER_KEY_FILE"] = "Secrets:MasterKeyFile",
         ["AUTOCANVAS_SETUP_RUNNER_TOKEN_FILE"] = "Setup:RunnerTokenFile",
+        ["AUTOCANVAS_TRUSTED_PROXIES"] = "Server:TrustedProxies",
     };
 
     public IConfigurationProvider Build(IConfigurationBuilder builder) => new Provider(environment, aliases ?? Aliases);

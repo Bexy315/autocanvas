@@ -43,9 +43,21 @@ internal sealed partial class RunnerConnection(
         // Let the host finish starting: stopping it from inside its start would fail the start.
         await Task.Yield();
         var credential = await RunnerCredential.ReadAsync(options.Value.CredentialFile, stoppingToken).ConfigureAwait(false);
-        if (credential is null)
+        if (credential is null && !string.IsNullOrWhiteSpace(options.Value.RegistrationTokenFile))
+        {
+            credential = await RegisterFromFileAsync(options.Value.RegistrationTokenFile, stoppingToken).ConfigureAwait(false);
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+        }
+        else if (credential is null)
         {
             LogNotRegistered(logger, options.Value.CredentialFile);
+        }
+
+        if (credential is null)
+        {
             Stop(RunnerExitCode.NotAuthorized);
             return;
         }
@@ -70,6 +82,50 @@ internal sealed partial class RunnerConnection(
         await Task.WhenAny(loop, Task.Delay(TimeSpan.FromSeconds(30), CancellationToken.None)).ConfigureAwait(false);
         await connection.CancelAsync().ConfigureAwait(false);
         await Ended(loop).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Waits for a registration token in <paramref name="file"/> and registers with it (ADR-0020);
+    /// <see langword="null"/> when the server refuses it or the runner stops meanwhile.
+    /// </summary>
+    private async Task<RunnerCredential?> RegisterFromFileAsync(string file, CancellationToken stoppingToken)
+    {
+        LogWaitingForToken(logger, file);
+        var name = RunnerRegistration.NameOf(options.Value);
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var token = File.Exists(file) ? (await File.ReadAllTextAsync(file, stoppingToken).ConfigureAwait(false)).Trim() : string.Empty;
+            if (token.Length > 0)
+            {
+                try
+                {
+                    var credential = await RunnerRegistration.RegisterAsync(server, options.Value, token, name, stoppingToken).ConfigureAwait(false);
+                    LogRegistered(logger, name, credential.RunnerId);
+                    return credential;
+                }
+                catch (RpcException exception) when (!RunnerRegistration.IsTransient(exception))
+                {
+                    LogRegistrationRefused(logger, file, exception.Status.Detail);
+                    return null;
+                }
+                catch (RpcException exception)
+                {
+                    // The server is not reachable yet, e.g. still starting: try again in a moment.
+                    LogServerNotReachable(logger, exception.Status.Detail);
+                }
+            }
+
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+
+        return null;
     }
 
     private static async Task Ended(Task task)
@@ -304,6 +360,18 @@ internal sealed partial class RunnerConnection(
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "The runner is not registered: {CredentialFile} does not exist. Run 'autocanvas-runner register' first.")]
     private static partial void LogNotRegistered(ILogger logger, string credentialFile);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "The runner is not registered; waiting for a registration token in {File}")]
+    private static partial void LogWaitingForToken(ILogger logger, string file);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Registered as runner '{Name}' ({RunnerId})")]
+    private static partial void LogRegistered(ILogger logger, string name, Guid runnerId);
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "The server refused the registration token in {File} ({Reason}). Create a new token and register the runner again.")]
+    private static partial void LogRegistrationRefused(ILogger logger, string file, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The server cannot be reached to register yet: {Reason}")]
+    private static partial void LogServerNotReachable(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Critical, Message = "The server refused the runner's credential ({Reason}). The runner was deleted or its credential revoked; register it again.")]
     private static partial void LogRevoked(ILogger logger, string reason);

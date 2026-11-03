@@ -1809,6 +1809,12 @@ export interface components {
       hint: string;
       /** @description Whether the current version allows webhook calls yet. */
       enabled: boolean;
+      /**
+       * Format: uri
+       * @description The whole address, from the installation's public address; `null` while none
+       *     is set, so clients put the path after the address they reach the server at.
+       */
+      url?: null | string;
     };
     /** @description A folder to create. */
     CreateFolderRequest: {
