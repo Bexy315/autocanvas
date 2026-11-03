@@ -81,6 +81,27 @@ jobs:
       - name: Build
         run: docker build --file src/AutoCanvas.Server/Dockerfile --tag autocanvas-server:ci .
 
+  compose:
+    name: Compose package (${{ matrix.database }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgres]
+    steps:
+      - uses: actions/checkout@v7
+
+      # The install script builds the images, starts the package and prints the setup token; the
+      # test sets the instance up through the API and runs the example on the bundled runner.
+      - name: Install, set up and run the example
+        run: deploy/test/compose-smoke.sh "$RUNNER_TEMP/autocanvas" ${{ matrix.database == 'postgres' && '--postgres' || '' }}
+
+      - name: Remove the instance
+        if: always()
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/autocanvas
+        run: docker compose down --volumes
+
   web:
     name: Web (types, lint, format, tests, licenses, e2e)
     runs-on: ubuntu-latest

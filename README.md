@@ -7,6 +7,18 @@ first-class feature.
 > **Status: pre-alpha.** No release yet. The current milestone is
 > [S4 — Setup and packaging](docs/plans/s4.md).
 
+## Quick start
+
+With Docker and Compose v2, from a checkout:
+
+```sh
+deploy/install.sh            # Linux, macOS
+deploy/install.ps1           # Windows, PowerShell 7
+```
+
+Then open `/setup` on the machine's address and enter the token the script printed. See
+[Installation](docs/user/installation.md).
+
 ## License
 
 [MIT](LICENSE)
