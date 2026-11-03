@@ -191,6 +191,8 @@ public abstract class SetupApiTests(DatabaseProvider provider) : DatabaseTest(pr
     }
 }
 
+[Collection(CommandLineTests.Name)]
 public sealed class SetupApiTestsOnSqlite() : SetupApiTests(DatabaseProvider.Sqlite);
 
+[Collection(CommandLineTests.Name)]
 public sealed class SetupApiTestsOnPostgres() : SetupApiTests(DatabaseProvider.Postgres);

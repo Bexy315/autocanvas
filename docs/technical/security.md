@@ -65,7 +65,9 @@ untrusted networks.
 Sign-in failures look the same and take the same time whether the user name is unknown, the
 password wrong or the account disabled (an unknown name is checked against a dummy hash). Five
 failures for a name within 15 minutes lock it for 15 minutes, and one network address may try ten
-times a minute. Both limits are kept in memory per server instance, so with several instances an
+times a minute. Behind a reverse proxy, the address is the client's only when the proxy is listed in
+`Server:TrustedProxies`; forwarded headers from anywhere else are ignored, so a client cannot choose
+its own address. Both limits are kept in memory per server instance, so with several instances an
 attacker gets the attempts once per instance. Every failure is in the audit log.
 
 Sessions are opaque random

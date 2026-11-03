@@ -35,7 +35,12 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV AUTOCANVAS_URLS=http://+:5080 \
     AUTOCANVAS_RUNNER_URLS=http://+:5081 \
     AUTOCANVAS_Server__DataDirectory=/var/lib/autocanvas
-RUN mkdir -p /var/lib/autocanvas && chown app:app /var/lib/autocanvas
+# The data directory, the generated master key's directory (a volume of its own in the compose
+# package) and where the setup hands the bundled runner its token (ADR-0020); owned by the server's
+# user, so named volumes mounted there take that over.
+RUN mkdir -p /var/lib/autocanvas/keys /var/lib/autocanvas-handoff \
+    && chown -R app:app /var/lib/autocanvas /var/lib/autocanvas-handoff \
+    && chmod 700 /var/lib/autocanvas/keys
 VOLUME /var/lib/autocanvas
 EXPOSE 5080 5081
 WORKDIR /app

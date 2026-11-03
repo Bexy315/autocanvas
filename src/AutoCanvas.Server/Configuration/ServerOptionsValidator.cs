@@ -14,6 +14,19 @@ internal sealed class ServerOptionsValidator : IValidateOptions<ServerOptions>
                 $"Server:PublicUrl must be an absolute http or https URL such as https://autocanvas.example.org, but is '{url}'.");
         }
 
+        foreach (var entry in (options.TrustedProxies ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            try
+            {
+                _ = ServerOptions.Network(entry);
+            }
+            catch (FormatException)
+            {
+                return ValidateOptionsResult.Fail(
+                    $"Server:TrustedProxies must list addresses or networks such as 10.0.0.2 or 172.16.0.0/12, separated by commas, but '{entry}' is neither.");
+            }
+        }
+
         return ValidateOptionsResult.Success;
     }
 

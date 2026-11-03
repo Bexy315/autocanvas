@@ -160,6 +160,42 @@ public sealed class RunnerLifecycleTests
     }
 
     [Fact]
+    public async Task A_runner_with_a_token_file_waits_for_the_token_registers_itself_and_runs_jobs()
+    {
+        await using var runner = await TestRunner.CreateAsync();
+        var tokenFile = Path.Combine(runner.DataDirectory + "-handoff", "runner-token");
+        await runner.StartAsync($"--Runner:RegistrationTokenFile={tokenFile}", "--Runner:Name=bundled");
+        await Task.Delay(500, Cancel);
+        File.Exists(Path.Combine(runner.DataDirectory, "credential.json")).ShouldBeFalse();
+
+        // The setup hands the token over (ADR-0020).
+        Directory.CreateDirectory(Path.GetDirectoryName(tokenFile)!);
+        await File.WriteAllTextAsync(tokenFile, await runner.TokenAsync(), Cancel);
+
+        await TestRunner.EventuallyAsync(
+            async () => (await runner.GetAsync("/api/v1/runners")).GetProperty("items").EnumerateArray()
+                .Any(r => string.Equals(r.GetProperty("name").GetString(), "bundled", StringComparison.Ordinal) && r.GetProperty("isOnline").GetBoolean()),
+            "The runner did not register and come online.");
+        var run = await runner.StartRunAsync(Sleeping);
+        (await runner.EndedRunAsync(run)).GetProperty("state").GetString().ShouldBe("Succeeded");
+        Directory.Delete(Path.GetDirectoryName(tokenFile)!, recursive: true);
+    }
+
+    [Fact]
+    public async Task A_runner_whose_token_file_is_refused_says_so_and_exits()
+    {
+        await using var runner = await TestRunner.CreateAsync();
+        var tokenFile = runner.DataDirectory + "-token";
+        await File.WriteAllTextAsync(tokenFile, "acrt_wrong", Cancel);
+
+        var host = await runner.StartAsync($"--Runner:RegistrationTokenFile={tokenFile}");
+
+        await TestRunner.EventuallyAsync(() => Task.FromResult(host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping.IsCancellationRequested), "The runner did not stop.");
+        host.Services.GetRequiredService<RunnerExitCode>().Value.ShouldBe(RunnerExitCode.NotAuthorized);
+        File.Delete(tokenFile);
+    }
+
+    [Fact]
     public async Task An_unregistered_runner_says_so_and_exits()
     {
         await using var runner = await TestRunner.CreateAsync();

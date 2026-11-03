@@ -19,6 +19,16 @@ internal sealed class RunnerOptions
     /// </summary>
     public string? HostDataDirectory { get; set; }
 
+    /// <summary>
+    /// A file a registration token appears in, for a runner that registers itself (the bundled
+    /// runner of the compose package, ADR-0020): without a credential, the runner waits for the file,
+    /// registers with the token and runs. Unset, an unregistered runner stops and says so.
+    /// </summary>
+    public string? RegistrationTokenFile { get; set; }
+
+    /// <summary>The name a runner that registers itself takes; the machine's name when unset.</summary>
+    public string? Name { get; set; }
+
     /// <summary>The labels the runner offers; jobs whose <c>runs_on</c> it has all of come to it.</summary>
     public IList<string> Labels { get; } = [];
 

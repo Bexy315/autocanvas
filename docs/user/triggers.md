@@ -37,7 +37,9 @@ Triggers are changed in the file (**Change in the editor**). The webhook's addre
 tab:
 
 - **Create address**: anyone with the Operator role creates it, by default for signed calls only.
-  The dialog that follows shows the address and the signing secret **once**, with copy buttons and
+  The dialog that follows shows the address (from the public address set under
+  **Administration** → **Instance**, else from the address in the browser) and the signing secret
+  **once**, with copy buttons and
   an example call in **curl** and **PowerShell** that signs the body. It closes only once you
   confirm you saved them.
 - **Rotate**: makes a new address; the old one stops working at once.

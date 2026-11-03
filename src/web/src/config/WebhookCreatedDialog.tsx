@@ -9,7 +9,7 @@ import { curlExample, powerShellExample } from './webhookExamples';
  */
 export function WebhookCreatedDialog({ created, onClose }: { created: CreatedWebhook; onClose: () => void }) {
   const [shell, setShell] = useState<'curl' | 'powershell'>('curl');
-  const url = `${globalThis.location.origin}${created.path}`;
+  const url = created.url ?? `${globalThis.location.origin}${created.path}`;
   const secret = created.signingSecret ?? null;
   const example = shell === 'curl' ? curlExample(url, secret) : powerShellExample(url, secret);
 

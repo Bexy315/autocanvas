@@ -6222,6 +6222,14 @@
           "enabled": {
             "type": "boolean",
             "description": "Whether the current version allows webhook calls yet."
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The whole address, from the installation's public address; `null` while none\nis set, so clients put the path after the address they reach the server at.",
+            "format": "uri"
           }
         },
         "description": "A new webhook address; the token and the signing secret are shown only now."

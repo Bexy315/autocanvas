@@ -13,7 +13,10 @@ RUN dotnet publish src/AutoCanvas.Runner/AutoCanvas.Runner.csproj --configuratio
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 ENV AUTOCANVAS_RUNNER__DATADIRECTORY=/var/lib/autocanvas-runner
-RUN mkdir -p /var/lib/autocanvas-runner && chown app:app /var/lib/autocanvas-runner
+# The data directory, and where the bundled runner of the compose package finds its registration
+# token (ADR-0020).
+RUN mkdir -p /var/lib/autocanvas-runner /var/lib/autocanvas-handoff \
+    && chown app:app /var/lib/autocanvas-runner /var/lib/autocanvas-handoff
 VOLUME /var/lib/autocanvas-runner
 WORKDIR /app
 COPY --from=build /app .
