@@ -3,9 +3,11 @@ using AutoCanvas.Server.Api.Audit;
 using AutoCanvas.Server.Api.Automations;
 using AutoCanvas.Server.Api.Folders;
 using AutoCanvas.Server.Api.Identity;
+using AutoCanvas.Server.Api.Instance;
 using AutoCanvas.Server.Api.Nodes;
 using AutoCanvas.Server.Api.Runners;
 using AutoCanvas.Server.Api.Runs;
+using AutoCanvas.Server.Api.Setup;
 using AutoCanvas.Server.Api.Variables;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.OpenApi;
@@ -79,6 +81,7 @@ internal static partial class ApiEndpoints
             .WithTags("Server")
             .AllowAnonymous();
 
+        api.MapSetupEndpoints();
         api.MapAuthEndpoints();
         api.MapMeEndpoints();
         api.MapUserEndpoints();
@@ -93,6 +96,7 @@ internal static partial class ApiEndpoints
         api.MapReportEndpoints();
         api.MapWebhookEndpoints();
         api.MapRunnerEndpoints();
+        api.MapInstanceEndpoints();
 
         return endpoints;
     }

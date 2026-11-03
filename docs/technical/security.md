@@ -54,6 +54,14 @@ be changed at the next sign-in, and resetting a password ends the user's session
 enabled admin always exists. The command line can reset a password for recovery; it needs the
 server's database settings, so only operators can use it.
 
+**A fresh installation** has no account. Until it is set up, the server answers only its setup
+API ([ADR-0020](../adr/0020-first-start-setup.md)), which needs a one-time token of 32 random bytes
+that the server keeps in memory and writes only to its log. The token is compared in constant time,
+one address may make 20 setup requests a minute, and the setup creates the first admin and its
+settings in one transaction, after which the setup API is gone. Whoever can read the server's log can
+set it up, so finish the setup right after the first start, before the server is reachable from
+untrusted networks.
+
 Sign-in failures look the same and take the same time whether the user name is unknown, the
 password wrong or the account disabled (an unknown name is checked against a dummy hash). Five
 failures for a name within 15 minutes lock it for 15 minutes, and one network address may try ten
@@ -111,7 +119,10 @@ locks themselves out by accident; admins can repair any other lock-out.
 Secret values are encrypted with AES-256-GCM, one random nonce per value, under a master key held
 outside the database ([ADR-0013](../adr/0013-secrets-at-rest.md)). The associated data binds each
 ciphertext to its scope and name, so a value copied to another row or renamed does not decrypt. The
-server refuses to start without the key or with a different key than the database was set up with.
+server refuses to start with a different key than the database was set up with. Without a configured
+key, a fresh installation generates one into its data directory (mode 600), and the setup shows it
+once to be stored apart from the database; a database that already holds a key id never gets a
+generated key ([ADR-0020](../adr/0020-first-start-setup.md)).
 No use case returns a secret value, not even to admins, and the audit log records only names; the
 values are decrypted only to resolve them for runs. A restricted folder also cuts the inheritance
 of variables and secrets from the folders above it. `SecretRedactor` in Core replaces known secret

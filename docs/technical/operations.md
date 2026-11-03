@@ -29,13 +29,17 @@ A few frequently used settings also have a short name. If both forms are set, th
 | `AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD` | `Bootstrap:AdminPassword` | That admin's initial password; must be changed at the first sign-in |
 | `AUTOCANVAS_MASTER_KEY` | `Secrets:MasterKey` | The master key that encrypts secrets (see [Master key](#master-key)) |
 | `AUTOCANVAS_MASTER_KEY_FILE` | `Secrets:MasterKeyFile` | A file holding the master key instead, e.g. a container secret |
+| `AUTOCANVAS_SETUP_RUNNER_TOKEN_FILE` | `Setup:RunnerTokenFile` | Where the setup hands a registration token to the bundled runner (see [Setting up a fresh installation](#setting-up-a-fresh-installation)) |
 
 Settings are checked when the server starts. An invalid value stops it with a message that names the
 setting and what is expected, instead of failing later on first use.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `Server:PublicUrl` | none | Absolute `http`/`https` URL users reach the server at, if it differs from what the server sees behind a reverse proxy |
+| `Server:PublicUrl` | none | Absolute `http`/`https` URL users reach the server at, if it differs from what the server sees behind a reverse proxy. Set here, it wins over the address set in the web UI (see [Instance settings](#instance-settings)) |
+| `Runners:PublicUrl` | none | Absolute `http`/`https` URL runners reach the runner endpoint at, shown in the commands to register one; wins over the web UI's |
+| `Setup:Enabled` | `true` | Whether a server without accounts opens the setup; `false` leaves the first admin to `admin create` and the bootstrap settings |
+| `Setup:RunnerTokenFile` | none | A file the setup writes a registration token to, for a runner that reads it from a shared volume |
 | `Server:DataDirectory` | `data` | Where the server keeps its files, such as the default SQLite database; relative to the server's directory |
 | `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
 | `Database:ConnectionString` | SQLite file `autocanvas.db` in the data directory | Required for PostgreSQL |
@@ -53,7 +57,7 @@ setting and what is expected, instead of failing later on first use.
 | `Runs:KeepPerAutomation` | `20` | The newest runs of each automation, kept however old they are; 0 to 1000 |
 | `Queue:LeaseDuration` | `00:01:00` | How long a runner holds a job after its last heartbeat (10 seconds to 1 hour); then an offered job goes back to the queue and a running one fails as if the runner were gone |
 | `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
-| `Secrets:MasterKey` or `Secrets:MasterKeyFile` | none — **required** | The master key, or a file holding it; exactly one of them (see [Master key](#master-key)) |
+| `Secrets:MasterKey` or `Secrets:MasterKeyFile` | `keys/master.key` in the data directory, generated on the first start | The master key, or a file holding it; at most one of them (see [Master key](#master-key)) |
 
 ## Database
 
@@ -108,7 +112,16 @@ grows faster than wanted.
 
 Secrets are encrypted with a master key that is kept outside the database
 ([ADR-0013](../adr/0013-secrets-at-rest.md)), so a database dump or a copied SQLite file reveals no
-secret. The server does not start without it, and it never creates one on its own.
+secret.
+
+**Without a configured key**, a fresh installation generates one on its first start, into
+`keys/master.key` in the data directory, readable by the server's user only, and uses that file
+from then on ([ADR-0020](../adr/0020-first-start-setup.md)). The setup shows the key once. Keep a copy
+apart from the database, and better still move the file to a volume of its own and point
+`AUTOCANVAS_MASTER_KEY_FILE` at it. A server whose database was set up with a key never generates
+another one: without that key it does not start.
+
+**To configure a key yourself**:
 
 1. Create a key once: `dotnet AutoCanvas.Server.dll admin generate-master-key` prints 32 random
    bytes as base64 (44 characters).
@@ -135,6 +148,32 @@ Rotate the key when it may have leaked, or as a routine:
    secret cannot be decrypted with the current key, it changes nothing and names it.
 4. Configure the new key and start the server. The old key no longer works; keep the new one in
    your backup.
+
+## Setting up a fresh installation
+
+A server without accounts starts in **setup mode** ([ADR-0020](../adr/0020-first-start-setup.md)):
+
+1. It logs a warning with the setup address, such as
+   `http://localhost:5080/setup?token=…`, built from the public address if one is configured,
+   otherwise from the address it listens on. The token changes with every start.
+2. Until setup is finished, the HTTP API answers only `/api/v1/setup` and `/api/v1/info`;
+   everything else gets `503` with a [setup required](api.md#setup-required) problem. The web UI
+   and the health checks work as usual.
+3. The setup asks for the first admin, the public address and the runner address, whether to hand
+   a registration token to the bundled runner (only with `Setup:RunnerTokenFile`), and whether to
+   create an example automation. It creates all of it in one transaction and signs the admin in.
+   If the server generated its master key, the setup shows it once.
+
+Setup mode does not start when the bootstrap settings create the first admin, and it ends as soon
+as any account exists, for example one created with `admin create`. `Setup:Enabled=false` turns it
+off.
+
+## Instance settings
+
+The public address and the runner address can be set in the web UI (**Administration**) and through
+`GET`/`PUT /api/v1/instance`; they are kept in the database. When `Server:PublicUrl` or
+`Runners:PublicUrl` is set in the configuration, that value wins and the web UI shows it as locked.
+The public address decides, with the request, whether the session cookie is marked `Secure`.
 
 ## Commands
 

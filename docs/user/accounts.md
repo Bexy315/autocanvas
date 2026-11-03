@@ -65,7 +65,13 @@ user under `/api/v1/users/{id}/tokens`, for example when one has leaked.
 
 ## The first admin
 
-A fresh installation has no accounts. Create the first admin in one of two ways.
+A fresh installation has no accounts. Create the first admin in one of three ways.
+
+**In the browser**, with the setup: a server without accounts logs an address such as
+`http://localhost:5080/setup?token=…`. Open it and choose the first admin's name and password, the
+installation's addresses and whether to create an example automation
+([Operations](../technical/operations.md#setting-up-a-fresh-installation)). Only someone who can
+read the server's log has the token, and it changes when the server restarts.
 
 **From the command line**, on the machine the server runs on, with the same settings as the server
 (for example the same `AUTOCANVAS_Database__…` variables):
@@ -88,7 +94,8 @@ first sign-in. Once any account exists, the settings are ignored, so you can rem
 first start. If the admin cannot be created (for example because the password is too short), the
 server does not start and says why.
 
-As long as there is no account, the server log says how to create one.
+As long as there is no account, the server log shows the setup address (or, with
+`Setup:Enabled` set to `false`, how to create the first admin).
 
 ## Locked out
 

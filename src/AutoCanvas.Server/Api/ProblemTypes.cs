@@ -19,6 +19,9 @@ internal static class ProblemTypes
     public const string PasswordChangeRequired = Base + "password-change-required";
     public const string TooManyRequests = Base + "too-many-requests";
 
+    /// <summary>The installation is in setup mode; only the setup answers (ADR-0020).</summary>
+    public const string SetupRequired = Base + "setup-required";
+
     /// <summary>The request body is larger than the endpoint takes.</summary>
     public const string TooLarge = Base + "too-large";
     public const string Internal = Base + "internal";

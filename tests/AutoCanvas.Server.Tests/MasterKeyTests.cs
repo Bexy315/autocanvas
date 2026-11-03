@@ -18,7 +18,6 @@ public abstract class MasterKeyTests(DatabaseProvider provider) : DatabaseTest(p
         await File.WriteAllTextAsync(file, MasterKey.Generate().Text + "\n", Cancel);
         try
         {
-            (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKey", null))).ShouldContain("No master key is configured");
             (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKeyFile", file))).ShouldContain("not both");
             (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKey", "AAEC"))).ShouldContain("32 bytes");
             (await ServerStart.FailsAsync<OptionsValidationException>(Database, ("Secrets:MasterKey", null), ("Secrets:MasterKeyFile", file + ".missing"))).ShouldContain("cannot be read");

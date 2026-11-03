@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading.RateLimiting;
 using AutoCanvas.Server.Api;
 using AutoCanvas.Server.Api.Identity;
+using AutoCanvas.Server.Api.Setup;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Identity;
 using Microsoft.AspNetCore.Authentication;
@@ -17,6 +18,9 @@ internal static class AuthenticationRegistration
 {
     /// <summary>Sign-in attempts per client address and minute.</summary>
     public const int SignInsPerMinute = 10;
+
+    /// <summary>Setup requests one client address may make per minute (ADR-0020).</summary>
+    public const int SetupRequestsPerMinute = 20;
 
     /// <summary>Registers authentication before the application layer, so its audit context wins.</summary>
     public static IServiceCollection AddAutoCanvasAuthentication(this IServiceCollection services)
@@ -39,6 +43,10 @@ internal static class AuthenticationRegistration
             limiter.AddPolicy(AuthEndpoints.SignInRateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = SignInsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            // Few tries per address and minute: the setup token is long, but a fresh server may be reachable.
+            limiter.AddPolicy(SetupEndpoints.RateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = SetupRequestsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             // Per webhook address, by the token's hash: a flood at one address does not slow others.
             limiter.AddPolicy(WebhookEndpoints.RateLimit, context => RateLimitPartition.GetFixedWindowLimiter(
                 SecretTokens.Hash(context.Request.RouteValues["token"] as string ?? string.Empty),

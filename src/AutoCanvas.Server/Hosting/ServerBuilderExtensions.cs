@@ -9,6 +9,9 @@ using AutoCanvas.Server.Database;
 using AutoCanvas.Server.Health;
 using AutoCanvas.Server.Identity;
 using AutoCanvas.Server.Runners;
+using AutoCanvas.Server.Setup;
+using AutoCanvas.Server.Application.Instance;
+using AutoCanvas.Server.Application.Setup;
 using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -18,9 +21,15 @@ namespace AutoCanvas.Server.Hosting;
 /// <summary>Composition root of the server: services on the builder, pipeline on the app.</summary>
 internal static class ServerBuilderExtensions
 {
-    public static WebApplicationBuilder AddAutoCanvasServer(this WebApplicationBuilder builder)
+    /// <param name="builder">The host to add the server to.</param>
+    /// <param name="runsServer">
+    /// The server itself starts, not a command: it may then generate a master key for an
+    /// installation that has none (ADR-0020).
+    /// </param>
+    public static WebApplicationBuilder AddAutoCanvasServer(this WebApplicationBuilder builder, bool runsServer = false)
     {
         AddAutoCanvasEnvironment(builder.Configuration, AutoCanvasEnvironmentSource.ReadProcessEnvironment());
+        MasterKeyDefaults.Apply(builder, generate: runsServer);
 
         var services = builder.Services;
         services.TryAddSingleton(TimeProvider.System);
@@ -69,8 +78,21 @@ internal static class ServerBuilderExtensions
             .ValidateOnStart();
         services.AddSingleton<IValidateOptions<BootstrapOptions>, BootstrapOptionsValidator>();
         services.AddHostedService<BootstrapAdminService>();
+        AddSetup(services);
 
         return builder;
+    }
+
+    /// <summary>The setup of a fresh installation and the instance settings (ADR-0020).</summary>
+    private static void AddSetup(IServiceCollection services)
+    {
+        services.AddOptions<SetupOptions>().BindConfiguration(SetupOptions.SectionName);
+        services.AddSingleton<SetupState>();
+        services.AddSingleton<IInstanceConfiguration, InstanceConfiguration>();
+        services.AddSingleton<IRunnerTokenHandoff, RunnerTokenFileHandoff>();
+
+        // After the bootstrap admin, which may have created the first account.
+        services.AddHostedService<SetupModeService>();
     }
 
     /// <summary>Runs: their retention, the job queue and its sweeper, triggers and webhooks.</summary>
@@ -97,6 +119,7 @@ internal static class ServerBuilderExtensions
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseAutoCanvasWebUi();
+        app.UseMiddleware<SetupGateMiddleware>();
         app.UseAutoCanvasAuthentication();
 
         app.MapOpenApi().AllowAnonymous();

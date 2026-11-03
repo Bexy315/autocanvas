@@ -1,13 +1,13 @@
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace AutoCanvas.Server.Identity;
 
 /// <summary>
-/// On start, creates the admin from <see cref="BootstrapOptions"/> while no account exists, or says
-/// how to create one. Runs after the migrations (hosted services start in registration order).
+/// On start, creates the admin from <see cref="BootstrapOptions"/> while no account exists. Runs
+/// after the migrations (hosted services start in registration order); without an account, the
+/// setup mode follows (ADR-0020).
 /// </summary>
 internal sealed partial class BootstrapAdminService(
     IServiceScopeFactory scopes,
@@ -44,11 +44,6 @@ internal sealed partial class BootstrapAdminService(
 
                 return;
             }
-
-            if (!await scope.ServiceProvider.GetRequiredService<AutoCanvasDbContext>().Users.AnyAsync(cancellationToken).ConfigureAwait(false))
-            {
-                LogNoUsers(logger);
-            }
         }
     }
 
@@ -56,9 +51,6 @@ internal sealed partial class BootstrapAdminService(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Created the first admin '{UserName}' from the bootstrap settings; the password must be changed at the first sign-in.")]
     private static partial void LogCreated(ILogger logger, string userName);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "There is no account yet. Create the first admin with the command 'admin create <user-name>', or set AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME and AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD.")]
-    private static partial void LogNoUsers(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The database schema is not up to date, so no bootstrap admin was created. Run the migrate command.")]
     private static partial void LogSkippedBeforeMigration(ILogger logger);
