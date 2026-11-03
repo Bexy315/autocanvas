@@ -4,8 +4,8 @@ Self-hosted automation and CI/CD engine for developers and technicians: pipeline
 repository or built visually on a canvas, executed by lightweight runners, with test reports as a
 first-class feature.
 
-> **Status: pre-alpha.** No release yet. The last milestone was
-> [S3 — Web UI and canvas](docs/plans/s3.md); setup and packaging (S4) come next.
+> **Status: pre-alpha.** No release yet. The current milestone is
+> [S4 — Setup and packaging](docs/plans/s4.md).
 
 ## License
 
