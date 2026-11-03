@@ -50,7 +50,7 @@ server and the runner, and ends with the setup token:
 AutoCanvas is running in /home/ada/autocanvas.
 Open http://<this machine's address>:5080/setup in a browser and enter the setup token:
 
-  fU7n8dJW3ra7sVgk2v144SR4nD3y5juacUlYCIS-m4M
+  <the setup token: 43 letters, digits, - and _>
 ```
 
 ## Set it up in the browser

@@ -2,3 +2,7 @@
 # later commits; they never protected anything. The branch is squash-merged, so main does not contain them.
 c70fa1dad1c9a5dd2d09c2940289d04dcc5bcdf0:src/AutoCanvas.Server/Properties/launchSettings.json:generic-api-key:10
 c70fa1dad1c9a5dd2d09c2940289d04dcc5bcdf0:tests/AutoCanvas.Server.Tests/AutoCanvasFactory.cs:generic-api-key:26
+
+# An example setup token in docs/user/installation.md, made up for the docs and replaced by a
+# placeholder in the next commit of PR #66; it never belonged to a server.
+0fe1ac97ad5c5c35f37300f2f4fc183c20f6e141:docs/user/installation.md:generic-api-key:51
