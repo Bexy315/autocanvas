@@ -1,3 +1,4 @@
+using AutoCanvas.Server.Api.Forges;
 using AutoCanvas.Server.Api.Triggers;
 using AutoCanvas.Server.Configuration;
 using System.Globalization;
@@ -56,6 +57,7 @@ internal static class AuthenticationRegistration
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 }));
+            AddForgeLimits(limiter);
             limiter.OnRejected = async (rejected, cancellationToken) =>
             {
                 var response = rejected.HttpContext.Response;
@@ -92,4 +94,10 @@ internal static class AuthenticationRegistration
         app.UseRateLimiter();
         return app;
     }
+
+    /// <summary>The GitHub App's events share one address; a generous limit keeps a flood from the server.</summary>
+    private static void AddForgeLimits(Microsoft.AspNetCore.RateLimiting.RateLimiterOptions limiter) =>
+        limiter.AddPolicy(GitHubEndpoints.RateLimit, _ => RateLimitPartition.GetFixedWindowLimiter(
+            GitHubEndpoints.RateLimit,
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = GitHubEndpoints.EventsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 }

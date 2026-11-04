@@ -105,7 +105,7 @@ public sealed class RepositoryPolling
         IReadOnlyDictionary<string, string> remote;
         try
         {
-            remote = await discovery.ForgeOf(repository).ListRefsAsync(discovery.AccessOf(repository), cancellationToken).ConfigureAwait(false);
+            remote = await discovery.ForgeOf(repository).ListRefsAsync(await discovery.AccessAsync(repository, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
         }
         catch (ForgeException exception)
         {

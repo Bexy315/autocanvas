@@ -2,6 +2,7 @@ using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Repositories;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
+using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ namespace AutoCanvas.Server.Application.Repositories;
 /// connected in its folder and the folders above it, cut at a restricted folder like variables and
 /// secrets are. Their credentials go to the job's runner, and the server masks them in its log.
 /// </summary>
-internal sealed class RepositoryCheckouts(AutoCanvasDbContext database, SecretCipher cipher)
+internal sealed class RepositoryCheckouts(AutoCanvasDbContext database, RepositoryCredentials credentials)
 {
     /// <summary>The repository an automation comes from, or <see langword="null"/> for a managed one (or a deleted one).</summary>
     public async Task<Repository?> OfAutomationAsync(Guid? automationId, CancellationToken cancellationToken)
@@ -39,16 +40,15 @@ internal sealed class RepositoryCheckouts(AutoCanvasDbContext database, SecretCi
     public async Task<IReadOnlyList<string>> SecretsAsync(Guid folderId, CancellationToken cancellationToken)
     {
         var ids = await FolderIdsAsync(folderId, cancellationToken).ConfigureAwait(false);
-        var repositories = await database.Repositories.AsNoTracking().Where(r => ids.Contains(r.FolderId) && r.CredentialCiphertext != null).ToListAsync(cancellationToken).ConfigureAwait(false);
-        return [.. repositories.Select(SecretOf).OfType<string>()];
+        var repositories = await database.Repositories.AsNoTracking()
+            .Where(r => ids.Contains(r.FolderId) && (r.CredentialCiphertext != null || r.InstallationId != null))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        return [.. repositories.SelectMany(credentials.Known)];
     }
 
-    /// <summary>The repository's token or password, decrypted; <see langword="null"/> for none.</summary>
-    public string? SecretOf(Repository repository)
-    {
-        ArgumentNullException.ThrowIfNull(repository);
-        return repository.CredentialCiphertext is { } ciphertext ? cipher.Decrypt(RepositoryDiscovery.CredentialScope, repository.Id.ToString(), ciphertext) : null;
-    }
+    /// <summary>The repository as a checkout: its address, user name and credential.</summary>
+    public async Task<OfferedCheckout> CheckoutAsync(Repository repository, string? gitRef, string? path, int depth, CancellationToken cancellationToken) =>
+        new(repository.Url, gitRef, path, depth, RepositoryCredentials.UserNameOf(repository), await credentials.SecretAsync(repository, cancellationToken).ConfigureAwait(false));
 
     /// <summary>The folder and the folders above it whose repositories apply, the nearest first.</summary>
     private async Task<List<Guid>> FolderIdsAsync(Guid folderId, CancellationToken cancellationToken)

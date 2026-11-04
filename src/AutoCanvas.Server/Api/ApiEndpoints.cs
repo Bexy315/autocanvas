@@ -2,6 +2,7 @@ using AutoCanvas.Server.Api.Triggers;
 using AutoCanvas.Server.Api.Audit;
 using AutoCanvas.Server.Api.Automations;
 using AutoCanvas.Server.Api.Folders;
+using AutoCanvas.Server.Api.Forges;
 using AutoCanvas.Server.Api.Identity;
 using AutoCanvas.Server.Api.Instance;
 using AutoCanvas.Server.Api.Nodes;
@@ -99,6 +100,7 @@ internal static partial class ApiEndpoints
         api.MapRunnerEndpoints();
         api.MapInstanceEndpoints();
         api.MapRepositoryEndpoints();
+        api.MapGitHubEndpoints();
 
         return endpoints;
     }

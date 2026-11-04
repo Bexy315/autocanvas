@@ -4,6 +4,7 @@ using AutoCanvas.Server.Application.Automations;
 using AutoCanvas.Server.Application.Variables;
 using AutoCanvas.Server.Application.Database;
 using AutoCanvas.Server.Application.Folders;
+using AutoCanvas.Server.Application.Forges;
 using AutoCanvas.Server.Application.Identity;
 using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Reports;
@@ -78,6 +79,15 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<RepositoryPolling>();
         services.AddScoped<RepositoryWebhookService>();
         services.AddSingleton<RepositoryPushSignal>();
+        services.AddScoped<RepositoryCredentials>();
+
+        // The GitHub App (ADR-0022); the host registers its HTTP client, GitHubClient.
+        services.AddSingleton<GitHubTokens>();
+        services.AddScoped<GitHubAccess>();
+        services.AddScoped<IInstallationTokens>(provider => provider.GetRequiredService<GitHubAccess>());
+        services.AddScoped<GitHubAppService>();
+        services.AddScoped<GitHubRepositoryService>();
+        services.AddScoped<GitHubEventService>();
     }
 
     /// <summary>Runs, the job queue, logs and reports.</summary>

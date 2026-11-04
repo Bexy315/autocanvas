@@ -25,7 +25,7 @@ namespace AutoCanvas.Server.Application.Repositories;
 public sealed class RepositoryDiscovery(
     AutoCanvasDbContext database,
     IEnumerable<IForge> forges,
-    SecretCipher cipher,
+    RepositoryCredentials credentials,
     IOptions<RepositoryOptions> options,
     IAuditLog audit,
     TimeProvider time)
@@ -38,11 +38,14 @@ public sealed class RepositoryDiscovery(
     /// <summary>Where a repository's copy is kept.</summary>
     internal string CacheOf(Guid repositoryId) => Path.Combine(options.Value.CacheDirectory, repositoryId.ToString("N"));
 
-    /// <summary>How to reach the repository, with its credential decrypted.</summary>
-    internal RepositoryAccess AccessOf(Repository repository) => new(
+    /// <summary>
+    /// How to reach the repository, with its credential; throws <see cref="ForgeException"/> when a
+    /// GitHub repository's token cannot be had.
+    /// </summary>
+    internal async Task<RepositoryAccess> AccessAsync(Repository repository, CancellationToken cancellationToken) => new(
         repository.Url,
-        repository.UserName,
-        repository.CredentialCiphertext is { } ciphertext ? cipher.Decrypt(CredentialScope, repository.Id.ToString(), ciphertext) : null,
+        RepositoryCredentials.UserNameOf(repository),
+        await credentials.SecretAsync(repository, cancellationToken).ConfigureAwait(false),
         CacheOf(repository.Id));
 
     internal IForge ForgeOf(Repository repository)
@@ -65,7 +68,7 @@ public sealed class RepositoryDiscovery(
         try
         {
             var forge = ForgeOf(repository);
-            var access = AccessOf(repository);
+            var access = await AccessAsync(repository, cancellationToken).ConfigureAwait(false);
             head = await forge.ResolveAsync(access, repository.DefaultBranch, cancellationToken).ConfigureAwait(false);
             snapshot = await forge.ReadAutomationsAsync(access, head.Branch, cancellationToken).ConfigureAwait(false);
         }

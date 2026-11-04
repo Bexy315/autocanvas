@@ -68,8 +68,7 @@ internal sealed class RepositoryPushes
         }
 
         var forge = discovery.ForgeOf(repository);
-        var access = discovery.AccessOf(repository);
-        if (await ReadAsync(repository, forge, access, push, round, cancellationToken).ConfigureAwait(false) is not { } snapshot)
+        if (await ReadAsync(repository, forge, push, round, cancellationToken).ConfigureAwait(false) is not var (snapshot, access))
         {
             return;
         }
@@ -102,11 +101,12 @@ internal sealed class RepositoryPushes
     }
 
     /// <summary>The automation files at the pushed ref, or <see langword="null"/> when they cannot be read.</summary>
-    private static async Task<RepositorySnapshot?> ReadAsync(Repository repository, IForge forge, RepositoryAccess access, PushEvent push, TriggerRound round, CancellationToken cancellationToken)
+    private async Task<(RepositorySnapshot Snapshot, RepositoryAccess Access)?> ReadAsync(Repository repository, IForge forge, PushEvent push, TriggerRound round, CancellationToken cancellationToken)
     {
         try
         {
-            return await forge.ReadAutomationsAsync(access, push.Ref, cancellationToken).ConfigureAwait(false);
+            var access = await discovery.AccessAsync(repository, cancellationToken).ConfigureAwait(false);
+            return (await forge.ReadAutomationsAsync(access, push.Ref, cancellationToken).ConfigureAwait(false), access);
         }
         catch (ForgeException exception)
         {

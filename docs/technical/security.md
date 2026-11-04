@@ -134,6 +134,19 @@ of variables and secrets from the folders above it. `SecretRedactor` in Core rep
 values in text before it is stored (used for run logs in S2). The key is rotated offline with
 `admin rotate-master-key` ([Operations](operations.md#master-key)).
 
+## GitHub App
+
+The app's private key is, after the master key, the instance's most valuable secret: with it,
+anyone can act as the app on every repository it is installed on. It is stored encrypted under the
+master key with the app's webhook and client secrets, rotates with it, and is never returned.
+AutoCanvas signs short JWTs with it (RS256, nine minutes) and exchanges them for installation tokens,
+valid an hour, kept in memory only. A job that checks out a GitHub repository gets such a token for
+its checkout only, masked in its log like a secret. The app's events must be signed with its webhook
+secret (`X-Hub-Signature-256`, compared in constant time), and each delivery is taken once by its
+`X-GitHub-Delivery` id, so a captured delivery cannot be replayed within three days. The state of a
+manifest is encrypted with the master key and valid for an hour, so only an admin's own manifest can
+complete the creation of an app.
+
 ## Repository credentials
 
 A token or password of a connected repository ([ADR-0021](../adr/0021-repositories-per-folder.md))

@@ -119,11 +119,11 @@ internal static class WebhookEndpoints
     }
 
     /// <summary>Headers no use case needs: the caller's own credentials.</summary>
-    private static bool IsCredential(string header) =>
+    internal static bool IsCredential(string header) =>
         header.Equals("Authorization", StringComparison.OrdinalIgnoreCase) || header.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase) || header.Equals("Cookie", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The body, or <see langword="null"/> when it is larger than a call may be.</summary>
-    private static async Task<byte[]?> ReadAsync(Stream body, CancellationToken cancellationToken)
+    internal static async Task<byte[]?> ReadAsync(Stream body, CancellationToken cancellationToken)
     {
         using var buffer = new MemoryStream();
         var chunk = new byte[16 * 1024];

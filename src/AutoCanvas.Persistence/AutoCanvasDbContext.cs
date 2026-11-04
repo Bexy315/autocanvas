@@ -3,6 +3,7 @@ using AutoCanvas.Persistence.Automations;
 using AutoCanvas.Persistence.Folders;
 using AutoCanvas.Persistence.Identity;
 using AutoCanvas.Persistence.Instance;
+using AutoCanvas.Persistence.Forges;
 using AutoCanvas.Persistence.Repositories;
 using AutoCanvas.Persistence.Reports;
 using AutoCanvas.Persistence.Runners;
@@ -124,6 +125,12 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Pushes reported by webhooks, waiting to be handled.</summary>
     public DbSet<RepositoryPush> RepositoryPushes => Set<RepositoryPush>();
 
+    /// <summary>The instance's GitHub App (ADR-0022); at most one row.</summary>
+    public DbSet<GitHubApp> GitHubApps => Set<GitHubApp>();
+
+    /// <summary>Webhook deliveries of the GitHub App that were taken, for a few days.</summary>
+    public DbSet<GitHubDelivery> GitHubDeliveries => Set<GitHubDelivery>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -173,5 +180,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RepositoryRefConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryWebhookConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryPushConfiguration());
+        modelBuilder.ApplyConfiguration(new GitHubAppConfiguration());
+        modelBuilder.ApplyConfiguration(new GitHubDeliveryConfiguration());
     }
 }

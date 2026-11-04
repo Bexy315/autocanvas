@@ -30,10 +30,9 @@ machines where work runs.
 | `AutoCanvas.Server.Application` | Use cases: identity, folders and permissions, automations, variables and secrets, audit | users, groups, sessions and tokens; folders and permissions; managed automations; variables, secrets and the master key; audit log and its queries |
 | `AutoCanvas.Persistence` | EF Core model shared by all databases; one project per provider (PostgreSQL, SQLite) with its migrations ([ADR-0010](../adr/0010-database-providers.md), [ADR-0014](../adr/0014-data-access-with-ef-core.md)) | complete S1 model, both providers, migrations |
 | `AutoCanvas.Protocol` | C# generated from the runner protocol in `proto/`: messages, server and client stubs | runner protocol v1 |
-| `AutoCanvas.Forge` | Forges repositories live on, behind capabilities ([ADR-0021](../adr/0021-repositories-per-folder.md)) | Generic Git through the `git` command line |
+| `AutoCanvas.Forge` | Forges repositories live on, behind capabilities ([ADR-0021](../adr/0021-repositories-per-folder.md)) | Generic Git through the `git` command line; GitHub through a GitHub App: its REST API and JWTs, git with installation tokens ([ADR-0022](../adr/0022-github-app.md)) |
 | `AutoCanvas.Runner` | Reference runner implementing the runner protocol | jobs in Docker containers with services, checkouts, scripts and the built-in node types ([ADR-0016](../adr/0016-built-in-node-types-first.md)) |
 | Web UI (`src/web`) | Canvas editor, runs, logs, reports, administration | React SPA served by the server ([Web UI](web-ui.md), [ADR-0018](../adr/0018-web-ui.md)) |
-| `AutoCanvas.Forge` | Git and forge integrations | planned (S5) |
 
 The dependency direction is strict: Core and Reports depend on nothing in AutoCanvas; the server
 and runner depend on them, never the reverse.

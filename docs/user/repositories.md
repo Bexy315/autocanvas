@@ -12,7 +12,8 @@ Automations can live in a Git repository, next to the code they build
 :::note Status
 
 Repositories are connected through the HTTP API so far; the web UI follows later in S5, as do
-pull request triggers and GitHub.
+pull request triggers. GitHub repositories are connected through the instance's GitHub App: see
+[GitHub](github.md).
 
 :::
 

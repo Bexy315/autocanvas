@@ -124,6 +124,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/forges/github/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Take an event of the GitHub App
+     * @description GitHub calls it with the app's events, signed with its webhook secret (`X-Hub-Signature-256`); each delivery is taken once. A push starts its runs shortly; other events do nothing for now.
+     */
+    post: operations['ReceiveGitHubEvent'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/setup': {
     parameters: {
       query?: never;
@@ -1566,6 +1586,114 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/forges/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the GitHub App
+     * @description The instance's GitHub App without its secrets, with its installations and where GitHub sends its events; `app` is null while none is set up. Needs an admin.
+     */
+    get: operations['GetGitHubApp'];
+    /**
+     * Enter an existing GitHub App
+     * @description Enters an app created on GitHub by hand, or a new private key or webhook secret of the app; GitHub is asked whether the id and key belong together. Needs an admin.
+     */
+    put: operations['ConfigureGitHubApp'];
+    post?: never;
+    /**
+     * Remove the GitHub App
+     * @description Removes the app from the instance; it stays on GitHub. Refused while GitHub repositories are connected. Needs an admin.
+     */
+    delete: operations['DeleteGitHubApp'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/forges/github/manifest': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start creating the GitHub App
+     * @description The manifest of a new app and the GitHub address to post it to as the form field `manifest`, in the browser. GitHub then sends the browser back to `/admin/forges/github/created` with a code. Needs the instance's public address and an admin.
+     */
+    post: operations['CreateGitHubAppManifest'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/forges/github/created': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Finish creating the GitHub App
+     * @description Turns the code GitHub handed the browser into the app, its private key and secrets, and stores them encrypted. Needs an admin.
+     */
+    post: operations['CompleteGitHubApp'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/folders/{id}/github/repositories': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the repositories the GitHub App reaches
+     * @description The repositories of every installation of the app, to connect one in the folder. Needs Editor.
+     */
+    get: operations['ListGitHubRepositories'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/folders/{id}/repositories/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Connect a GitHub repository
+     * @description Connects a repository of an installation of the GitHub App in the folder and reads its automations; it is reached with the app's installation tokens. Needs Editor.
+     */
+    post: operations['ConnectGitHubRepository'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2092,6 +2220,135 @@ export interface components {
        */
       version: number | string;
     };
+    /** @description What GitHub hands the browser back after creating the app. */
+    GitHubAppCompletion: {
+      /** @description The code to turn into the app and its secrets, valid for an hour. */
+      code: string;
+      /** @description The state of the manifest it was created from. */
+      state: string;
+    };
+    /** @description An existing GitHub App, entered by hand. */
+    GitHubAppSettings: {
+      /**
+       * Format: int64
+       * @description GitHub's id of the app.
+       */
+      appId: number | string;
+      /** @description One of its private keys, in PEM. */
+      privateKey: string;
+      /** @description The secret of its webhook. */
+      webhookSecret: string;
+      /** @description The web address of a GitHub Enterprise Server; `https://github.com` when unset. */
+      webAddress?: null | string;
+      /** @description The API address, when it is not the usual one for string? GitHubAppSettings.WebAddress. */
+      apiAddress?: null | string;
+    };
+    /** @description The instance's GitHub App, without its secrets. */
+    GitHubAppView: {
+      /**
+       * Format: int64
+       * @description GitHub's id of the app.
+       */
+      appId: number | string;
+      /** @description Its name in addresses. */
+      slug: string;
+      /** @description Its name. */
+      name: string;
+      /** @description The account or organization that owns it. */
+      ownerLogin: string;
+      /**
+       * Format: uri
+       * @description Its page on GitHub.
+       */
+      htmlUrl: string;
+      /**
+       * Format: uri
+       * @description Where it is installed on another account.
+       */
+      installUrl: string;
+      /**
+       * Format: uri
+       * @description GitHub's web address.
+       */
+      webAddress: string;
+      /**
+       * Format: uri
+       * @description GitHub's API address.
+       */
+      apiAddress: string;
+      /**
+       * Format: uri
+       * @description The address GitHub sends its events to; `null` while the instance has no public address.
+       */
+      webhookUrl: null | string;
+      /** @description Where it is installed. */
+      installations: components['schemas']['GitHubInstallation'][];
+      /** @description Why the installations could not be read; `null` when they could. */
+      installationsError: null | string;
+      /**
+       * Format: date-time
+       * @description When it was set up.
+       */
+      createdAt: string;
+      /** @description Who set it up. */
+      createdByName: string;
+    };
+    /** @description Whether GitHub is set up, and how. */
+    GitHubForgeView: {
+      app: null | components['schemas']['GitHubAppView'];
+    };
+    /** @description Where a GitHub App is installed. */
+    GitHubInstallation: {
+      /**
+       * Format: int64
+       * @description The installation's id.
+       */
+      id: number | string;
+      /** @description The account or organization it is installed on. */
+      account: string;
+      /** @description `User` or `Organization`. */
+      accountType: string;
+      /** @description Whether it covers all of the account's repositories, or chosen ones. */
+      allRepositories: boolean;
+      /** @description Whether it is suspended. */
+      suspended: boolean;
+    };
+    /**
+     * @description What the browser sends to GitHub to create the app: a form posted to Uri GitHubManifestView.Action with
+     *     the field `manifest`.
+     */
+    GitHubManifestView: {
+      /**
+       * Format: uri
+       * @description The address to post the form to, with the state in its query.
+       */
+      action: string;
+      /** @description The app's manifest, as JSON. */
+      manifest: string;
+      /** @description The state GitHub hands back with the code; valid for an hour. */
+      state: string;
+    };
+    /** @description A repository the GitHub App can reach, to connect in a folder. */
+    GitHubRepositoryView: {
+      /**
+       * Format: int64
+       * @description The installation it is reached through.
+       */
+      installationId: number | string;
+      /** @description The account or organization of that installation. */
+      account: string;
+      /**
+       * Format: int64
+       * @description GitHub's id of the repository.
+       */
+      id: number | string;
+      /** @description Its `owner/name`. */
+      fullName: string;
+      /** @description Its default branch. */
+      defaultBranch: string;
+      /** @description Whether it is private. */
+      private: boolean;
+    };
     /** @description A role granted directly on a folder. */
     GrantView: {
       /**
@@ -2367,6 +2624,32 @@ export interface components {
        * @description The new parent (needs Editor there), or null for the top level (needs Owner of the folder).
        */
       parentId: null | string;
+    };
+    /** @description Where to create the GitHub App. */
+    NewGitHubManifest: {
+      /** @description The organization to create it in; the signed-in GitHub account when unset. */
+      organization?: null | string;
+      /** @description The web address of a GitHub Enterprise Server; `https://github.com` when unset. */
+      webAddress?: null | string;
+    };
+    /** @description A repository of an installation of the GitHub App to connect in a folder. */
+    NewGitHubRepository: {
+      /**
+       * Format: int64
+       * @description The installation it is reached through.
+       */
+      installationId: number | string;
+      /** @description Its `owner/name`. */
+      repository: string;
+      /** @description Its name in the folder; the repository's name when unset. */
+      name?: null | string;
+      /** @description The branch to read automations from; the repository's default when unset. */
+      defaultBranch?: null | string;
+      /**
+       * Format: int32
+       * @description How often to poll it, in minutes; 0 not to (the app's events then bring the pushes). Default: 5.
+       */
+      pollMinutes?: null | number | string;
     };
     /** @description A Generic Git repository to connect in a folder. */
     NewRepository: {
@@ -3674,6 +3957,62 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Payload Too Large */
+      413: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Too Many Requests */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ReceiveGitHubEvent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReceivedHookView'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -7698,6 +8037,290 @@ export interface operations {
       };
       /** @description Not Found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  GetGitHubApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitHubForgeView'];
+        };
+      };
+    };
+  };
+  ConfigureGitHubApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GitHubAppSettings'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitHubForgeView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  DeleteGitHubApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  CreateGitHubAppManifest: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': null | components['schemas']['NewGitHubManifest'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitHubManifestView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  CompleteGitHubApp: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GitHubAppCompletion'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitHubForgeView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ListGitHubRepositories: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitHubRepositoryView'][];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ConnectGitHubRepository: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewGitHubRepository'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RepositoryView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };

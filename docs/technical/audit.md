@@ -116,10 +116,13 @@ part of the log.
 | `runner.updated` | admin | runner | `name`, `changed` (field names), `isPaused` |
 | `runner.deleted` | admin | runner | `name` |
 | `setup.completed` | the new admin | instance | `userName`, `example`, `bundledRunner` |
-| `repository.connected` | editor | repository | `name`, `address`, `credential` (whether one was given) |
+| `repository.connected` | editor | repository | `name`, `kind` (`GenericGit`, `GitHub`), `address`, `credential` (whether one was given) |
 | `repository.updated` | editor | repository | `name`, `changed` (field names) |
 | `repository.disconnected` | editor | repository | `name`, `automations` (deleted with it) |
 | `repository.synced` | the user who synced; System after a push or poll | repository | `name`, `commit`, `error` (why it could not be read) |
 | `repository.webhook_created` | editor | repository | `name`, `hint`, `replaced` |
 | `repository.webhook_deleted` | editor | repository | `name`, `hint` |
+| `github.app_created` | admin | github-app | `slug`, `owner` |
+| `github.app_configured` | admin | github-app | `slug`, `owner` |
+| `github.app_deleted` | admin | github-app | `slug`, `owner` |
 | `instance.updated` | admin | instance | `changed` (field names), `publicAddress`, `runnerAddress` |
