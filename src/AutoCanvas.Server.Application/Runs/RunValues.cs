@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AutoCanvas.Core.Expressions;
+using AutoCanvas.Core.Model;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Server.Application.Variables;
 
@@ -51,6 +52,7 @@ internal sealed class RunValues(
         RunTriggerKind.Manual => "manual",
         RunTriggerKind.Schedule => "schedule",
         RunTriggerKind.Webhook => "webhook",
+        RunTriggerKind.Push => "push",
         _ => "automation_completed",
     };
 
@@ -75,6 +77,9 @@ internal sealed class RunValues(
         "id" => Found(run.Id.ToString(), out value),
         "automation_name" => Found(run.AutomationName, out value),
         "triggered_by" => Found(run.TriggeredByName, out value),
+        "branch" => Found(run.Ref is { } gitRef && gitRef.StartsWith(PushTrigger.BranchPrefix, StringComparison.Ordinal) ? gitRef[PushTrigger.BranchPrefix.Length..] : null, out value),
+        "commit_sha" => Found(run.CommitSha, out value),
+        "commit_short_sha" => Found(run.CommitSha?[..Math.Min(7, run.CommitSha.Length)], out value),
         "status" => Found(status, out value),
         _ => Found(null, out value) && false,
     };

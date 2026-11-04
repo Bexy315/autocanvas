@@ -101,6 +101,22 @@ public sealed class GitHttpServer : IAsyncDisposable
         }
     }
 
+    /// <summary>Tags a commit; an annotated tag when there is a <paramref name="message"/>.</summary>
+    public async Task TagAsync(string repository, string tag, string commit, string? message = null)
+    {
+        if (message is null)
+        {
+            await GitAsync(root, "--git-dir", Bare(repository), "tag", tag, commit).ConfigureAwait(false);
+            return;
+        }
+
+        await GitAsync(root, "--git-dir", Bare(repository), "-c", "user.name=Ada Lovelace", "-c", "user.email=author@example.org", "tag", "-a", "-m", message, tag, commit).ConfigureAwait(false);
+    }
+
+    /// <summary>Deletes a branch or tag, given as a full ref such as <c>refs/heads/feature</c>.</summary>
+    public async Task DeleteRefAsync(string repository, string fullRef) =>
+        await GitAsync(root, "--git-dir", Bare(repository), "update-ref", "-d", fullRef).ConfigureAwait(false);
+
     public async ValueTask DisposeAsync()
     {
         await app.DisposeAsync().ConfigureAwait(false);

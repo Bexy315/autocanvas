@@ -15,4 +15,7 @@ public sealed record NewRepository(string Address)
 
     /// <summary>A token or password for a private repository; stored encrypted, never shown again.</summary>
     public string? Secret { get; init; }
+
+    /// <summary>How often to poll it for new commits, in minutes; 0 not to poll. Default: 5.</summary>
+    public int? PollMinutes { get; init; }
 }

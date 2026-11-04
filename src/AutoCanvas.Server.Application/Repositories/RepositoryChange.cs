@@ -14,4 +14,7 @@ public sealed record RepositoryChange
 
     /// <summary>Another token or password; empty to remove it.</summary>
     public string? Secret { get; init; }
+
+    /// <summary>How often to poll it, in minutes; 0 not to poll (pushes then come only by webhook).</summary>
+    public int? PollMinutes { get; init; }
 }

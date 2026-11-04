@@ -2339,6 +2339,11 @@ export interface components {
       userName?: null | string;
       /** @description A token or password for a private repository; stored encrypted, never shown again. */
       secret?: null | string;
+      /**
+       * Format: int32
+       * @description How often to poll it for new commits, in minutes; 0 not to poll. Default: 5.
+       */
+      pollMinutes?: null | number | string;
     };
     /**
      * @description What a node input takes. Any input may instead be an expression, checked when it runs.
@@ -2558,6 +2563,11 @@ export interface components {
       userName?: null | string;
       /** @description Another token or password; empty to remove it. */
       secret?: null | string;
+      /**
+       * Format: int32
+       * @description How often to poll it, in minutes; 0 not to poll (pushes then come only by webhook).
+       */
+      pollMinutes?: null | number | string;
     };
     /** @description Why a file of a repository is not an automation of the folder (yet). */
     RepositoryProblemView: {
@@ -2623,6 +2633,16 @@ export interface components {
       lastCommit: null | string;
       /** @description Why the last sync failed; `null` when it worked. */
       lastError: null | string;
+      /**
+       * Format: int32
+       * @description How often the server asks it for new commits, in minutes; 0 when it does not.
+       */
+      pollMinutes: number | string;
+      /**
+       * Format: date-time
+       * @description When it is asked next; `null` when polling is off or it is due.
+       */
+      nextPollAt: null | string;
       /** @description Files that are not automations of the folder, and why. */
       problems: components['schemas']['RepositoryProblemView'][];
       /**
@@ -2825,7 +2845,7 @@ export interface components {
      * @description What started a run; readable as `trigger.event`.
      * @enum {unknown}
      */
-    RunTriggerKind: 'Manual' | 'Schedule' | 'Webhook' | 'AutomationCompleted';
+    RunTriggerKind: 'Manual' | 'Schedule' | 'Webhook' | 'AutomationCompleted' | 'Push';
     /** @description A run with its jobs. */
     RunView: {
       /**

@@ -108,6 +108,58 @@ public sealed class GenericGitForgeTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Branches_and_tags_are_listed_with_their_commits_and_annotated_tags_with_the_commit_they_tag()
+    {
+        var first = await server.CommitAsync("shop", Files(("README.md", "one")), "First");
+        var feature = await server.CommitAsync("shop", Files(("README.md", "two")), "Feature", branch: "feature/x");
+        await server.TagAsync("shop", "v1", first);
+        await server.TagAsync("shop", "v1.1", first, message: "Release 1.1");
+
+        var refs = await forge.ListRefsAsync(Access(), Cancel);
+
+        refs.ShouldBe(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["refs/heads/main"] = first,
+            ["refs/heads/feature/x"] = feature,
+            ["refs/tags/v1"] = first,
+            ["refs/tags/v1.1"] = first,
+        }, ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task Automation_files_are_read_at_a_tag_or_a_full_branch_ref()
+    {
+        var first = await server.CommitAsync("shop", Files((".autocanvas/automations/build.yml", Build)), "First");
+        await server.CommitAsync("shop", Files((".autocanvas/automations/build.yml", null)), "Drop it");
+        await server.TagAsync("shop", "v1", first, message: "One");
+
+        var tagged = await forge.ReadAutomationsAsync(Access(), "refs/tags/v1", Cancel);
+
+        tagged.Commit.ShouldBe(first);
+        tagged.Files.ShouldHaveSingleItem().Path.ShouldBe(".autocanvas/automations/build.yml");
+        (await forge.ReadAutomationsAsync(Access(), "refs/heads/main", Cancel)).Files.ShouldBeEmpty();
+        (await Should.ThrowAsync<ForgeException>(() => forge.ReadAutomationsAsync(Access(), "refs/pull/1/head", Cancel))).Message.ShouldContain("is not a branch or tag");
+    }
+
+    [Fact]
+    public async Task The_changed_files_between_two_commits_are_known_unless_the_older_one_is_not_there()
+    {
+        var first = await server.CommitAsync("shop", Files(("src/a.c", "a"), ("README.md", "one")), "First");
+        await server.CommitAsync("shop", Files(("src/b.c", "b")), "Second");
+        var third = await server.CommitAsync("shop", Files(("README.md", null), ("docs/x.md", "x")), "Third");
+
+        var changed = await forge.ChangedFilesAsync(Access(), "main", first, third, Cancel);
+
+        changed.ShouldBe(["README.md", "docs/x.md", "src/b.c"], ignoreOrder: true);
+        (await forge.ChangedFilesAsync(Access(), "main", new string('0', 40), third, Cancel)).ShouldBeNull();
+        (await forge.ChangedFilesAsync(Access(), "main", new string('a', 40), third, Cancel)).ShouldBeNull();
+        (await forge.ChangedFilesAsync(Access(), "main", "--output=x", third, Cancel)).ShouldBeNull();
+    }
+
+    private static Dictionary<string, string?> Files(params (string Path, string? Content)[] files) =>
+        files.ToDictionary(f => f.Path, f => f.Content, StringComparer.Ordinal);
+
+    [Fact]
     public async Task Only_http_and_https_repositories_are_read()
     {
         var local = new RepositoryAccess(new Uri("file:///etc"), null, null, cache);

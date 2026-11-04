@@ -17,6 +17,7 @@ const triggerNames: Record<string, string> = {
   Schedule: 'Schedule',
   Webhook: 'Webhook',
   AutomationCompleted: 'After another automation',
+  Push: 'Push',
 };
 
 /** What an automation is: what starts it, how its last runs went, and its file. */

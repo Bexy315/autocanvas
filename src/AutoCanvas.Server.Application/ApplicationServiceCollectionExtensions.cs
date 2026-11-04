@@ -66,6 +66,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddOptions<RepositoryOptions>();
         services.AddScoped<RepositoryDiscovery>();
         services.AddScoped<RepositoryService>();
+        services.AddScoped<RepositoryPolling>();
         services.AddScoped<RunnerService>();
         services.AddScoped<RunnerConnectionService>();
         return services;

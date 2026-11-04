@@ -74,6 +74,21 @@ public sealed class Repository
     /// </summary>
     public string? Problems { get; set; }
 
+    /// <summary>The polling interval new repositories get, in minutes.</summary>
+    public const int DefaultPollMinutes = 5;
+
+    /// <summary>The longest polling interval, in minutes (a day).</summary>
+    public const int MaxPollMinutes = 1440;
+
+    /// <summary>
+    /// How often the server asks the repository for new commits, in minutes; 0 when it does not
+    /// (pushes then arrive only through its webhook).
+    /// </summary>
+    public int PollMinutes { get; set; } = DefaultPollMinutes;
+
+    /// <summary>When it is polled next; <see langword="null"/> when it is due now (or polling is off).</summary>
+    public DateTimeOffset? NextPollAt { get; set; }
+
     /// <summary>When it was connected.</summary>
     public required DateTimeOffset CreatedAt { get; init; }
 
