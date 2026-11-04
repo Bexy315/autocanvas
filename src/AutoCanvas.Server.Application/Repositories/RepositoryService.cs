@@ -38,7 +38,7 @@ public sealed class RepositoryService(
         }
 
         var name = string.IsNullOrWhiteSpace(request.Name) ? NameFrom(url) : request.Name.Trim();
-        if ((Names.Check("name", name, Repository.MaxNameLength, "repository") ?? CheckBranch(request.DefaultBranch) ?? CheckUserName(request.UserName)) is { } invalid)
+        if ((Names.Check("name", name, Repository.MaxNameLength, "repository") ?? CheckBranch(request.DefaultBranch) ?? CheckUserName(request.UserName) ?? CheckPolling(request.PollMinutes)) is { } invalid)
         {
             return UseCase.Failure<RepositoryView>(invalid);
         }
@@ -66,27 +66,45 @@ public sealed class RepositoryService(
             Url = url,
             DefaultBranch = Empty(request.DefaultBranch),
             UserName = Empty(request.UserName),
+            PollMinutes = request.PollMinutes ?? Repository.DefaultPollMinutes,
             CreatedAt = now,
             CreatedByName = await UserNameAsync(actor, cancellationToken).ConfigureAwait(false),
             UpdatedAt = now,
         };
         SetCredential(repository, Empty(request.Secret));
 
-        // Only a repository that can be read is connected; git says why it cannot.
-        try
+        var (refs, unreadable) = await RefsAsync(repository, cancellationToken).ConfigureAwait(false);
+        if (unreadable is not null)
         {
-            await discovery.ForgeOf(repository).ResolveAsync(discovery.AccessOf(repository), repository.DefaultBranch, cancellationToken).ConfigureAwait(false);
-        }
-        catch (ForgeException exception)
-        {
-            return UseCase.Failure<RepositoryView>(UseCaseError.Invalid("address", $"The repository cannot be read: {exception.Message}"));
+            return UseCase.Failure<RepositoryView>(unreadable);
         }
 
+        repository.NextPollAt = NextPoll(repository, now);
         database.Repositories.Add(repository);
+        RepositoryPushes.RecordBaseline(database, repository.Id, refs!);
         audit.Record(Entry(AuditActions.RepositoryConnected, repository, ("address", url.ToString()), ("credential", repository.CredentialCiphertext is not null)));
         await discovery.SyncAsync(actor, repository, cancellationToken).ConfigureAwait(false);
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return UseCase.Success(await ViewAsync(repository, cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>
+    /// The refs of a repository to connect. Only a repository that can be read is connected; git
+    /// says why it cannot. Its branches and tags as they are now start nothing: only pushes from
+    /// here on do.
+    /// </summary>
+    private async Task<(IReadOnlyDictionary<string, string>? Refs, UseCaseError? Error)> RefsAsync(Repository repository, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var forge = discovery.ForgeOf(repository);
+            await forge.ResolveAsync(discovery.AccessOf(repository), repository.DefaultBranch, cancellationToken).ConfigureAwait(false);
+            return (await forge.ListRefsAsync(discovery.AccessOf(repository), cancellationToken).ConfigureAwait(false), null);
+        }
+        catch (ForgeException exception)
+        {
+            return (null, UseCaseError.Invalid("address", $"The repository cannot be read: {exception.Message}"));
+        }
     }
 
     /// <summary>The repositories connected in a folder, by name (Viewer).</summary>
@@ -136,7 +154,7 @@ public sealed class RepositoryService(
     public async Task<UseCaseResult<RepositoryView>> UpdateAsync(Actor actor, Guid id, RepositoryChange change, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(change);
-        if ((CheckBranch(change.DefaultBranch) ?? CheckUserName(change.UserName)) is { } invalid)
+        if ((CheckBranch(change.DefaultBranch) ?? CheckUserName(change.UserName) ?? CheckPolling(change.PollMinutes)) is { } invalid)
         {
             return UseCase.Failure<RepositoryView>(invalid);
         }
@@ -151,19 +169,11 @@ public sealed class RepositoryService(
         var changed = new List<string>();
         if (change.Name is { } newName && !string.Equals(newName.Trim(), repository.Name, StringComparison.Ordinal))
         {
-            var name = newName.Trim();
-            if (Names.Check("name", name, Repository.MaxNameLength, "repository") is { } badName)
+            if (await RenameAsync(repository, newName.Trim(), cancellationToken).ConfigureAwait(false) is { } refused)
             {
-                return UseCase.Failure<RepositoryView>(badName);
+                return UseCase.Failure<RepositoryView>(refused);
             }
 
-            var normalized = IdentityNames.Normalize(name);
-            if (await database.Repositories.AnyAsync(r => r.FolderId == repository.FolderId && r.NormalizedName == normalized && r.Id != id, cancellationToken).ConfigureAwait(false))
-            {
-                return UseCase.Failure<RepositoryView>(UseCaseError.Conflict($"The folder has a repository named '{name}' already.", "name"));
-            }
-
-            (repository.Name, repository.NormalizedName) = (name, normalized);
             changed.Add("name");
         }
 
@@ -183,6 +193,13 @@ public sealed class RepositoryService(
         {
             SetCredential(repository, Empty(secret));
             changed.Add("credential");
+        }
+
+        if (change.PollMinutes is { } minutes && minutes != repository.PollMinutes)
+        {
+            repository.PollMinutes = minutes;
+            repository.NextPollAt = NextPoll(repository, time.GetUtcNow());
+            changed.Add("pollMinutes");
         }
 
         repository.UpdatedAt = time.GetUtcNow();
@@ -209,6 +226,24 @@ public sealed class RepositoryService(
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         DeleteCache(discovery.CacheOf(id));
         return Done.Result;
+    }
+
+    /// <summary>Gives the repository a new name in its folder, or says why it cannot have it.</summary>
+    private async Task<UseCaseError?> RenameAsync(Repository repository, string name, CancellationToken cancellationToken)
+    {
+        if (Names.Check("name", name, Repository.MaxNameLength, "repository") is { } badName)
+        {
+            return badName;
+        }
+
+        var normalized = IdentityNames.Normalize(name);
+        if (await database.Repositories.AnyAsync(r => r.FolderId == repository.FolderId && r.NormalizedName == normalized && r.Id != repository.Id, cancellationToken).ConfigureAwait(false))
+        {
+            return UseCaseError.Conflict($"The folder has a repository named '{name}' already.", "name");
+        }
+
+        (repository.Name, repository.NormalizedName) = (name, normalized);
+        return null;
     }
 
     private async Task<UseCaseResult<Repository>> FindAsync(Actor actor, Guid id, FolderRole needed, CancellationToken cancellationToken)
@@ -242,6 +277,8 @@ public sealed class RepositoryService(
             repository.LastSyncedAt,
             repository.LastCommit,
             repository.LastError,
+            repository.PollMinutes,
+            repository.NextPollAt,
             RepositoryDiscovery.ProblemsOf(repository),
             count,
             repository.CreatedAt,
@@ -275,6 +312,14 @@ public sealed class RepositoryService(
         userName is { Length: > Repository.MaxUserNameLength } || userName?.Any(char.IsControl) == true
             ? UseCaseError.Invalid("userName", $"A user name has at most {Repository.MaxUserNameLength} characters.")
             : null;
+
+    private static UseCaseError? CheckPolling(int? minutes) =>
+        minutes is < 0 or > Repository.MaxPollMinutes
+            ? UseCaseError.Invalid("pollMinutes", $"Poll every 1 to {Repository.MaxPollMinutes} minutes, or 0 not to poll.")
+            : null;
+
+    private static DateTimeOffset? NextPoll(Repository repository, DateTimeOffset now) =>
+        repository.PollMinutes == 0 ? null : now.AddMinutes(repository.PollMinutes);
 
     private static string? Empty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

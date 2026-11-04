@@ -14,4 +14,7 @@ public enum RunTriggerKind
 
     /// <summary>Another automation finished.</summary>
     AutomationCompleted,
+
+    /// <summary>A push to the automation's repository.</summary>
+    Push,
 }

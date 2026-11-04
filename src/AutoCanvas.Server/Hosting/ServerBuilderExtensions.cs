@@ -95,6 +95,7 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IPostConfigureOptions<RepositoryOptions>>(provider => provider.GetRequiredService<RepositoryOptionsSetup>());
         services.AddSingleton<IValidateOptions<RepositoryOptions>>(provider => provider.GetRequiredService<RepositoryOptionsSetup>());
         services.AddSingleton<IForge>(provider => new GenericGitForge(provider.GetRequiredService<IOptions<RepositoryOptions>>().Value.GitTimeout));
+        services.AddHostedService<RepositoryPollService>();
     }
 
     /// <summary>The setup of a fresh installation and the instance settings (ADR-0020).</summary>

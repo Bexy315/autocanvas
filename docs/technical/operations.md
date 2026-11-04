@@ -224,6 +224,13 @@ The server must reach the repositories' addresses. git runs without prompts, wit
 `https` allowed (also after redirects), and gets credentials as an HTTP header through its
 environment, never on its command line or in a file.
 
+Every 30 seconds the server polls the repositories that are due (each its `pollMinutes`, 5 by
+default) with `git ls-remote`, and handles moved branches and tags as pushes: at most 20
+repositories per round and 50 refs per repository, the rest in later rounds. With several servers on
+one database each repository is polled by one of them. A failed poll is logged as a warning and
+shown on the repository (`lastError`). The commit each branch and tag was last seen at is kept in
+the database (`repository_refs`), so a restarted server does not start runs for pushes it handled.
+
 ## Reverse proxies and HTTPS
 
 The session cookie is marked `Secure` when the server sees an HTTPS request or when the public

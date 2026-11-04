@@ -11,8 +11,8 @@ Automations can live in a Git repository, next to the code they build
 
 :::note Status
 
-Repositories are connected through the HTTP API so far; the web UI follows later in S5, as do push
-and pull request triggers and GitHub.
+Repositories are connected through the HTTP API so far; the web UI follows later in S5, as do
+webhooks for pushes, pull request triggers and GitHub.
 
 :::
 
@@ -33,12 +33,13 @@ curl -b cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/j
 | `name` | Its name in the folder; the last part of the address without `.git` when left out. |
 | `defaultBranch` | The branch automations are read from; the repository's own default branch when left out. |
 | `userName`, `secret` | For a private repository: a token (the user name may stay empty) or a user name and password. |
+| `pollMinutes` | How often AutoCanvas asks the repository for new commits, 1 to 1440 minutes; `0` not to. Default: 5. |
 
 AutoCanvas reads the repository right away. One it cannot read is refused with git's reason, for
 example a wrong credential or an address that does not exist.
 
 The **credential** is stored encrypted under the master key, like a secret, and never shown again:
-the API only says whether one is stored. Change it, the branch or the name with
+the API only says whether one is stored. Change it, the branch, the name or `pollMinutes` with
 `PATCH /api/v1/repositories/<id>`; an empty `secret` removes the credential.
 
 ## How automations follow the repository
@@ -77,6 +78,46 @@ credential; `checkout: false` turns that off. In a list of checkouts:
 
 The credential reaches only the runner of that job, as part of the checkout, and is masked in the
 log like a secret.
+
+## Pushes
+
+A push to the repository starts the runs that the automations' `push` triggers ask for:
+
+```yaml
+triggers:
+  push:
+    branches: [main, 'release/*']   # left out: every branch
+    tags: ['v*']                    # left out: no tag
+    paths: ['src/**', 'build.sh']   # left out: any change
+```
+
+- **Patterns**: `*` matches any characters but `/`, `**` also `/` (and `**/` no folder at all), `?`
+  one character but `/`. A pattern matches the whole name: `release/*` matches `release/2.0`, not
+  `release/2.0/fix`.
+- **Paths** count when AutoCanvas knows the changed files: those between the commit before and
+  after the push, if the older one is at most 50 commits back on the same line of history. For a new
+  branch, a forced push or one further back, any change counts.
+- **Which file runs**: the automation's file **at the pushed commit**, so a branch can try out a
+  changed automation before it is merged. Its triggers there decide, and the run checks out that
+  commit. Only automations the folder has, that is files on the repository's branch, run: a file
+  that exists only on another branch starts nothing until it is merged.
+- **The repository's branch**: a push to it first reads the automations again (as a sync does), so
+  the run is of the new version. Pushes to other branches and tags create no versions.
+- **Once per push**: each new commit of a branch or tag starts its runs once, however AutoCanvas
+  learns of it. Deleting a branch or tag starts nothing; what was there when the repository was
+  connected starts nothing either.
+- **What the run reads**: `trigger.event` is `push`; `trigger.branch` (or `trigger.tag`),
+  `trigger.ref` (`refs/heads/main`), `trigger.sha`, `trigger.short_sha`, `trigger.before`,
+  `trigger.pusher` and `trigger.message` describe the push, `run.branch`, `run.commit_sha` and
+  `run.commit_short_sha` the run's commit. The run is started by the pusher, or by the commit's
+  author when the pusher is not known.
+
+### Polling
+
+AutoCanvas asks each repository for its branches and tags every `pollMinutes` minutes (5 by
+default) and handles what moved as pushes, so pushes start runs with a delay of up to that long.
+A poll that fails sets `lastError`; the next one that works reads the repository again and clears
+it. `nextPollAt` on the repository says when it is asked next.
 
 ## Who may do what
 

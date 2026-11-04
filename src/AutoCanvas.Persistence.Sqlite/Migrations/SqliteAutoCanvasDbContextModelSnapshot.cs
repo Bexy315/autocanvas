@@ -941,11 +941,19 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("name");
 
+                    b.Property<long?>("NextPollAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("next_poll_at");
+
                     b.Property<string>("NormalizedName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT")
                         .HasColumnName("normalized_name");
+
+                    b.Property<int>("PollMinutes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("poll_minutes");
 
                     b.Property<string>("Problems")
                         .HasColumnType("TEXT")
@@ -979,6 +987,29 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasDatabaseName("ix_repositories_folder_id_normalized_name");
 
                     b.ToTable("repositories", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryRef", b =>
+                {
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository_id");
+
+                    b.Property<string>("Ref")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ref");
+
+                    b.Property<string>("Commit")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("commit");
+
+                    b.HasKey("RepositoryId", "Ref")
+                        .HasName("pk_repository_refs");
+
+                    b.ToTable("repository_refs", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.Runner", b =>
@@ -1963,6 +1994,16 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasConstraintName("fk_repositories_folders_folder_id");
 
                     b.Navigation("Folder");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryRef", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_repository_refs_repositories_repository_id");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>

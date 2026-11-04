@@ -23,11 +23,11 @@ any text value — scripts, node inputs, environment variables, outputs — and 
 | `jobs.JOB.outputs.NAME` | Outputs a job published under its `outputs`. |
 | `jobs.JOB.result` | `success`, `failure`, `cancelled` or `skipped`. |
 | `trigger.event` | What started the run: `manual`, `push`, `schedule`, `webhook` or `automation_completed`. |
-| `trigger.branch`, `trigger.ref`, `trigger.tag`, `trigger.sha`, `trigger.short_sha`, `trigger.before`, `trigger.pusher`, `trigger.message` | Details of a push. |
+| `trigger.branch`, `trigger.ref`, `trigger.tag`, `trigger.sha`, `trigger.short_sha`, `trigger.before`, `trigger.pusher`, `trigger.message` | Details of a push ([Repositories](repositories.md#pushes)): `branch` for a branch, `tag` for a tag. |
 | `trigger.body`, `trigger.body.FIELD`, `trigger.headers.NAME`, `trigger.query.NAME` | Request of a webhook trigger; a JSON body is read into by property names. |
 | `trigger.schedule`, `trigger.scheduled_at` | The schedule entry that started the run, and when it was due. |
 | `trigger.automation`, `trigger.run_id`, `trigger.run_number`, `trigger.result` | The run whose end started this one (`automation_completed`); `result` is `success`, `failure` or `cancelled`. |
-| `run.id`, `run.automation_name`, `run.triggered_by`, `run.branch`, `run.commit_sha`, `run.commit_short_sha` | The run itself. |
+| `run.id`, `run.automation_name`, `run.triggered_by`, `run.branch`, `run.commit_sha`, `run.commit_short_sha` | The run itself; the branch and commit are those of a repository automation's run, empty for a managed one. |
 | `run.status` | How the run went so far; meant for `finally` jobs. |
 
 Output names are case-sensitive and written exactly as declared. Names in paths may contain `-`,

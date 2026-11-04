@@ -141,6 +141,14 @@ are stripped of the credential before they are stored or shown. Repository addre
 or `https`, so connecting one cannot make the server read local files, and only editors of a folder
 may connect repositories there.
 
+A push starts runs of a folder's repository automations, so whoever may push to a connected
+repository may start them, with the folder's secrets, as the repository's maintainers decide; branch
+protection in the repository is what limits that. The file that runs is the one at the pushed
+commit, but only automations the folder already has (files on the repository's branch) run. The
+sync after a push to that branch checks `automation_completed` references as the server, which sees
+every folder: a repository automation may follow an automation of a folder its pusher cannot see,
+and learns only that one of its runs finished and how.
+
 ## Audit
 
 Every change writes an audit event in the same transaction as the change: who, what, which object,

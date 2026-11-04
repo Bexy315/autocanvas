@@ -5,8 +5,8 @@ sidebar_position: 10.5
 # Triggers
 
 An automation's `triggers` say what starts its runs. Besides starting them by hand (`manual: true`),
-runs start on a schedule, when another automation finishes, or on a webhook call. Push triggers come
-with the repository integrations (S5).
+runs start on a schedule, when another automation finishes, on a webhook call, or — for automations
+from a repository — on a push ([Repositories](repositories.md#pushes)).
 
 ```yaml
 triggers:

@@ -7639,6 +7639,16 @@
               "string"
             ],
             "description": "A token or password for a private repository; stored encrypted, never shown again."
+          },
+          "pollMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "How often to poll it for new commits, in minutes; 0 not to poll. Default: 5.",
+            "format": "int32"
           }
         },
         "description": "A Generic Git repository to connect in a folder."
@@ -8263,6 +8273,16 @@
               "string"
             ],
             "description": "Another token or password; empty to remove it."
+          },
+          "pollMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "How often to poll it, in minutes; 0 not to poll (pushes then come only by webhook).",
+            "format": "int32"
           }
         },
         "description": "Changes to a repository; what is left out (or `null`) stays as it is."
@@ -8342,6 +8362,8 @@
           "lastSyncedAt",
           "lastCommit",
           "lastError",
+          "pollMinutes",
+          "nextPollAt",
           "problems",
           "automations",
           "createdAt",
@@ -8418,6 +8440,23 @@
               "string"
             ],
             "description": "Why the last sync failed; `null` when it worked."
+          },
+          "pollMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How often the server asks it for new commits, in minutes; 0 when it does not.",
+            "format": "int32"
+          },
+          "nextPollAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it is asked next; `null` when polling is off or it is due.",
+            "format": "date-time"
           },
           "problems": {
             "type": "array",
@@ -8869,7 +8908,8 @@
           "Manual",
           "Schedule",
           "Webhook",
-          "AutomationCompleted"
+          "AutomationCompleted",
+          "Push"
         ],
         "description": "What started a run; readable as `trigger.event`."
       },

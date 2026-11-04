@@ -47,6 +47,40 @@ public sealed class RunValuesTests
     }
 
     [Theory]
+    [InlineData("refs/heads/feature/x", "feature/x")]
+    [InlineData("refs/tags/v1", null)]
+    [InlineData(null, null)]
+    public void A_push_run_reads_its_event_branch_and_commit(string? gitRef, string? branch)
+    {
+        var run = new Run
+        {
+            Id = Guid.CreateVersion7(),
+            FolderId = Guid.CreateVersion7(),
+            AutomationName = "build",
+            AutomationVersion = 1,
+            Number = 1,
+            Yaml = "version: 1",
+            Trigger = RunTriggerKind.Push,
+            TriggeredByName = "ada",
+            CommitSha = gitRef is null ? null : "0123456789abcdef0123456789abcdef01234567",
+            Ref = gitRef,
+            CreatedAt = DateTimeOffset.UnixEpoch,
+        };
+        var values = new RunValues(run, new ResolvedConfiguration(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase), new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)), "success");
+
+        Resolve(values, "trigger.event").ShouldBe("push");
+        Resolve(values, "run.branch").ShouldBe(branch);
+        Resolve(values, "run.commit_sha").ShouldBe(run.CommitSha);
+        Resolve(values, "run.commit_short_sha").ShouldBe(run.CommitSha?[..7]);
+    }
+
+    private static string? Resolve(RunValues values, string path)
+    {
+        values.TryResolve(path.Split('.'), out var value).ShouldBeTrue();
+        return value;
+    }
+
+    [Theory]
     [InlineData("trigger.Body")]
     [InlineData("trigger.headers.missing")]
     [InlineData("trigger.body.deeper")]

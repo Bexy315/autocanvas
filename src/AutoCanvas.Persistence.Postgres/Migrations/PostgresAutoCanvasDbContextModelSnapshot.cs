@@ -946,11 +946,19 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<DateTimeOffset?>("NextPollAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_poll_at");
+
                     b.Property<string>("NormalizedName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("normalized_name");
+
+                    b.Property<int>("PollMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("poll_minutes");
 
                     b.Property<string>("Problems")
                         .HasColumnType("text")
@@ -984,6 +992,29 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasDatabaseName("ix_repositories_folder_id_normalized_name");
 
                     b.ToTable("repositories", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryRef", b =>
+                {
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("repository_id");
+
+                    b.Property<string>("Ref")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("ref");
+
+                    b.Property<string>("Commit")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("commit");
+
+                    b.HasKey("RepositoryId", "Ref")
+                        .HasName("pk_repository_refs");
+
+                    b.ToTable("repository_refs", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.Runner", b =>
@@ -1968,6 +1999,16 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasConstraintName("fk_repositories_folders_folder_id");
 
                     b.Navigation("Folder");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryRef", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_repository_refs_repositories_repository_id");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>

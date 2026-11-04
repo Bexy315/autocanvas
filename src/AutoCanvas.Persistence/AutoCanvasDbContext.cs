@@ -115,6 +115,9 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Repositories connected in folders (ADR-0021).</summary>
     public DbSet<Repository> Repositories => Set<Repository>();
 
+    /// <summary>The commits the branches and tags of connected repositories were last seen at.</summary>
+    public DbSet<RepositoryRef> RepositoryRefs => Set<RepositoryRef>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -161,5 +164,6 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RunnerRegistrationTokenConfiguration());
         modelBuilder.ApplyConfiguration(new InstanceSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryConfiguration());
+        modelBuilder.ApplyConfiguration(new RepositoryRefConfiguration());
     }
 }
