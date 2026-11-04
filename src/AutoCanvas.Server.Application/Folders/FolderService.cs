@@ -350,9 +350,10 @@ public sealed class FolderService
 
         var folder = accessible.Value!.Folder;
         if (await database.Folders.AnyAsync(f => f.ParentId == id, cancellationToken).ConfigureAwait(false)
-            || await database.Automations.AnyAsync(a => a.FolderId == id, cancellationToken).ConfigureAwait(false))
+            || await database.Automations.AnyAsync(a => a.FolderId == id, cancellationToken).ConfigureAwait(false)
+            || await database.Repositories.AnyAsync(r => r.FolderId == id, cancellationToken).ConfigureAwait(false))
         {
-            return UseCase.Failure<Done>(UseCaseError.Conflict("The folder is not empty. Move or delete its subfolders and automations first."));
+            return UseCase.Failure<Done>(UseCaseError.Conflict("The folder is not empty. Move or delete its subfolders and automations, and disconnect its repositories, first."));
         }
 
         database.Folders.Remove(folder);

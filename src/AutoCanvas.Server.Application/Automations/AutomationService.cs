@@ -102,10 +102,18 @@ public sealed class AutomationService
         }
 
         var (automation, role) = found.Value;
-        var yaml = await database.AutomationVersions.AsNoTracking()
+        var current = await database.AutomationVersions.AsNoTracking()
             .Where(v => v.AutomationId == id && v.Number == automation.CurrentVersion)
-            .Select(v => v.Yaml)
+            .Select(v => new { v.Yaml, v.CommitSha })
             .FirstAsync(cancellationToken).ConfigureAwait(false);
+        var yaml = current.Yaml;
+        var repository = automation.RepositoryId is { } repositoryId
+            ? new RepositorySource(
+                repositoryId,
+                await database.Repositories.Where(r => r.Id == repositoryId).Select(r => r.Name).FirstAsync(cancellationToken).ConfigureAwait(false),
+                automation.SourcePath ?? string.Empty,
+                current.CommitSha)
+            : null;
         var warnings = AutomationLoader.Load(yaml, BuiltInNodeTypes.All).Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Warning).Select(DiagnosticView.From).ToList();
         return UseCase.Success(new AutomationView(
             automation.Id,
@@ -118,7 +126,8 @@ public sealed class AutomationService
             warnings,
             role,
             automation.CreatedAt,
-            automation.UpdatedAt));
+            automation.UpdatedAt,
+            repository));
     }
 
     /// <summary>The automations in a folder, by name, one page at a time (Viewer on the folder).</summary>
@@ -146,7 +155,16 @@ public sealed class AutomationService
         }
 
         var rows = await query.OrderBy(a => a.NormalizedName).Take(limit.Value + 1).ToListAsync(cancellationToken).ConfigureAwait(false);
-        var items = rows.Take(limit.Value).Select(a => new AutomationSummary(a.Id, a.Name, a.Title, a.Description, a.CurrentVersion, a.UpdatedAt)).ToList();
+        var repositoryIds = rows.Where(a => a.RepositoryId is not null).Select(a => a.RepositoryId!.Value).Distinct().ToList();
+        var repositoryNames = await database.Repositories.AsNoTracking().Where(r => repositoryIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken).ConfigureAwait(false);
+        var items = rows.Take(limit.Value).Select(a => new AutomationSummary(
+            a.Id,
+            a.Name,
+            a.Title,
+            a.Description,
+            a.CurrentVersion,
+            a.UpdatedAt,
+            a.RepositoryId is { } repositoryId ? new RepositorySource(repositoryId, repositoryNames[repositoryId], a.SourcePath ?? string.Empty, null) : null)).ToList();
         var next = rows.Count > limit.Value ? NameCursor.Encode(rows[limit.Value - 1].NormalizedName) : null;
         return UseCase.Success(new Page<AutomationSummary>(items, next));
     }
@@ -408,7 +426,7 @@ public sealed class AutomationService
             : null;
 
     /// <summary>Parses and validates the file; every problem comes back with the error.</summary>
-    private static UseCaseResult<Core.Model.AutomationDefinition> Load(string? yaml)
+    internal static UseCaseResult<Core.Model.AutomationDefinition> Load(string? yaml)
     {
         // Only node types the runners implement can be saved (ADR-0016).
         var loaded = AutomationLoader.Load(yaml ?? string.Empty, BuiltInNodeTypes.All);
@@ -432,7 +450,7 @@ public sealed class AutomationService
         "yaml",
         problems);
 
-    private static void Describe(Automation automation, Core.Model.AutomationDefinition definition)
+    internal static void Describe(Automation automation, Core.Model.AutomationDefinition definition)
     {
         automation.Title = Cut(definition.Name?.Trim() is { Length: > 0 } title ? title : automation.Name, Automation.MaxTitleLength)!;
         automation.Description = Cut(string.IsNullOrWhiteSpace(definition.Description) ? null : definition.Description.Trim(), Automation.MaxDescriptionLength);

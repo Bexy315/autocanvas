@@ -149,4 +149,16 @@ public static class AuditActions
 
     /// <summary>The installation's addresses changed; details: <c>changed</c>, <c>publicAddress</c>, <c>runnerAddress</c>.</summary>
     public const string InstanceUpdated = "instance.updated";
+
+    /// <summary>A repository was connected in a folder; details: <c>name</c>, <c>address</c>, <c>credential</c> (whether one was given).</summary>
+    public const string RepositoryConnected = "repository.connected";
+
+    /// <summary>A repository was renamed or got another branch or credential; details: <c>name</c>, <c>changed</c>.</summary>
+    public const string RepositoryUpdated = "repository.updated";
+
+    /// <summary>A repository was disconnected and its automations deleted; details: <c>name</c>, <c>automations</c>.</summary>
+    public const string RepositoryDisconnected = "repository.disconnected";
+
+    /// <summary>A repository was read; details: <c>name</c>, <c>commit</c>, <c>error</c> (why it could not be read).</summary>
+    public const string RepositorySynced = "repository.synced";
 }

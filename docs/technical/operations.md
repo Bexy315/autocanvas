@@ -41,6 +41,8 @@ setting and what is expected, instead of failing later on first use.
 | `Runners:PublicUrl` | none | Absolute `http`/`https` URL runners reach the runner endpoint at, shown in the commands to register one; wins over the web UI's |
 | `Setup:Enabled` | `true` | Whether a server without accounts opens the setup; `false` leaves the first admin to `admin create` and the bootstrap settings |
 | `Setup:RunnerTokenFile` | none | A file the setup writes a registration token to, for a runner that reads it from a shared volume |
+| `Repositories:CacheDirectory` | `repositories` in the data directory | Where the server keeps a shallow copy of each connected repository (see [Repositories](#repositories)) |
+| `Repositories:GitTimeout` | `00:01:00` | How long one git call of the server may take, 5 seconds to 10 minutes |
 | `Server:TrustedProxies` | none | Reverse proxies whose `X-Forwarded-For` and `X-Forwarded-Proto` are believed: addresses or networks (`10.0.0.0/8`), separated by commas (see [Reverse proxies and HTTPS](#reverse-proxies-and-https)) |
 | `Server:DataDirectory` | `data` | Where the server keeps its files, such as the default SQLite database; relative to the server's directory |
 | `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
@@ -209,6 +211,18 @@ Admins register runners with one-time tokens; [Running the reference runner](../
 shows how to start one next to the server with `docker run`. When the server
 stops, connected runners are told to reconnect after five seconds; jobs they hold continue if they
 are back within `Queue:LeaseDuration`.
+
+## Repositories
+
+The server reads the automation files of connected repositories
+([Repositories](../user/repositories.md), [ADR-0021](../adr/0021-repositories-per-folder.md)) with the
+`git` command line, which the container image includes; a server run from a build needs `git` on its
+`PATH`. For each repository it keeps a shallow bare copy in `Repositories:CacheDirectory`, removed
+when the repository is disconnected and refetched when missing, so the directory needs no backup.
+
+The server must reach the repositories' addresses. git runs without prompts, with only `http` and
+`https` allowed (also after redirects), and gets credentials as an HTTP header through its
+environment, never on its command line or in a file.
 
 ## Reverse proxies and HTTPS
 

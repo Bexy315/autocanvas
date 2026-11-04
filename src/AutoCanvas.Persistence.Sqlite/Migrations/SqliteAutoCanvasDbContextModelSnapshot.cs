@@ -131,6 +131,15 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("normalized_name");
 
+                    b.Property<Guid?>("RepositoryId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository_id");
+
+                    b.Property<string>("SourcePath")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("source_path");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -143,6 +152,9 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_automations");
+
+                    b.HasIndex("RepositoryId")
+                        .HasDatabaseName("ix_automations_repository_id");
 
                     b.HasIndex("FolderId", "NormalizedName")
                         .IsUnique()
@@ -160,6 +172,11 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.Property<Guid>("AutomationId")
                         .HasColumnType("TEXT")
                         .HasColumnName("automation_id");
+
+                    b.Property<string>("CommitSha")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("commit_sha");
 
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER")
@@ -864,6 +881,106 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.ToTable("report_test_cases", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.Repository", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("CredentialCiphertext")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("credential_ciphertext");
+
+                    b.Property<string>("CredentialKeyId")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("credential_key_id");
+
+                    b.Property<string>("DefaultBranch")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("default_branch");
+
+                    b.Property<Guid>("FolderId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("folder_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastCommit")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_commit");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("last_error");
+
+                    b.Property<long?>("LastSyncedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("last_synced_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("normalized_name");
+
+                    b.Property<string>("Problems")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("problems");
+
+                    b.Property<string>("ResolvedBranch")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("resolved_branch");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("url");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("user_name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_repositories");
+
+                    b.HasIndex("FolderId", "NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("ix_repositories_folder_id_normalized_name");
+
+                    b.ToTable("repositories", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.Runner", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1247,6 +1364,11 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("cancelled_by_name");
 
+                    b.Property<string>("CommitSha")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("commit_sha");
+
                     b.Property<bool>("CompletionHandled")
                         .HasColumnType("INTEGER")
                         .HasColumnName("completion_handled");
@@ -1266,6 +1388,11 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.Property<int>("Number")
                         .HasColumnType("INTEGER")
                         .HasColumnName("number");
+
+                    b.Property<string>("Ref")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ref");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -1824,6 +1951,18 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasConstraintName("fk_report_test_cases_reports_report_id");
 
                     b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.Repository", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Folders.Folder", "Folder")
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_repositories_folders_folder_id");
+
+                    b.Navigation("Folder");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>

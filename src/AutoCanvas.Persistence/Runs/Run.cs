@@ -33,6 +33,12 @@ public sealed class Run
     /// <summary>The automation file as it was when the run started.</summary>
     public required string Yaml { get; init; }
 
+    /// <summary>The commit a repository automation ran at; <c>checkout: self</c> gets it.</summary>
+    public string? CommitSha { get; init; }
+
+    /// <summary>The branch or tag that commit came from, such as <c>refs/heads/main</c>.</summary>
+    public string? Ref { get; init; }
+
     /// <summary>Where the run stands.</summary>
     public RunState State { get; set; } = RunState.Running;
 

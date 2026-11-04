@@ -6,6 +6,7 @@ using AutoCanvas.Server.Api.Identity;
 using AutoCanvas.Server.Api.Instance;
 using AutoCanvas.Server.Api.Nodes;
 using AutoCanvas.Server.Api.Runners;
+using AutoCanvas.Server.Api.Repositories;
 using AutoCanvas.Server.Api.Runs;
 using AutoCanvas.Server.Api.Setup;
 using AutoCanvas.Server.Api.Variables;
@@ -97,6 +98,7 @@ internal static partial class ApiEndpoints
         api.MapWebhookEndpoints();
         api.MapRunnerEndpoints();
         api.MapInstanceEndpoints();
+        api.MapRepositoryEndpoints();
 
         return endpoints;
     }

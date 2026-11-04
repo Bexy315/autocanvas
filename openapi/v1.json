@@ -5432,6 +5432,354 @@
           }
         }
       }
+    },
+    "/api/v1/folders/{id}/repositories": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "List a folder's repositories",
+        "description": "The repositories connected in the folder, by name, with the state of their last sync. Needs Viewer.",
+        "operationId": "ListRepositories",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepositoryView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Connect a Git repository",
+        "description": "Connects a Git repository reachable over http or https in the folder and reads `.autocanvas/automations/*.yml` at its default branch (or `defaultBranch`): each valid file becomes a repository automation of the folder. A repository that cannot be read is refused with git's reason. `secret` (a token or password) is stored encrypted and never shown again. Needs Editor.",
+        "operationId": "ConnectRepository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRepository"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories/{id}": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Read a repository",
+        "description": "The repository with the state of its last sync and the files that are not automations, and why. Never its credential. Needs Viewer.",
+        "operationId": "GetRepository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Change a repository",
+        "description": "Renames it, chooses another branch (empty for the repository's default) or credential (an empty `secret` removes it), then reads it again. Fields left out stay as they are. Needs Editor.",
+        "operationId": "UpdateRepository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositoryChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Disconnect a repository",
+        "description": "Removes the repository from its folder and deletes its automations; their runs stay. Nothing in the repository changes. Needs Editor.",
+        "operationId": "DisconnectRepository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories/{id}/sync": {
+      "post": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Read a repository again",
+        "description": "Reads the automation files at the repository's branch now: new files become automations, changed ones new versions at the commit, removed ones are deleted. When the repository cannot be read, nothing changes and `lastError` says why. Needs Operator.",
+        "operationId": "SyncRepository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryView"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5598,6 +5946,17 @@
             "type": "string",
             "description": "When anything about it last changed.",
             "format": "date-time"
+          },
+          "repository": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Where it comes from, for a repository automation; `null` for a managed one.",
+                "$ref": "#/components/schemas/RepositorySource"
+              }
+            ]
           }
         },
         "description": "An automation as listed in its folder."
@@ -5832,6 +6191,17 @@
             "type": "string",
             "description": "When anything about it last changed.",
             "format": "date-time"
+          },
+          "repository": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Where it comes from, for a repository automation, which is read-only; `null` for a managed one.",
+                "$ref": "#/components/schemas/RepositorySource"
+              }
+            ]
           }
         },
         "description": "An automation with the content of its newest version."
@@ -7232,6 +7602,47 @@
         },
         "description": "Where to move a folder."
       },
+      "NewRepository": {
+        "required": [
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Its clone address, `http` or `https`."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its name in the folder; the last part of the address when unset."
+          },
+          "defaultBranch": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The branch to read automations from; the repository's default when unset."
+          },
+          "userName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user name sent with the credential; `x-access-token` when only a token is given."
+          },
+          "secret": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A token or password for a private repository; stored encrypted, never shown again."
+          }
+        },
+        "description": "A Generic Git repository to connect in a folder."
+      },
       "NodeInputKind": {
         "enum": [
           "Text",
@@ -7821,6 +8232,220 @@
           }
         },
         "description": "A report file of a job attempt with its totals."
+      },
+      "RepositoryChange": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A new name in the folder."
+          },
+          "defaultBranch": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Another branch to read automations from; empty for the repository's own default."
+          },
+          "userName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Another user name; empty for none."
+          },
+          "secret": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Another token or password; empty to remove it."
+          }
+        },
+        "description": "Changes to a repository; what is left out (or `null`) stays as it is."
+      },
+      "RepositoryProblemView": {
+        "required": [
+          "path",
+          "message",
+          "line"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "The file, from the repository's root."
+          },
+          "message": {
+            "type": "string",
+            "description": "What is wrong, in words for people."
+          },
+          "line": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "The line in the file, when the problem can be pinned to one.",
+            "format": "int32"
+          }
+        },
+        "description": "Why a file of a repository is not an automation of the folder (yet)."
+      },
+      "RepositorySource": {
+        "required": [
+          "repositoryId",
+          "repositoryName",
+          "path",
+          "commit"
+        ],
+        "type": "object",
+        "properties": {
+          "repositoryId": {
+            "type": "string",
+            "description": "The repository.",
+            "format": "uuid"
+          },
+          "repositoryName": {
+            "type": "string",
+            "description": "Its name in the folder."
+          },
+          "path": {
+            "type": "string",
+            "description": "The file, from the repository's root."
+          },
+          "commit": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commit the current version was read at."
+          }
+        },
+        "description": "Where a repository automation comes from (ADR-0021)."
+      },
+      "RepositoryView": {
+        "required": [
+          "id",
+          "folderId",
+          "name",
+          "kind",
+          "url",
+          "defaultBranch",
+          "branch",
+          "userName",
+          "hasCredential",
+          "lastSyncedAt",
+          "lastCommit",
+          "lastError",
+          "problems",
+          "automations",
+          "createdAt",
+          "createdByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The repository's id.",
+            "format": "uuid"
+          },
+          "folderId": {
+            "type": "string",
+            "description": "The folder it is connected in.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name in the folder."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Which forge it lives on: `GenericGit` or `GitHub`."
+          },
+          "url": {
+            "type": "string",
+            "description": "Its clone address.",
+            "format": "uri"
+          },
+          "defaultBranch": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The branch configured to read automations from; `null` for the repository's own default."
+          },
+          "branch": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The branch read at the last sync."
+          },
+          "userName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The user name sent with the credential."
+          },
+          "hasCredential": {
+            "type": "boolean",
+            "description": "Whether a token or password is stored."
+          },
+          "lastSyncedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was last read.",
+            "format": "date-time"
+          },
+          "lastCommit": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commit its automations were last read at."
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why the last sync failed; `null` when it worked."
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepositoryProblemView"
+            },
+            "description": "Files that are not automations of the folder, and why."
+          },
+          "automations": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How many automations come from it.",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was connected.",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": "string",
+            "description": "Who connected it."
+          }
+        },
+        "description": "A repository connected in a folder; its credential never comes back."
       },
       "ResetPasswordRequest": {
         "required": [
@@ -9485,6 +10110,9 @@
     },
     {
       "name": "Runners"
+    },
+    {
+      "name": "Repositories"
     }
   ]
 }

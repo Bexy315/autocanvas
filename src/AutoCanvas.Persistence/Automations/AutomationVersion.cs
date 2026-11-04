@@ -30,6 +30,9 @@ public sealed class AutomationVersion
     /// <summary>The author's user name at the time, kept when the user is deleted.</summary>
     public required string CreatedByName { get; init; }
 
+    /// <summary>The commit the file was read at, for a repository automation; <see cref="Message"/> is its subject then.</summary>
+    public string? CommitSha { get; init; }
+
     /// <summary>Navigation to the automation.</summary>
     public Automation? Automation { get; init; }
 }

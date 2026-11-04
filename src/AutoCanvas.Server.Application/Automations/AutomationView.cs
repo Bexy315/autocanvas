@@ -15,6 +15,7 @@ namespace AutoCanvas.Server.Application.Automations;
 /// <param name="MyRole">The caller's role on the automation's folder.</param>
 /// <param name="CreatedAt">When the automation was created.</param>
 /// <param name="UpdatedAt">When anything about it last changed.</param>
+/// <param name="Repository">Where it comes from, for a repository automation, which is read-only; <see langword="null"/> for a managed one.</param>
 public sealed record AutomationView(
     Guid Id,
     Guid FolderId,
@@ -26,4 +27,5 @@ public sealed record AutomationView(
     IReadOnlyList<DiagnosticView> Warnings,
     FolderRole MyRole,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    RepositorySource? Repository = null);

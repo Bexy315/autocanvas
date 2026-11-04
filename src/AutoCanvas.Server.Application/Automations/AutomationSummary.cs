@@ -7,4 +7,5 @@ namespace AutoCanvas.Server.Application.Automations;
 /// <param name="Description"><c>description:</c> from the file.</param>
 /// <param name="CurrentVersion">Number of the newest version.</param>
 /// <param name="UpdatedAt">When anything about it last changed.</param>
-public sealed record AutomationSummary(Guid Id, string Name, string Title, string? Description, int CurrentVersion, DateTimeOffset UpdatedAt);
+/// <param name="Repository">Where it comes from, for a repository automation; <see langword="null"/> for a managed one.</param>
+public sealed record AutomationSummary(Guid Id, string Name, string Title, string? Description, int CurrentVersion, DateTimeOffset UpdatedAt, RepositorySource? Repository = null);

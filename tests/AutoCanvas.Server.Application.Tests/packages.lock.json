@@ -473,6 +473,9 @@
           "YamlDotNet": "[18.1.0, )"
         }
       },
+      "autocanvas.forge": {
+        "type": "Project"
+      },
       "autocanvas.persistence": {
         "type": "Project",
         "dependencies": {
@@ -501,6 +504,7 @@
         "type": "Project",
         "dependencies": {
           "AutoCanvas.Core": "[1.0.0, )",
+          "AutoCanvas.Forge": "[1.0.0, )",
           "AutoCanvas.Persistence": "[1.0.0, )",
           "AutoCanvas.Reports": "[1.0.0, )",
           "Cronos": "[0.13.0, )"

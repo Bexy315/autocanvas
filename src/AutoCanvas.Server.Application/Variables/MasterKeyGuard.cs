@@ -71,6 +71,21 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
             }
         }
 
+        // Repository credentials (ADR-0021) are secrets too.
+        var repositories = await database.Repositories.Where(r => r.CredentialCiphertext != null).ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var repository in repositories)
+        {
+            if (cipher.Decrypt(Repositories.RepositoryDiscovery.CredentialScope, repository.Id.ToString(), repository.CredentialCiphertext!) is { } value)
+            {
+                repository.CredentialCiphertext = next.Encrypt(Repositories.RepositoryDiscovery.CredentialScope, repository.Id.ToString(), value);
+                repository.CredentialKeyId = newKey.Id;
+            }
+            else
+            {
+                broken.Add($"repository/{repository.Name}");
+            }
+        }
+
         if (broken.Count > 0)
         {
             return UseCase.Failure<int>(UseCaseError.Conflict($"Nothing was changed: these secrets do not decrypt with the current key: {string.Join(", ", broken)}."));
@@ -81,7 +96,7 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
         check.Ciphertext = Encrypt(next);
         audit.Record(new AuditEntry(AuditActions.MasterKeyRotated)
         {
-            Details = AuditEntry.DetailsOf(("fromKeyId", cipher.Key.Id), ("toKeyId", newKey.Id), ("secrets", secrets.Count)),
+            Details = AuditEntry.DetailsOf(("fromKeyId", cipher.Key.Id), ("toKeyId", newKey.Id), ("secrets", secrets.Count), ("repositories", repositories.Count)),
         });
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return UseCase.Success(secrets.Count);

@@ -114,6 +114,9 @@
           "YamlDotNet": "[18.1.0, )"
         }
       },
+      "autocanvas.forge": {
+        "type": "Project"
+      },
       "autocanvas.persistence": {
         "type": "Project",
         "dependencies": {
