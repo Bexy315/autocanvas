@@ -145,7 +145,10 @@ its checkout only, masked in its log like a secret. The app's events must be sig
 secret (`X-Hub-Signature-256`, compared in constant time), and each delivery is taken once by its
 `X-GitHub-Delivery` id, so a captured delivery cannot be replayed within three days. The state of a
 manifest is encrypted with the master key and valid for an hour, so only an admin's own manifest can
-complete the creation of an app.
+complete the creation of an app. The UI may post forms to its own origin only; the browser reaches
+GitHub through a page of the server (`/api/v1/forges/github/manifest/launch`, posted with the state,
+which stands in for the `X-AutoCanvas-Request` header) whose own policy allows its one script, by
+hash, and forms to that GitHub only.
 
 ## Repository credentials
 

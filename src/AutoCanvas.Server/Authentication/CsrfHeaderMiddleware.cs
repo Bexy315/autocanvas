@@ -21,12 +21,19 @@ internal sealed class CsrfHeaderMiddleware(RequestDelegate next, IProblemDetails
     /// <summary>The GitHub App's events: GitHub calls them, signed, never with a session cookie either.</summary>
     public const string GitHubEventsPath = "/api/v1/forges/github/events";
 
+    /// <summary>
+    /// The page that takes the browser to GitHub with the app's manifest, posted as a plain form by
+    /// the UI: its encrypted state, which only an admin's own request yields, stands in for the header.
+    /// </summary>
+    public const string GitHubLaunchPath = "/api/v1/forges/github/manifest/launch";
+
     public async Task InvokeAsync(HttpContext context)
     {
         var request = context.Request;
         if (request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)
             && !request.Path.StartsWithSegments(WebhookPath, StringComparison.OrdinalIgnoreCase)
             && !request.Path.StartsWithSegments(GitHubEventsPath, StringComparison.OrdinalIgnoreCase)
+            && !request.Path.StartsWithSegments(GitHubLaunchPath, StringComparison.OrdinalIgnoreCase)
             && !HttpMethods.IsGet(request.Method)
             && !HttpMethods.IsHead(request.Method)
             && !HttpMethods.IsOptions(request.Method)

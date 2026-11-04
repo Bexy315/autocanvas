@@ -6113,6 +6113,28 @@
         }
       }
     },
+    "/api/v1/forges/github/manifest/launch": {
+      "post": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Take the browser to GitHub with the manifest",
+        "description": "A plain form post from the UI with the field `state` of a manifest of the last hour; answers a page that posts the manifest to GitHub at once. The state stands in for the X-AutoCanvas-Request header. Needs an admin.",
+        "operationId": "LaunchGitHubAppManifest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/forges/github/created": {
       "post": {
         "tags": [

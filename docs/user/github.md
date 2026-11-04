@@ -12,9 +12,9 @@ pushes start runs, and jobs check out its commits.
 
 :::note Status
 
-Setting up the app works through the HTTP API so far; **Administration → Forges** in the web UI
-follows next, and connecting repositories in a folder with the web UI later in S5. Pull requests,
-commit statuses and comments come in the next step of S5.
+Admins set up the app under **Administration → Forges**. Connecting its repositories in a folder
+works through the HTTP API so far; the web UI for that follows later in S5. Pull requests, commit
+statuses and comments come in the next step of S5.
 
 :::
 
@@ -28,13 +28,23 @@ encrypted with the master key, like secrets, and are never shown again.
 The instance needs a **public address** (**Administration** → **Instance**) that GitHub can reach:
 GitHub sends the browser back there, and the app's events.
 
-1. `POST /api/v1/forges/github/manifest` answers with an address on GitHub and a manifest, with
-   `organization` to create the app in an organization rather than your own account, and
-   `webAddress` for a GitHub Enterprise Server.
-2. The browser posts the manifest to that address, as the form field `manifest`. GitHub shows the
-   new app; its name can be changed there before **Create GitHub App**.
-3. GitHub sends the browser back to `/admin/forges/github/created` with a code, which AutoCanvas
-   turns into the app (`POST /api/v1/forges/github/created`). The code is valid for an hour.
+![Administration, Forges, without an app](img/github-create-light.png#gh-light-mode-only)
+![Administration, Forges, without an app](img/github-create-dark.png#gh-dark-mode-only)
+
+1. Under **Administration → Forges**, name the **Organization** to create the app in, or leave it
+   empty for your own GitHub account; for a GitHub Enterprise Server, give its address under
+   **GitHub Enterprise Server**.
+2. **Create GitHub App** takes you to GitHub with the app's description. Look it over there; its
+   name can be changed (it must be unique on GitHub). Create it.
+3. GitHub sends you back, and AutoCanvas takes over the app with its key and secrets. This has to
+   happen within an hour of step 2.
+
+![Administration, Forges, with the app](img/github-app-light.png#gh-light-mode-only)
+![Administration, Forges, with the app](img/github-app-dark.png#gh-dark-mode-only)
+
+Through the HTTP API, `POST /api/v1/forges/github/manifest` (with `organization` and `webAddress`)
+answers with the address on GitHub and the manifest to post there as the form field `manifest`, and
+`POST /api/v1/forges/github/created` takes the `code` and `state` GitHub hands back.
 
 The manifest asks for these permissions and events:
 
@@ -50,23 +60,25 @@ Events: **push** and **pull request**; GitHub sends installation events to every
 
 ### Entering an existing app
 
-An app made on GitHub by hand (**Settings** → **Developer settings** → **GitHub Apps**) is entered
-with `PUT /api/v1/forges/github`: its `appId`, a `privateKey` in PEM and its `webhookSecret`, and for
-a GitHub Enterprise Server `webAddress` (and `apiAddress` if it is not `<webAddress>/api/v3`).
+**Enter an existing app** (or `PUT /api/v1/forges/github`) takes an app made on GitHub by hand (**Settings** → **Developer settings** → **GitHub Apps**): its
+App ID, a private key (the `.pem` file GitHub gives you, or its text) and its webhook secret, and for
+a GitHub Enterprise Server its address (through the API also `apiAddress`, if it is not
+`<webAddress>/api/v3`).
 AutoCanvas asks GitHub whether the id and key belong together. The app's webhook must point to
 `<public address>/api/v1/forges/github/events`, with content type `application/json`.
 
-The same call enters a **new private key** or webhook secret: make one on GitHub, enter it, then
-delete the old one there.
+**Enter a new key or secret** takes a new private key or webhook secret: make one on GitHub, enter
+it, then delete the old one there.
 
 ### Installing it
 
-`GET /api/v1/forges/github` shows the app, where it is installed and `installUrl`, where it is
-installed on another account or organization. There, choose all repositories or some. AutoCanvas sees
-only the repositories of its installations.
+**Administration → Forges** shows where the app is installed; **Install on an account** opens
+GitHub to install it on another account or organization (`installUrl` of
+`GET /api/v1/forges/github`). There, choose all repositories or some. AutoCanvas sees only the
+repositories of its installations.
 
-`DELETE /api/v1/forges/github` removes the app from AutoCanvas once no GitHub repository is
-connected; on GitHub, it stays until it is deleted there.
+**Remove** (`DELETE /api/v1/forges/github`) removes the app from AutoCanvas once no GitHub repository
+is connected; on GitHub, it stays until it is deleted there.
 
 ## Connecting a repository
 

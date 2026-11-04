@@ -7,8 +7,8 @@ import { TabLinks } from '../../ui/Tabs';
 import { NotFoundPage } from '../NotFoundPage';
 
 /**
- * Administration of the instance, for admins: variables and secrets, users, groups, runners and
- * the instance's addresses.
+ * Administration of the instance, for admins: variables and secrets, users, groups, runners, the
+ * instance's addresses and the forges (the GitHub App).
  * Others get "no page here"; the server refuses them either way.
  */
 export function AdminPage() {
@@ -28,6 +28,7 @@ export function AdminPage() {
           { to: '/admin/groups', label: 'Groups' },
           { to: '/admin/runners', label: 'Runners' },
           { to: '/admin/instance', label: 'Instance' },
+          { to: '/admin/forges', label: 'Forges' },
         ]}
       />
       <Outlet />

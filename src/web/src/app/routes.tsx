@@ -11,6 +11,8 @@ import { RunsTab } from '../pages/automation/RunsTab';
 import { TriggersTab } from '../pages/automation/TriggersTab';
 import { AdminPage, AdminVariables } from '../pages/admin/AdminPage';
 import { GroupsAdmin } from '../pages/admin/GroupsAdmin';
+import { ForgesAdmin } from '../pages/admin/ForgesAdmin';
+import { GitHubCreated } from '../pages/admin/GitHubCreated';
 import { InstanceAdmin } from '../pages/admin/InstanceAdmin';
 import { RunnersAdmin } from '../pages/admin/RunnersAdmin';
 import { UsersAdmin } from '../pages/admin/UsersAdmin';
@@ -115,6 +117,8 @@ export const routes: RouteObject[] = [
               { path: 'groups', element: <GroupsAdmin /> },
               { path: 'runners', element: <RunnersAdmin /> },
               { path: 'instance', element: <InstanceAdmin /> },
+              { path: 'forges', element: <ForgesAdmin /> },
+              { path: 'forges/github/created', element: <GitHubCreated /> },
             ],
           },
           { path: 'account', element: <AccountPage />, handle: crumb('Account') },

@@ -106,10 +106,35 @@ public sealed class GitHubAppService(
             return UseCase.Failure<GitHubManifestView>(UseCaseError.Invalid("organization", "An organization's name has letters, digits and dashes."));
         }
 
-        var state = cipher.Encrypt(StateScope, "state", JsonSerializer.Serialize(new ManifestState(time.GetUtcNow().Add(StateLifetime), web), Json));
+        var state = cipher.Encrypt(StateScope, "state", JsonSerializer.Serialize(new ManifestState(time.GetUtcNow().Add(StateLifetime), web, organization is { Length: > 0 } ? organization : null), Json));
+        return UseCase.Success(View(state, web, organization, publicAddress));
+    }
+
+    /// <summary>
+    /// The manifest again, for the state of a manifest made in the last hour: what the page that
+    /// takes the browser to GitHub posts. The state is the proof that an admin asked for it.
+    /// </summary>
+    public async Task<UseCaseResult<GitHubManifestView>> LaunchAsync(string state, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (ReadState(state) is not { } read || read.ExpiresAt < time.GetUtcNow())
+        {
+            return UseCase.Failure<GitHubManifestView>(UseCaseError.Invalid("state", "The manifest is older than an hour, or not one of this instance; create the app again."));
+        }
+
+        if ((await instance.GetAsync(cancellationToken).ConfigureAwait(false)).PublicAddress.Value is not { } publicAddress)
+        {
+            return UseCase.Failure<GitHubManifestView>(UseCaseError.Conflict("Set the instance's public address first (Administration, Instance)."));
+        }
+
+        return UseCase.Success(View(state, read.Web, read.Organization, publicAddress));
+    }
+
+    private static GitHubManifestView View(string state, Uri web, string? organization, Uri publicAddress)
+    {
         var path = organization is { Length: > 0 } ? $"organizations/{organization}/settings/apps/new" : "settings/apps/new";
         var action = new Uri(new Uri(web.ToString().TrimEnd('/') + "/"), $"{path}?state={Uri.EscapeDataString(state)}");
-        return UseCase.Success(new GitHubManifestView(action, Manifest(publicAddress), state));
+        return new GitHubManifestView(action, Manifest(publicAddress), state);
     }
 
     /// <summary>Turns the code GitHub gave the browser into the app, and stores it.</summary>
@@ -309,6 +334,6 @@ public sealed class GitHubAppService(
         Details = AuditEntry.DetailsOf(("slug", app.Slug), ("owner", app.OwnerLogin)),
     };
 
-    /// <summary>What the state of a manifest carries: until when it is valid, and which GitHub.</summary>
-    private sealed record ManifestState(DateTimeOffset ExpiresAt, Uri Web);
+    /// <summary>What the state of a manifest carries: until when it is valid, which GitHub, and the organization.</summary>
+    private sealed record ManifestState(DateTimeOffset ExpiresAt, Uri Web, string? Organization);
 }
