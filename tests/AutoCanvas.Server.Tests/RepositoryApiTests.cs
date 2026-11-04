@@ -163,6 +163,46 @@ public abstract class RepositoryApiTests(DatabaseProvider provider) : DatabaseTe
     }
 
     [Fact]
+    public async Task A_repository_automation_is_read_only_and_runs_at_its_commit_with_the_repository_credential()
+    {
+        await using var guarded = await GitHttpServer.StartAsync(("ci", "s3cret-token"));
+        await guarded.CreateAsync("private");
+        var commit = await guarded.CommitAsync("private", Files((".autocanvas/automations/build.yml", Build)), "Start");
+        await using var factory = Factory();
+        var root = await factory.SignedInAsync("root", isAdmin: true);
+        var folder = await FolderAsync(root);
+        var other = await FolderAsync(root, "Elsewhere");
+        (await root.PostAsJsonAsync($"/api/v1/folders/{folder}/repositories", new { address = guarded.Url("private").ToString(), userName = "ci", secret = "s3cret-token" }, Cancel)).EnsureSuccessStatusCode();
+        var automation = (await AutomationsAsync(root, folder)).EnumerateArray().Single().GetProperty("id").GetGuid();
+
+        // Its file in the repository is the truth.
+        var save = await root.PutAsJsonAsync($"/api/v1/automations/{automation}", new { yaml = Build + "\n# changed\n" }, Cancel);
+        save.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await save.JsonAsync()).GetProperty("detail").GetString()!.ShouldContain("comes from the repository 'private'");
+        (await root.PatchAsJsonAsync($"/api/v1/automations/{automation}", new { name = "other" }, Cancel)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await root.PostAsJsonAsync($"/api/v1/automations/{automation}/move", new { folderId = other }, Cancel)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await root.DeleteAsync(new Uri($"/api/v1/automations/{automation}", UriKind.Relative), Cancel)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+
+        // A run by hand keeps the commit; its job checks it out with the credential, which the log never shows.
+        var started = await root.PostAsync(new Uri($"/api/v1/automations/{automation}/runs", UriKind.Relative), null, Cancel);
+        started.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var run = await started.JsonAsync();
+        run.GetProperty("commit").GetString().ShouldBe(commit);
+        run.GetProperty("ref").GetString().ShouldBe("refs/heads/main");
+        await using var scope = factory.Services.CreateAsyncScope();
+        var runId = run.GetProperty("id").GetGuid();
+        var attempt = await scope.ServiceProvider.GetRequiredService<AutoCanvasDbContext>().JobAttempts.AsNoTracking().Where(a => a.Job!.RunId == runId).Select(a => a.Id).SingleAsync(Cancel);
+        var offered = await scope.ServiceProvider.GetRequiredService<Application.Runs.JobOfferBuilder>().BuildAsync(attempt, Cancel);
+        var checkout = offered.Value!.Checkouts.ShouldHaveSingleItem();
+        checkout.Url.ShouldBe(guarded.Url("private"));
+        checkout.Ref.ShouldBe(commit);
+        (checkout.UserName, checkout.Password).ShouldBe(("ci", "s3cret-token"));
+        checkout.ToString().ShouldNotContain("s3cret-token");
+        var redactor = await scope.ServiceProvider.GetRequiredService<Application.Runs.LogIngestion>().RedactorAsync(attempt, Cancel);
+        redactor!.Redact("token s3cret-token here").ShouldNotContain("s3cret-token");
+    }
+
+    [Fact]
     public async Task Folder_roles_decide_who_sees_syncs_and_changes_repositories()
     {
         await git.CommitAsync("shop", Files((".autocanvas/automations/build.yml", Build)), "Start");

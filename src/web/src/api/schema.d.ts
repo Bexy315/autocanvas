@@ -2879,6 +2879,10 @@ export interface components {
       jobs: components['schemas']['RunJobView'][];
       /** @description The automation file the run runs, as it was when the run started. */
       yaml: string;
+      /** @description The commit a repository automation ran at; `null` for a managed one. */
+      commit?: null | string;
+      /** @description The branch or tag of that commit, such as `refs/heads/main`. */
+      ref?: null | string;
     };
     /** @description A new version of an automation. */
     SaveAutomationRequest: {

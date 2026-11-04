@@ -401,7 +401,7 @@ public abstract class JobProgressTests(DatabaseProvider provider) : IdentityTest
         var context = Database.CreateContext();
         await using (context)
         {
-            return (await new JobOfferBuilder(context, new ConfigurationService(context, new SecretCipher(Key)), Clock).BuildAsync(attempt, Cancel)).ShouldSucceed();
+            return (await new JobOfferBuilder(context, new ConfigurationService(context, new SecretCipher(Key)), new SecretCipher(Key), Clock).BuildAsync(attempt, Cancel)).ShouldSucceed();
         }
     }
 

@@ -8979,6 +8979,20 @@
           "yaml": {
             "type": "string",
             "description": "The automation file the run runs, as it was when the run started."
+          },
+          "commit": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commit a repository automation ran at; `null` for a managed one."
+          },
+          "ref": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The branch or tag of that commit, such as `refs/heads/main`."
           }
         },
         "description": "A run with its jobs."

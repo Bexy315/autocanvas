@@ -57,6 +57,27 @@ the API only says whether one is stored. Change it, the branch or the name with
 
 At most 100 automation files of at most 1 MiB each are read per repository.
 
+## Read-only in AutoCanvas
+
+A repository automation is changed in its repository, not in AutoCanvas: saving, renaming, moving or
+deleting it is refused. Its file can still be checked, and it runs, triggers and reports like any
+other automation. Variables, secrets and roles come from its folder.
+
+## Runs and checkouts
+
+A run of a repository automation keeps the commit its file was read at (`commit` and `ref` of the
+run). Its jobs check out that commit into their workspace by default, with the repository's
+credential; `checkout: false` turns that off. In a list of checkouts:
+
+- `self` is the automation's own repository, at the run's commit unless `ref` says otherwise;
+- the **name of a repository** connected in the run's folder or a folder above it (the nearest wins,
+  and a restricted folder cuts the chain as for variables and secrets) is checked out at its branch,
+  with its credential;
+- an **https address** is checked out without a credential.
+
+The credential reaches only the runner of that job, as part of the checkout, and is masked in the
+log like a secret.
+
 ## Who may do what
 
 | Role on the folder | May |
