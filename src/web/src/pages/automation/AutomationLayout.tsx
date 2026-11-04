@@ -44,7 +44,8 @@ function AutomationPage({ context }: { context: AutomationContext }) {
   const navigate = useNavigate();
   const move = useMoveAutomation(automation.id);
   const remove = useDeleteAutomation(automation.id);
-  const editor = hasRole(automation.myRole, 'Editor');
+  // A repository automation is renamed, moved and deleted in its repository, not here.
+  const editor = hasRole(automation.myRole, 'Editor') && !automation.repository;
   const dialog = (name: Open) => (next: boolean) => {
     if (!next) {
       move.reset();
@@ -65,7 +66,12 @@ function AutomationPage({ context }: { context: AutomationContext }) {
     <div className="mx-auto flex max-w-5xl flex-col gap-5 p-6">
       <PageHeader
         title={automation.title}
-        badges={<Badge tone="accent">Version {automation.currentVersion}</Badge>}
+        badges={
+          <>
+            <Badge tone="accent">Version {automation.currentVersion}</Badge>
+            {automation.repository && <Badge>From {automation.repository.repositoryName}</Badge>}
+          </>
+        }
         actions={
           <>
             <a

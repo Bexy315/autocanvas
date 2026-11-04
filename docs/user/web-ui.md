@@ -101,6 +101,17 @@ both are shown once, with example calls for curl and PowerShell.
 
 More: [Triggers](triggers.md), [Variables and secrets](variables-and-secrets.md).
 
+## Repositories
+
+A folder's **Repositories** tab connects Git repositories, from GitHub through the GitHub App or by
+address, whose automation files become automations of the folder; it shows how each was last read,
+syncs it, and makes webhook addresses.
+
+![A folder's repositories](img/repositories-light.png#gh-light-mode-only)
+![A folder's repositories](img/repositories-dark.png#gh-dark-mode-only)
+
+More: [Repositories](repositories.md), [GitHub](github.md).
+
 ## Sharing
 
 A folder's **Sharing** tab is for its owners: it gives people and groups a role on the folder and

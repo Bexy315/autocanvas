@@ -9,18 +9,39 @@ Automations can live in a Git repository, next to the code they build
 ([ADR-0021](../adr/0021-repositories-per-folder.md)): its files `.autocanvas/automations/*.yml` (or
 `.yaml`) become **repository automations** of that folder, next to the managed ones.
 
-:::note Status
+GitHub repositories are connected through the instance's GitHub App; see [GitHub](github.md). Any
+other Git repository is connected by its address ("Generic Git").
 
-Repositories are connected through the HTTP API so far; the web UI follows later in S5, as do
-pull request triggers. GitHub repositories are connected through the instance's GitHub App: see
-[GitHub](github.md).
+## In the web UI
 
-:::
+A folder's **Repositories** tab lists its repositories: their branch and the commit last read,
+when, how pushes arrive, how many automations come from each, and what went wrong in the last read
+or in which files.
+
+![A folder's repositories](img/repositories-light.png#gh-light-mode-only)
+![A folder's repositories](img/repositories-dark.png#gh-dark-mode-only)
+
+- **Connect a repository** (Editor): choose one the GitHub App reaches, or give a **Git address**
+  with a token or user name and password for a private repository and how often to poll it.
+- **Sync** (Operator) reads the repository now.
+- In the menu of a repository (Editor): **Change** its name, branch, polling and credential;
+  **Create webhook address** (Generic Git), shown once with its secret and how to enter both at
+  GitHub, Gitea or GitLab; **Disconnect**.
+
+![Connecting a repository by its address](img/repository-connect-light.png#gh-light-mode-only)
+![Connecting a repository by its address](img/repository-connect-dark.png#gh-dark-mode-only)
+
+Its automations show in the folder with the repository's name. Their page says where they come
+from (on GitHub with links to the file and the commit), and they cannot be renamed, moved or deleted
+here; a run's page shows its commit and its branch or pull request.
+
+![A repository automation](img/repository-automation-light.png#gh-light-mode-only)
+![A repository automation](img/repository-automation-dark.png#gh-dark-mode-only)
 
 ## Connecting a repository
 
 Any Git repository reachable over `https` (or `http` on a trusted network) can be connected
-("Generic Git"). Editors of a folder connect one:
+("Generic Git"). Editors of a folder connect one in the web UI, or through the API:
 
 ```sh
 curl -b cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json' \
@@ -62,7 +83,9 @@ At most 100 automation files of at most 1 MiB each are read per repository.
 ## Read-only in AutoCanvas
 
 A repository automation is changed in its repository, not in AutoCanvas: saving, renaming, moving or
-deleting it is refused. Its file can still be checked, and it runs, triggers and reports like any
+deleting it is refused. From GitHub, an editor's change in the editor becomes a pull request
+instead ([GitHub](github.md#proposing-changes)); from other repositories the editor only shows the
+file. Its file can still be checked, and it runs, triggers and reports like any
 other automation. Variables, secrets and roles come from its folder.
 
 ## Runs and checkouts

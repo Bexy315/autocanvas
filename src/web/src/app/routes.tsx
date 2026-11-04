@@ -93,6 +93,7 @@ export const routes: RouteObject[] = [
               { path: 'folders/:id', element: <FolderPage /> },
               { path: 'folders/:id/configuration', element: <FolderPage /> },
               { path: 'folders/:id/sharing', element: <FolderPage /> },
+              { path: 'folders/:id/repositories', element: <FolderPage /> },
               {
                 path: 'automations/:id',
                 element: <AutomationLayout />,

@@ -30,6 +30,7 @@ export function RunList({
             <RunStateBadge state={run.state} />
             {showAutomation && <span className="truncate font-medium">{run.automationName}</span>}
             <span className="min-w-0 flex-1 truncate text-sm text-muted">{startedText(run)}</span>
+            {run.pullRequest && <span className="font-mono text-xs text-muted">#{run.pullRequest}</span>}
             <span className="text-xs text-muted">
               <RelativeTime value={run.createdAt} /> · {duration(run.createdAt, run.finishedAt, now)}
             </span>

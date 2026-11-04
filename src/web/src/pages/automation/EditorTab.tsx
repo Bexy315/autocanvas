@@ -1,4 +1,13 @@
-import { ArrowLeft, ChevronRight, CircleCheck, CircleAlert, LoaderCircle, Save, Undo2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleAlert,
+  GitPullRequest,
+  LoaderCircle,
+  Save,
+  Undo2,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useBlocker } from 'react-router';
 import { readSetting, writeSetting } from '../../app/storage';
@@ -19,6 +28,7 @@ import {
 import type { PanelEdits } from '../../canvas/panel/panelContext';
 import { useCanvasGraph } from '../../canvas/useCanvasGraph';
 import { useNodeTypes, useSaveAutomation, type NodeTypeView } from '../../api/automations';
+import { useProposeChange, type ProposedChange } from '../../api/repositories';
 import { api, unwrapWithTag } from '../../api/client';
 import { ApiError, type Diagnostic } from '../../api/problem';
 import { ConfirmDialog } from '../../dialogs/ConfirmDialog';
@@ -34,6 +44,7 @@ import { ErrorAlert } from '../../ui/Alert';
 import { Button } from '../../ui/Button';
 import { DiagnosticList } from '../../ui/DiagnosticList';
 import { useAutomationContext } from './context';
+import { ProposeDialog } from './ProposeDialog';
 import { SaveDialog } from './SaveDialog';
 
 /** The version the edits are based on: what Save sends as If-Match and what Discard returns to. */
@@ -65,7 +76,12 @@ const noNodeTypes: readonly NodeTypeView[] = [];
  */
 export function EditorTab() {
   const { automation, tag, folder } = useAutomationContext();
-  const canEdit = hasRole(automation.myRole, 'Editor');
+  // A repository automation is changed in its repository: on GitHub as a pull request from here,
+  // elsewhere only there.
+  const origin = automation.repository ?? null;
+  const proposes = origin?.proposesChanges ?? false;
+  const canEdit = hasRole(automation.myRole, 'Editor') && (origin === null || proposes);
+  const [proposed, setProposed] = useState<ProposedChange | null>(null);
   const current = Number(automation.currentVersion);
   const [base, setBase] = useState<Base>({ yaml: automation.yaml, version: current, tag });
   const [draft, setDraft] = useState(automation.yaml);
@@ -95,6 +111,7 @@ export function EditorTab() {
   const nodeTypeList = nodeTypes.data ?? noNodeTypes;
   const completions = useMemo(() => automationCompletions(automationSchema, () => nodeTypeList), [nodeTypeList]);
   const save = useSaveAutomation(automation.id);
+  const propose = useProposeChange(automation.id);
 
   const diagnostics = saveProblems ?? validation.result?.diagnostics ?? [];
   const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'Error').length;
@@ -199,7 +216,32 @@ export function EditorTab() {
   const edit = (yaml: string) => {
     setDraft(yaml);
     setSaved(null);
+    // Resetting the text after a proposal is no new change; the link to the pull request stays.
+    if (yaml !== base.yaml) {
+      setProposed(null);
+    }
     setSaveProblems(null);
+  };
+
+  // The change goes to the repository as a pull request; here the file stays as it is until merged.
+  const offer = (title: string, text: string) => {
+    propose.mutate(
+      { yaml: draft, title: title === '' ? null : title, message: text === '' ? null : text },
+      {
+        onSuccess: (pull) => {
+          setProposed(pull);
+          setDraft(base.yaml);
+          setSaving(false);
+        },
+        onError: (error) => {
+          if (error instanceof ApiError && error.problem.diagnostics) {
+            setSaveProblems(error.problem.diagnostics);
+            showProblems(true);
+            setSaving(false);
+          }
+        },
+      },
+    );
   };
 
   const store = (onTopOf: string | null, text: string) => {
@@ -244,6 +286,7 @@ export function EditorTab() {
   const askToSave = () => {
     if (dirty) {
       save.reset();
+      propose.reset();
       setSaving(true);
     }
   };
@@ -311,18 +354,33 @@ export function EditorTab() {
                 <Undo2 aria-hidden="true" size={14} />
                 Discard
               </Button>
+              {proposed && (
+                <a href={proposed.url} target="_blank" rel="noreferrer" className="text-sm text-ok hover:underline">
+                  Proposed as pull request #{proposed.number}
+                </a>
+              )}
               <Button
                 variant="primary"
                 disabled={!dirty}
-                title={dirty ? 'Save as a new version (Ctrl+S)' : 'No changes to save.'}
+                title={
+                  dirty
+                    ? proposes
+                      ? 'Propose as a pull request (Ctrl+S)'
+                      : 'Save as a new version (Ctrl+S)'
+                    : 'No changes to save.'
+                }
                 onClick={askToSave}
               >
-                <Save aria-hidden="true" size={14} />
-                Save
+                {proposes ? <GitPullRequest aria-hidden="true" size={14} /> : <Save aria-hidden="true" size={14} />}
+                {proposes ? 'Propose' : 'Save'}
               </Button>
             </>
           ) : (
-            <span className="text-sm text-muted">Read only: changing it needs the Editor role on its folder.</span>
+            <span className="text-sm text-muted">
+              {origin && hasRole(automation.myRole, 'Editor')
+                ? `Read only: it comes from the repository ${origin.repositoryName}; change ${origin.path} there.`
+                : 'Read only: changing it needs the Editor role on its folder.'}
+            </span>
           )}
         </div>
       </header>
@@ -427,19 +485,36 @@ export function EditorTab() {
         </section>
       )}
 
-      {saving && (
-        <SaveDialog
-          open
-          onOpenChange={(open) => !open && !save.isPending && setSaving(false)}
-          version={base.version + 1}
-          before={base.yaml}
-          after={draft}
-          blockedReason={blockedReason}
-          busy={save.isPending}
-          error={save.isError ? save.error : null}
-          onSave={(text) => store(base.tag, text)}
-        />
-      )}
+      {saving &&
+        (proposes && origin ? (
+          <ProposeDialog
+            repository={origin.repositoryName}
+            path={origin.path}
+            before={base.yaml}
+            after={draft}
+            blockedReason={blockedReason}
+            busy={propose.isPending}
+            error={
+              propose.isError && !(propose.error instanceof ApiError && propose.error.problem.diagnostics)
+                ? propose.error
+                : null
+            }
+            onOpenChange={(open) => !open && !propose.isPending && setSaving(false)}
+            onPropose={offer}
+          />
+        ) : (
+          <SaveDialog
+            open
+            onOpenChange={(open) => !open && !save.isPending && setSaving(false)}
+            version={base.version + 1}
+            before={base.yaml}
+            after={draft}
+            blockedReason={blockedReason}
+            busy={save.isPending}
+            error={save.isError ? save.error : null}
+            onSave={(text) => store(base.tag, text)}
+          />
+        ))}
       <ConfirmDialog
         title="Discard your changes?"
         open={discarding}

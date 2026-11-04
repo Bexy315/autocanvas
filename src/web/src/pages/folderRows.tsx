@@ -67,6 +67,7 @@ export function AutomationRow({ automation }: { automation: AutomationSummary })
       title={automation.title}
       meta={
         <>
+          {automation.repository && <Badge>From {automation.repository.repositoryName}</Badge>}
           <span>Version {automation.currentVersion}</span>
           <span>
             Updated <RelativeTime value={automation.updatedAt} />

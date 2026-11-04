@@ -103,6 +103,12 @@ function RunScreen({ run }: { run: RunView }) {
           ) : (
             `version ${run.automationVersion}`
           )}
+          {run.commit && (
+            <>
+              {' · '}
+              <RunCommit run={run} />
+            </>
+          )}
         </span>
         {run.cancelRequested && running && <span className="text-xs text-warn">Cancelling…</span>}
         {run.automationId && <RunActions run={run} automationId={run.automationId} />}
@@ -173,6 +179,47 @@ function RunScreen({ run }: { run: RunView }) {
 }
 
 /** Cancelling and starting again, for those who may (Operator); the server decides either way. */
+/** The commit a run of a repository automation ran at, its branch, or its pull request, linked where known. */
+function RunCommit({ run }: { run: RunView }) {
+  const commit = run.commit?.slice(0, 7);
+  const branch = run.ref?.startsWith('refs/heads/') ? run.ref.slice('refs/heads/'.length) : null;
+  return (
+    <>
+      {run.commitUrl ? (
+        <a
+          href={run.commitUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono underline-offset-2 hover:underline"
+        >
+          {commit}
+        </a>
+      ) : (
+        <code>{commit}</code>
+      )}
+      {run.pullRequest ? (
+        <>
+          {' in '}
+          {run.pullRequestUrl ? (
+            <a
+              href={run.pullRequestUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="underline-offset-2 hover:underline"
+            >
+              pull request #{run.pullRequest}
+            </a>
+          ) : (
+            `pull request #${run.pullRequest}`
+          )}
+        </>
+      ) : (
+        branch && ` on ${branch}`
+      )}
+    </>
+  );
+}
+
 function RunActions({ run, automationId }: { run: RunView; automationId: string }) {
   const navigate = useNavigate();
   const automation = useAutomation(automationId);

@@ -256,6 +256,36 @@ describe('a run', () => {
     renderApp('/runs/r9');
     expect(await screen.findByText('The run could not be loaded')).toBeInTheDocument();
   });
+
+  it('names the commit of a repository automation and its branch or pull request', async () => {
+    const commit = '0123456789abcdef0123456789abcdef01234567';
+    server({
+      'GET /api/v1/runs/r1': () =>
+        json(
+          runView('Succeeded', {
+            commit,
+            ref: 'refs/pull/12/head',
+            commitUrl: `https://github.com/acme/shop/commit/${commit}`,
+            pullRequest: 12,
+            pullRequestUrl: 'https://github.com/acme/shop/pull/12',
+          }),
+        ),
+      'GET /api/v1/runs/r2': () => json(runView('Succeeded', { id: 'r2', commit, ref: 'refs/heads/main' })),
+    });
+    renderApp('/runs/r1');
+
+    expect(await screen.findByRole('link', { name: '0123456' })).toHaveAttribute(
+      'href',
+      `https://github.com/acme/shop/commit/${commit}`,
+    );
+    expect(screen.getByRole('link', { name: 'pull request #12' })).toHaveAttribute(
+      'href',
+      'https://github.com/acme/shop/pull/12',
+    );
+
+    renderApp('/runs/r2');
+    expect(await screen.findByText(/on main/)).toBeInTheDocument();
+  });
 });
 
 /** An EventSource that the test drives, as the browser's would on the server's events. */
