@@ -86,6 +86,8 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
             }
         }
 
+        // Webhook secrets, of automations and repositories, as well.
+        var hooks = await RotateWebhooksAsync(next, broken, cancellationToken).ConfigureAwait(false);
         if (broken.Count > 0)
         {
             return UseCase.Failure<int>(UseCaseError.Conflict($"Nothing was changed: these secrets do not decrypt with the current key: {string.Join(", ", broken)}."));
@@ -96,10 +98,44 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
         check.Ciphertext = Encrypt(next);
         audit.Record(new AuditEntry(AuditActions.MasterKeyRotated)
         {
-            Details = AuditEntry.DetailsOf(("fromKeyId", cipher.Key.Id), ("toKeyId", newKey.Id), ("secrets", secrets.Count), ("repositories", repositories.Count)),
+            Details = AuditEntry.DetailsOf(("fromKeyId", cipher.Key.Id), ("toKeyId", newKey.Id), ("secrets", secrets.Count), ("repositories", repositories.Count), ("webhooks", hooks)),
         });
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return UseCase.Success(secrets.Count);
+    }
+
+    /// <summary>Re-encrypts the webhook secrets; adds the ones that do not decrypt to <paramref name="broken"/>.</summary>
+    private async Task<int> RotateWebhooksAsync(SecretCipher next, List<string> broken, CancellationToken cancellationToken)
+    {
+        var automations = await database.AutomationWebhooks.Where(w => w.SigningSecret != null).ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var webhook in automations)
+        {
+            var scope = Triggers.WebhookService.CipherScope;
+            if (cipher.Decrypt(scope, webhook.AutomationId.ToString(), webhook.SigningSecret!) is { } value)
+            {
+                database.Entry(webhook).Property(w => w.SigningSecret).CurrentValue = next.Encrypt(scope, webhook.AutomationId.ToString(), value);
+            }
+            else
+            {
+                broken.Add($"webhook/{webhook.Hint}");
+            }
+        }
+
+        var repositories = await database.RepositoryWebhooks.ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var webhook in repositories)
+        {
+            var scope = Repositories.RepositoryWebhookService.SecretScope;
+            if (cipher.Decrypt(scope, webhook.RepositoryId.ToString(), webhook.SecretCiphertext) is { } value)
+            {
+                webhook.SecretCiphertext = next.Encrypt(scope, webhook.RepositoryId.ToString(), value);
+            }
+            else
+            {
+                broken.Add($"webhook/{webhook.Hint}");
+            }
+        }
+
+        return automations.Count + repositories.Count;
     }
 
     private static string Encrypt(SecretCipher with) => with.Encrypt(CheckScope, CheckName, CheckText);

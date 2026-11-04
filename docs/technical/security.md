@@ -26,7 +26,10 @@ This page describes what AutoCanvas protects and how. It grows with the server; 
   (`ach_`, 32 random bytes, stored as SHA-256) is its credential, and a signed address also checks
   an HMAC-SHA256 of the body with a secret kept encrypted under the master key. Calls are rate
   limited per address and at most 1 MiB. They are exempt from the `X-AutoCanvas-Request` header,
-  which guards browser sessions, because they never carry one.
+  which guards browser sessions, because they never carry one. A repository's address (`acg_`)
+  always needs the secret: an HMAC-SHA256 of the body (`X-Hub-Signature-256`, `X-Gitea-Signature`)
+  or, as GitLab sends it, the secret itself (`X-Gitlab-Token`), compared in constant time. The
+  forges' signature and token headers never reach a run's `trigger.headers`.
 - **Server → runners**: runners authenticate with their own credentials on a port of their own
   ([ADR-0017](../adr/0017-runner-endpoint-and-credentials.md)) and receive resolved jobs and steps,
   one step at a time, including only the secrets those steps use
@@ -135,6 +138,7 @@ values in text before it is stored (used for run logs in S2). The key is rotated
 
 A token or password of a connected repository ([ADR-0021](../adr/0021-repositories-per-folder.md))
 is encrypted like a secret under the master key, rotates with it, and is never returned by the API.
+So are the secrets of webhook addresses, of automations and repositories.
 The server passes it to git as an HTTP header in git's environment, never as an argument (which other
 processes could read) and never into a config file of the repository copy. Error messages from git
 are stripped of the credential before they are stored or shown. Repository addresses must be `http`

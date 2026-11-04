@@ -36,7 +36,8 @@ public sealed class WebhookService
     /// <summary>The header that carries the signature, <c>sha256=</c> and the hex HMAC of the body.</summary>
     public const string SignatureHeader = "X-AutoCanvas-Signature";
 
-    private const string CipherScope = "webhook";
+    /// <summary>The scope of signing secrets in the cipher's associated data.</summary>
+    internal const string CipherScope = "webhook";
 
     private readonly AutoCanvasDbContext database;
     private readonly SecretCipher cipher;
@@ -164,26 +165,8 @@ public sealed class WebhookService
 
     private static UseCaseError NoWebhook => UseCaseError.NotFound("There is no webhook at this address.");
 
-    private static bool SignatureMatches(string? secret, WebhookCall call)
-    {
-        if (secret is null || call.Signature is not { } header || !header.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        var expected = HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), call.Body.Span);
-        byte[] given;
-        try
-        {
-            given = Convert.FromHexString(header.AsSpan(7).Trim());
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
-
-        return CryptographicOperations.FixedTimeEquals(expected, given);
-    }
+    private static bool SignatureMatches(string? secret, WebhookCall call) =>
+        WebhookSignatures.Matches(secret, call.Body.Span, WebhookSignatures.Prefixed(call.Signature));
 
     /// <summary>What the run reads as <c>trigger.*</c>: the body (an object when it is JSON), the headers and the query.</summary>
     private static string Data(WebhookCall call)

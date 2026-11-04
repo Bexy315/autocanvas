@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoCanvas.Forge;
 using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Queue;
@@ -37,6 +38,38 @@ public sealed class RepositoryPolling
         this.discovery = discovery;
         this.time = time;
         pushes = new RepositoryPushes(database, discovery, signal, configuration, audit, time);
+    }
+
+    /// <summary>Handles the pushes webhooks stored, oldest first; each is taken out by one server.</summary>
+    public async Task<TriggerRound> HandleReceivedAsync(CancellationToken cancellationToken)
+    {
+        var received = await database.RepositoryPushes.AsNoTracking()
+            .OrderBy(p => p.ReceivedAt).ThenBy(p => p.Id)
+            .Take(MaxPushesPerPoll)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        var round = new TriggerRound();
+        foreach (var stored in received)
+        {
+            if (await database.RepositoryPushes.Where(p => p.Id == stored.Id).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false) == 0)
+            {
+                continue;
+            }
+
+            if (await database.Repositories.FirstOrDefaultAsync(r => r.Id == stored.RepositoryId, cancellationToken).ConfigureAwait(false) is { } repository)
+            {
+                var push = new PushEvent(stored.Ref, stored.Before, stored.After)
+                {
+                    ChangedFiles = stored.ChangedFiles is { } files ? JsonSerializer.Deserialize<List<string>>(files) : null,
+                    Pusher = stored.Pusher,
+                    Message = stored.Message,
+                };
+                await pushes.HandleAsync(repository, push, round, cancellationToken).ConfigureAwait(false);
+            }
+
+            database.ChangeTracker.Clear();
+        }
+
+        return round;
     }
 
     /// <summary>Polls every repository that is due.</summary>

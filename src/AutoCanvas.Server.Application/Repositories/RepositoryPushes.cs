@@ -56,7 +56,7 @@ internal sealed class RepositoryPushes
             return;
         }
 
-        if (!await RecordAsync(repository.Id, push.Ref, push.After, cancellationToken).ConfigureAwait(false))
+        if (await RecordAsync(repository.Id, push.Ref, push.After, cancellationToken).ConfigureAwait(false) is not { } previous)
         {
             return;
         }
@@ -69,20 +69,21 @@ internal sealed class RepositoryPushes
 
         var forge = discovery.ForgeOf(repository);
         var access = discovery.AccessOf(repository);
-        RepositorySnapshot snapshot;
-        try
+        if (await ReadAsync(repository, forge, access, push, round, cancellationToken).ConfigureAwait(false) is not { } snapshot)
         {
-            snapshot = await forge.ReadAutomationsAsync(access, push.Ref, cancellationToken).ConfigureAwait(false);
-        }
-        catch (ForgeException exception)
-        {
-            round.Skip($"The push to {push.Ref} of the repository '{repository.Name}' started nothing: {exception.Message}");
             return;
         }
 
         if (!string.Equals(snapshot.Commit, push.After, StringComparison.Ordinal))
         {
-            // The ref moved on again; the push that moved it starts the runs, with its files.
+            // The ref moved on again; the push that moved it starts the runs, with its files. When
+            // that push was handled already (a webhook arriving late), the row goes back to it, so
+            // that it is not handled again.
+            if (string.Equals(previous, snapshot.Commit, StringComparison.Ordinal))
+            {
+                await MoveAsync(repository.Id, push.Ref, push.After, previous, cancellationToken).ConfigureAwait(false);
+            }
+
             return;
         }
 
@@ -97,6 +98,20 @@ internal sealed class RepositoryPushes
             }
 
             await StartAsync(automation, file, push, snapshot, changes, round, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>The automation files at the pushed ref, or <see langword="null"/> when they cannot be read.</summary>
+    private static async Task<RepositorySnapshot?> ReadAsync(Repository repository, IForge forge, RepositoryAccess access, PushEvent push, TriggerRound round, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await forge.ReadAutomationsAsync(access, push.Ref, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ForgeException exception)
+        {
+            round.Skip($"The push to {push.Ref} of the repository '{repository.Name}' started nothing: {exception.Message}");
+            return null;
         }
     }
 
@@ -145,22 +160,24 @@ internal sealed class RepositoryPushes
     }
 
     /// <summary>
-    /// Moves the ref's row to the commit, or adds it; <see langword="false"/> when it is there
-    /// already, so that the push was handled (by a webhook, a poll or another server).
+    /// Moves the ref's row to the commit, or adds it, and says what it was before (an empty
+    /// commit for a new row); <see langword="null"/> when it is there already, so that the push was
+    /// handled (by a webhook, a poll or another server), or when another handler moved it meanwhile.
     /// </summary>
-    private async Task<bool> RecordAsync(Guid repositoryId, string gitRef, string commit, CancellationToken cancellationToken)
+    private async Task<string?> RecordAsync(Guid repositoryId, string gitRef, string commit, CancellationToken cancellationToken)
     {
-        var moved = await database.RepositoryRefs
-            .Where(r => r.RepositoryId == repositoryId && r.Ref == gitRef && r.Commit != commit)
-            .ExecuteUpdateAsync(set => set.SetProperty(r => r.Commit, commit), cancellationToken).ConfigureAwait(false);
-        if (moved > 0)
+        var previous = await database.RepositoryRefs.AsNoTracking()
+            .Where(r => r.RepositoryId == repositoryId && r.Ref == gitRef)
+            .Select(r => r.Commit)
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        if (string.Equals(previous, commit, StringComparison.Ordinal))
         {
-            return true;
+            return null;
         }
 
-        if (await database.RepositoryRefs.AnyAsync(r => r.RepositoryId == repositoryId && r.Ref == gitRef, cancellationToken).ConfigureAwait(false))
+        if (previous is not null)
         {
-            return false;
+            return await MoveAsync(repositoryId, gitRef, previous, commit, cancellationToken).ConfigureAwait(false) ? previous : null;
         }
 
         var row = new RepositoryRef { RepositoryId = repositoryId, Ref = gitRef, Commit = commit };
@@ -168,15 +185,21 @@ internal sealed class RepositoryPushes
         try
         {
             await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return true;
+            return string.Empty;
         }
         catch (DbUpdateException)
         {
             // Another handler added it in the meantime.
             database.Entry(row).State = EntityState.Detached;
-            return false;
+            return null;
         }
     }
+
+    /// <summary>Moves the ref's row from one commit to another, if no one moved it meanwhile.</summary>
+    private async Task<bool> MoveAsync(Guid repositoryId, string gitRef, string from, string to, CancellationToken cancellationToken) =>
+        await database.RepositoryRefs
+            .Where(r => r.RepositoryId == repositoryId && r.Ref == gitRef && r.Commit == from)
+            .ExecuteUpdateAsync(set => set.SetProperty(r => r.Commit, to), cancellationToken).ConfigureAwait(false) == 1;
 
     /// <summary>What the run reads as <c>trigger.*</c>.</summary>
     private static string Data(PushEvent push, RepositorySnapshot snapshot, string? pusher)

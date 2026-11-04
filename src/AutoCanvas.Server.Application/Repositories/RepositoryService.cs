@@ -279,6 +279,9 @@ public sealed class RepositoryService(
             repository.LastError,
             repository.PollMinutes,
             repository.NextPollAt,
+            await database.RepositoryWebhooks.AsNoTracking().Where(w => w.RepositoryId == repository.Id)
+                .Select(w => new RepositoryWebhookView(w.Hint, w.CreatedAt, w.CreatedByName))
+                .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false),
             RepositoryDiscovery.ProblemsOf(repository),
             count,
             repository.CreatedAt,

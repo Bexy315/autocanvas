@@ -193,7 +193,7 @@ exit with `0` on success and `1` with a message on standard error otherwise.
 | `admin create <user-name> [--display-name <name>] [--password-stdin]` | Creates an admin; prints a one-time password unless one is read from standard input |
 | `admin reset-password <user-name>` | Gives a user a new one-time password and ends their sessions |
 | `admin generate-master-key` | Prints a new random master key ([Master key](#master-key)) |
-| `admin rotate-master-key --new-key-stdin` or `--new-key-file <path>` | Re-encrypts every secret under a new master key; stop the server first ([Rotating the key](#rotating-the-key)) |
+| `admin rotate-master-key --new-key-stdin` or `--new-key-file <path>` | Re-encrypts every secret, repository credential and webhook secret under a new master key; stop the server first ([Rotating the key](#rotating-the-key)) |
 
 `admin` commands apply pending migrations first, unless `Database:MigrateOnStart` is `false`. Only
 the server itself and `admin rotate-master-key` need the master key.
@@ -230,6 +230,10 @@ repositories per round and 50 refs per repository, the rest in later rounds. Wit
 one database each repository is polled by one of them. A failed poll is logged as a warning and
 shown on the repository (`lastError`). The commit each branch and tag was last seen at is kept in
 the database (`repository_refs`), so a restarted server does not start runs for pushes it handled.
+
+Pushes that arrive by a repository's webhook (`POST /api/v1/hooks/acg_…`) are answered at once and
+stored (`repository_pushes`); the server that took the call handles them right away, the others
+look for stored pushes every 5 seconds. The forges must reach the server's public address.
 
 ## Reverse proxies and HTTPS
 

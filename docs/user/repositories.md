@@ -12,7 +12,7 @@ Automations can live in a Git repository, next to the code they build
 :::note Status
 
 Repositories are connected through the HTTP API so far; the web UI follows later in S5, as do
-webhooks for pushes, pull request triggers and GitHub.
+pull request triggers and GitHub.
 
 :::
 
@@ -111,6 +111,37 @@ triggers:
   `trigger.pusher` and `trigger.message` describe the push, `run.branch`, `run.commit_sha` and
   `run.commit_short_sha` the run's commit. The run is started by the pusher, or by the commit's
   author when the pusher is not known.
+
+### Webhook
+
+With a webhook, the repository's forge tells AutoCanvas of each push, so runs start within seconds.
+Editors of the folder create the address:
+
+```sh
+curl -b cookies.txt -H 'X-AutoCanvas-Request: 1' -X POST \
+  http://localhost:5080/api/v1/repositories/<id>/webhook
+```
+
+The answer has the address (`url`, from the public address under **Administration** → **Instance**,
+or `path`) and the `secret`. Both are shown **only once**; a new address replaces the old one, and
+`DELETE /api/v1/repositories/<id>/webhook` removes it. The repository shows the address's `hint`.
+Enter both at the forge:
+
+| Forge | Where | Settings |
+|---|---|---|
+| GitHub | the repository's **Settings** → **Webhooks** → **Add webhook** | Payload URL = the address, content type `application/json`, Secret = the secret, event **Just the push event** |
+| Gitea, Forgejo | **Settings** → **Webhooks** → **Add webhook** → **Gitea** | Target URL = the address, POST, content type `application/json`, Secret = the secret, trigger **Push events** |
+| GitLab | **Settings** → **Webhooks** → **Add new webhook** | URL = the address, Secret token = the secret, trigger **Push events** and **Tag push events** |
+
+The server must be reachable from the forge at that address. A call that does not prove the secret
+(`X-Hub-Signature-256` or `X-Gitea-Signature`, an HMAC-SHA256 of the body, or `X-Gitlab-Token`)
+is refused with `401`. GitHub's test call (`ping`) and other events are answered with `200` and do
+nothing; a push is answered with `200` at once and its runs start in the background. When a
+webhook and a poll both see a push, it starts its runs once, so polling can stay on as a safety
+net, or be turned off (`pollMinutes: 0`).
+
+The changed files for `paths` come from the push's commits; for pushes of 20 commits or more, a
+new branch or a forced push, AutoCanvas finds them in the repository as when polling.
 
 ### Polling
 
