@@ -96,6 +96,9 @@ public static class AuditActions
     /// <summary>An automation was deleted with all its versions; details: <c>name</c>, <c>versions</c>.</summary>
     public const string AutomationDeleted = "automation.deleted";
 
+    /// <summary>A change of a repository automation was proposed as a pull request; details: <c>repository</c>, <c>path</c>, <c>branch</c>, <c>number</c>.</summary>
+    public const string AutomationPullRequestProposed = "automation.pull_request_proposed";
+
     /// <summary>A webhook address of an automation was created, replacing any earlier one; details: <c>hint</c>, <c>signed</c>, <c>replaced</c>.</summary>
     public const string WebhookCreated = "automation.webhook_created";
 

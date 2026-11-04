@@ -20,6 +20,7 @@ namespace AutoCanvas.Server.Application.Repositories;
 /// <param name="Automations">How many automations come from it.</param>
 /// <param name="CreatedAt">When it was connected.</param>
 /// <param name="CreatedByName">Who connected it.</param>
+/// <param name="WebUrl">Its page on its forge, when known (GitHub).</param>
 public sealed record RepositoryView(
     Guid Id,
     Guid FolderId,
@@ -39,4 +40,5 @@ public sealed record RepositoryView(
     IReadOnlyList<RepositoryProblemView> Problems,
     int Automations,
     DateTimeOffset CreatedAt,
-    string CreatedByName);
+    string CreatedByName,
+    Uri? WebUrl = null);

@@ -122,6 +122,7 @@ part of the log.
 | `repository.synced` | the user who synced; System after a push or poll | repository | `name`, `commit`, `error` (why it could not be read) |
 | `repository.webhook_created` | editor | repository | `name`, `hint`, `replaced` |
 | `repository.webhook_deleted` | editor | repository | `name`, `hint` |
+| `automation.pull_request_proposed` | editor | automation | `repository`, `path`, `branch`, `number` |
 | `github.app_created` | admin | github-app | `slug`, `owner` |
 | `github.app_configured` | admin | github-app | `slug`, `owner` |
 | `github.app_deleted` | admin | github-app | `slug`, `owner` |

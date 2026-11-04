@@ -492,6 +492,89 @@
         }
       }
     },
+    "/api/v1/automations/{id}/pull-request": {
+      "post": {
+        "tags": [
+          "Automations"
+        ],
+        "summary": "Propose a change of a repository automation as a pull request",
+        "description": "A repository automation is changed in its repository: the new file becomes a branch with one commit, from the commit of the current version, and a pull request into the repository's branch. GitHub repositories only. Needs Editor.",
+        "operationId": "ProposeAutomationChange",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeProposal"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposedChangeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/setup": {
       "get": {
         "tags": [
@@ -6769,6 +6852,33 @@
         },
         "description": "A new password for the signed-in user."
       },
+      "ChangeProposal": {
+        "required": [
+          "yaml"
+        ],
+        "type": "object",
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "description": "The automation file as it should be."
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The pull request's title; the commit message when unset."
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commit message; `Change {automation} in AutoCanvas` when unset."
+          }
+        },
+        "description": "A new text of a repository automation, to propose as a pull request."
+      },
       "CompletionOutcome": {
         "enum": [
           "Success",
@@ -8960,6 +9070,35 @@
           }
         }
       },
+      "ProposedChangeView": {
+        "required": [
+          "number",
+          "url",
+          "branch"
+        ],
+        "type": "object",
+        "properties": {
+          "number": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Its number.",
+            "format": "int32"
+          },
+          "url": {
+            "type": "string",
+            "description": "Its page on the forge.",
+            "format": "uri"
+          },
+          "branch": {
+            "type": "string",
+            "description": "The branch with the change."
+          }
+        },
+        "description": "The pull request a change was proposed as."
+      },
       "ReceivedHookView": {
         "required": [
           "queued",
@@ -9293,6 +9432,38 @@
               "string"
             ],
             "description": "The commit the current version was read at."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Which forge it lives on: `GenericGit` or `GitHub`."
+          },
+          "proposesChanges": {
+            "type": "boolean",
+            "description": "Whether a change made in AutoCanvas can be proposed as a pull request (GitHub)."
+          },
+          "webUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The page of the repository on its forge, when known.",
+            "format": "uri"
+          },
+          "fileUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The file at string? RepositorySource.Commit on the forge, when known.",
+            "format": "uri"
+          },
+          "commitUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commit on the forge, when known.",
+            "format": "uri"
           }
         },
         "description": "Where a repository automation comes from (ADR-0021)."
@@ -9443,6 +9614,14 @@
           "createdByName": {
             "type": "string",
             "description": "Who connected it."
+          },
+          "webUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its page on its forge, when known (GitHub).",
+            "format": "uri"
           }
         },
         "description": "A repository connected in a folder; its credential never comes back."
@@ -9884,6 +10063,16 @@
             ],
             "description": "When it finished.",
             "format": "date-time"
+          },
+          "pullRequest": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "The pull request the run is for, if a pull request started it.",
+            "format": "int32"
           }
         },
         "description": "A run as listed."
@@ -10019,6 +10208,32 @@
               "string"
             ],
             "description": "The branch or tag of that commit, such as `refs/heads/main`."
+          },
+          "commitUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The commit on its forge, when known.",
+            "format": "uri"
+          },
+          "pullRequest": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "The pull request the run is for, if a pull request started it.",
+            "format": "int32"
+          },
+          "pullRequestUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "That pull request on its forge, when known.",
+            "format": "uri"
           }
         },
         "description": "A run with its jobs."

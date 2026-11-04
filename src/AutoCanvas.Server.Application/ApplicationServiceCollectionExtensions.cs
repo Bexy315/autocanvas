@@ -89,6 +89,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<GitHubRepositoryService>();
         services.AddScoped<GitHubEventService>();
         services.AddScoped<ForgeReporter>();
+        services.AddScoped<GitHubChangeProposals>();
     }
 
     /// <summary>Runs, the job queue, logs and reports.</summary>

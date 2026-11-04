@@ -68,7 +68,24 @@ internal static class GitHubEndpoints
 
         MapEvents(api);
         MapRepositories(api);
+        MapProposals(api);
     }
+
+    private static void MapProposals(RouteGroupBuilder api) =>
+        api.MapPost("/automations/{id:guid}/pull-request", ProposeAsync)
+            .WithTags("Automations")
+            .RequireAuthorization()
+            .WithName("ProposeAutomationChange")
+            .Produces<ProposedChangeView>(StatusCodes.Status201Created)
+            .WithSummary("Propose a change of a repository automation as a pull request")
+            .WithDescription("A repository automation is changed in its repository: the new file becomes a branch with one commit, from the commit of the current version, and a pull request into the repository's branch. GitHub repositories only. Needs Editor.")
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
+
+    private static async Task<IResult> ProposeAsync(Guid id, ChangeProposal proposal, HttpContext context, GitHubChangeProposals proposals, CancellationToken cancellationToken) =>
+        ApiResults.Created(await proposals.ProposeAsync(context.User.ToActor(), id, proposal, cancellationToken).ConfigureAwait(false), _ => $"/api/v1/automations/{id}");
 
     private static void MapEvents(RouteGroupBuilder api)
     {

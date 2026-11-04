@@ -115,6 +115,24 @@ one starts nothing. Runs of pull requests from forks get no secrets.
 A job checks out a GitHub repository with a token that may only read that repository, whatever
 started the run.
 
+## Proposing changes
+
+A repository automation is changed in its repository, so AutoCanvas does not save it. For a GitHub
+repository, an editor's change becomes a **pull request** instead
+(`POST /api/v1/automations/<id>/pull-request` with the new `yaml`, and optionally `title` and
+`message`):
+
+1. A branch `autocanvas/<automation>-<time>` is made from the commit of the automation's current
+   version.
+2. The new file is committed on it, as the app, with the message (by default
+   *Change &lt;automation&gt; in AutoCanvas*).
+3. A pull request into the repository's branch is opened, saying who proposed it and linking to the
+   automation.
+
+The file must be valid, as when saving. The automation in AutoCanvas changes once the pull request
+is merged and the push arrives. When GitHub refuses (for example a protected branch pattern or a
+missing permission of the app), the answer says why.
+
 ## Results on GitHub
 
 Every run of an automation from a GitHub repository shows on its commit, whatever started it:

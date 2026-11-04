@@ -35,6 +35,9 @@ public sealed class GitHubStub : IAsyncDisposable
     private readonly ConcurrentQueue<string> tokenRequestBodies = new();
     private readonly ConcurrentQueue<(string Commit, JsonElement Status)> statuses = new();
     private readonly ConcurrentDictionary<long, (int Number, string Body)> comments = new();
+    private readonly ConcurrentQueue<(string Branch, string Commit)> branches = new();
+    private readonly ConcurrentQueue<(string Path, string Branch, string Sha, string Content, string Message)> fileChanges = new();
+    private readonly ConcurrentQueue<JsonElement> pullRequests = new();
     private int tokenRequests;
     private long lastComment = 100;
 
@@ -91,6 +94,21 @@ public sealed class GitHubStub : IAsyncDisposable
     /// <summary>The comments on pull requests by id: the pull request's number and the text.</summary>
     public IReadOnlyDictionary<long, (int Number, string Body)> Comments => comments;
 
+    /// <summary>The branches created, with the commit each starts at.</summary>
+    public IReadOnlyCollection<(string Branch, string Commit)> Branches => branches;
+
+    /// <summary>The files changed through the contents API: path, branch, the blob replaced, the new text and the message.</summary>
+    public IReadOnlyCollection<(string Path, string Branch, string Sha, string Content, string Message)> FileChanges => fileChanges;
+
+    /// <summary>The pull requests opened, as sent.</summary>
+    public IReadOnlyCollection<JsonElement> PullRequests => pullRequests;
+
+    /// <summary>Whether opening pull requests fails, as on a repository that does not allow it.</summary>
+    public bool RefusePullRequests { get; set; }
+
+    /// <summary>The blob id the stub gives a file at a commit.</summary>
+    public static string BlobOf(string path, string commit) => $"blob-{commit[..7]}-{path.Replace('/', '-')}";
+
     /// <summary>Deletes a comment, as someone could on GitHub.</summary>
     public void DeleteComment(long id) => comments.TryRemove(id, out _);
 
@@ -133,6 +151,10 @@ public sealed class GitHubStub : IAsyncDisposable
             ["api", "v3", "app", "installations", var id, "access_tokens"] when HttpMethods.IsPost(context.Request.Method) => AsApp(context, () => NewToken(id, Body(context))),
             ["api", "v3", "repos", _, _, "pulls", var number, "files"] => AsInstallation(context, () => PullRequestFiles(number, context.Request.Query["page"])),
             ["api", "v3", "repos", _, _, "statuses", var commit] when HttpMethods.IsPost(context.Request.Method) => AsInstallation(context, () => Status(commit, Body(context))),
+            ["api", "v3", "repos", _, _, "contents", .. var file] when HttpMethods.IsGet(context.Request.Method) => AsInstallation(context, () => (200, new { sha = BlobOf(Unescape(file), context.Request.Query["ref"].ToString()) })),
+            ["api", "v3", "repos", _, _, "contents", .. var file] when HttpMethods.IsPut(context.Request.Method) => AsInstallation(context, () => ChangeFile(Unescape(file), Body(context))),
+            ["api", "v3", "repos", _, _, "git", "refs"] when HttpMethods.IsPost(context.Request.Method) => AsInstallation(context, () => NewBranch(Body(context))),
+            ["api", "v3", "repos", var owner, var name, "pulls"] when HttpMethods.IsPost(context.Request.Method) => AsInstallation(context, () => NewPullRequest(owner, name, Body(context))),
             ["api", "v3", "repos", _, _, "issues", var number, "comments"] when HttpMethods.IsPost(context.Request.Method) => AsInstallation(context, () => NewComment(number, Body(context))),
             ["api", "v3", "repos", _, _, "issues", "comments", var id] when HttpMethods.IsPatch(context.Request.Method) => AsInstallation(context, () => UpdateComment(id, Body(context))),
             ["api", "v3", "installation", "repositories"] => AsInstallation(context, () => (200, new { total_count = AllRepositories().Count(), repositories = AllRepositories().Select(Repository).ToList() })),
@@ -175,6 +197,38 @@ public sealed class GitHubStub : IAsyncDisposable
     {
         using var reader = new StreamReader(context.Request.Body);
         return reader.ReadToEndAsync().GetAwaiter().GetResult();
+    }
+
+    private static string Unescape(string[] parts) => string.Join('/', parts.Select(Uri.UnescapeDataString));
+
+    private (int, object) NewBranch(string body)
+    {
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        branches.Enqueue((root.GetProperty("ref").GetString()!["refs/heads/".Length..], root.GetProperty("sha").GetString()!));
+        return (201, new { @ref = root.GetProperty("ref").GetString() });
+    }
+
+    private (int, object) ChangeFile(string path, string body)
+    {
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        var content = Encoding.UTF8.GetString(Convert.FromBase64String(root.GetProperty("content").GetString()!));
+        fileChanges.Enqueue((path, root.GetProperty("branch").GetString()!, root.GetProperty("sha").GetString()!, content, root.GetProperty("message").GetString()!));
+        return (200, new { content = new { path } });
+    }
+
+    private (int, object) NewPullRequest(string owner, string name, string body)
+    {
+        if (RefusePullRequests)
+        {
+            return (422, new { message = "Validation Failed" });
+        }
+
+        using var document = JsonDocument.Parse(body);
+        pullRequests.Enqueue(document.RootElement.Clone());
+        var number = 40 + pullRequests.Count;
+        return (201, new { number, html_url = $"https://github.com/{owner}/{name}/pull/{number}" });
     }
 
     private (int, object) Status(string commit, string body)
