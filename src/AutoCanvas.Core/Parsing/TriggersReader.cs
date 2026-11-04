@@ -37,7 +37,8 @@ internal static partial class TriggersReader
             Push: ReadPush(map.Take("push"), ParseContext.Child(path, "push"), context),
             Schedules: ReadSchedules(map.Take("schedule"), ParseContext.Child(path, "schedule"), context),
             Webhook: Values.Boolean(map.Take("webhook"), ParseContext.Child(path, "webhook"), context) ?? false,
-            AutomationCompleted: ReadAutomationCompleted(map.Take("automation_completed"), ParseContext.Child(path, "automation_completed"), context));
+            AutomationCompleted: ReadAutomationCompleted(map.Take("automation_completed"), ParseContext.Child(path, "automation_completed"), context),
+            PullRequest: ReadPullRequest(map.Take("pull_request"), ParseContext.Child(path, "pull_request"), context));
         map.ReportUnknownKeys(context);
         return triggers;
     }
@@ -55,6 +56,29 @@ internal static partial class TriggersReader
             Collections.TextList(map.Take("paths"), ParseContext.Child(path, "paths"), context) ?? []);
         map.ReportUnknownKeys(context);
         return push;
+    }
+
+    private static PullRequestTrigger? ReadPullRequest(YamlNode? node, string path, ParseContext context)
+    {
+        if (node is null || Mapping.From(node, path, context, "the pull request trigger") is not { } map)
+        {
+            return null;
+        }
+
+        var typesPath = ParseContext.Child(path, "types");
+        var typesNode = map.Take("types");
+        var types = Collections.TextList(typesNode, typesPath, context);
+        foreach (var unknown in (types ?? []).Where(t => !PullRequestTrigger.KnownTypes.Contains(t, StringComparer.Ordinal)))
+        {
+            context.Error(DiagnosticCodes.InvalidValue, typesPath, typesNode, $"'{unknown}' is not a type of pull request event; use {string.Join(", ", PullRequestTrigger.KnownTypes)}.");
+        }
+
+        var trigger = new PullRequestTrigger(
+            Collections.TextList(map.Take("branches"), ParseContext.Child(path, "branches"), context) ?? [],
+            Collections.TextList(map.Take("paths"), ParseContext.Child(path, "paths"), context) ?? [],
+            types is { Count: > 0 } ? types : PullRequestTrigger.DefaultTypes);
+        map.ReportUnknownKeys(context);
+        return trigger;
     }
 
     private static List<ScheduleTrigger> ReadSchedules(YamlNode? node, string path, ParseContext context)

@@ -113,6 +113,10 @@ public sealed class GitHttpServer : IAsyncDisposable
         await GitAsync(root, "--git-dir", Bare(repository), "-c", "user.name=Ada Lovelace", "-c", "user.email=author@example.org", "tag", "-a", "-m", message, tag, commit).ConfigureAwait(false);
     }
 
+    /// <summary>Points a ref at a commit, such as <c>refs/pull/1/head</c> as forges keep pull requests.</summary>
+    public async Task SetRefAsync(string repository, string fullRef, string commit) =>
+        await GitAsync(root, "--git-dir", Bare(repository), "update-ref", fullRef, commit).ConfigureAwait(false);
+
     /// <summary>Deletes a branch or tag, given as a full ref such as <c>refs/heads/feature</c>.</summary>
     public async Task DeleteRefAsync(string repository, string fullRef) =>
         await GitAsync(root, "--git-dir", Bare(repository), "update-ref", "-d", fullRef).ConfigureAwait(false);

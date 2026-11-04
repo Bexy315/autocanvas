@@ -104,6 +104,22 @@
             "paths": { "description": "Only when a changed file matches one of these patterns.", "$ref": "#/$defs/globList" }
           }
         },
+        "pull_request": {
+          "description": "Runs on pull requests in the repository this automation lives in (repository automations only). Runs of pull requests from forks get no secrets.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "branches": { "description": "Patterns of the branch the pull request goes into; unset means all branches.", "$ref": "#/$defs/globList" },
+            "paths": { "description": "Only when a file the pull request changes matches one of these patterns.", "$ref": "#/$defs/globList" },
+            "types": {
+              "description": "What happened to the pull request; unset means opened, synchronize and reopened.",
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["opened", "synchronize", "reopened", "ready_for_review", "edited"] }
+            }
+          }
+        },
         "schedule": {
           "description": "Time-based triggers.",
           "type": "array",

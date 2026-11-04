@@ -20,7 +20,7 @@ public sealed class GitHubTests : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         stub = await GitHubStub.StartAsync();
-        await stub.Git.CreateAsync("shop");
+        await stub.Git.CreateAsync("acme/shop");
         stub.Install(7, "acme", (11, "shop"));
     }
 
@@ -67,10 +67,54 @@ public sealed class GitHubTests : IAsyncLifetime
         token.ToString().ShouldNotContain(stub.Token);
         (await client.ListInstallationRepositoriesAsync(Api, token.Token, Cancel)).ShouldHaveSingleItem().FullName.ShouldBe("acme/shop");
         var shop = await client.GetRepositoryAsync(Api, token.Token, "acme/shop", Cancel);
-        (shop.Id, shop.CloneUrl, shop.DefaultBranch, shop.Private).ShouldBe((11L, stub.Git.Url("shop"), "main", true));
+        (shop.Id, shop.CloneUrl, shop.DefaultBranch, shop.Private).ShouldBe((11L, stub.Git.Url("acme/shop"), "main", true));
         var created = await client.ConvertManifestAsync(Api, GitHubStub.ManifestCode, Cancel);
         created.WebhookSecret.ShouldBe(stub.WebhookSecret);
         created.ToString().ShouldNotContain(stub.WebhookSecret);
+    }
+
+    [Fact]
+    public async Task Pull_request_files_and_read_only_checkout_tokens_are_asked_for()
+    {
+        var client = new GitHubClient(http);
+        var jwt = GitHubJwt.Create(GitHubStub.AppId.ToString(System.Globalization.CultureInfo.InvariantCulture), stub.PrivateKey, DateTimeOffset.UtcNow);
+        stub.SetPullRequestFiles(3, [.. Enumerable.Range(0, 150).Select(i => $"src/{i}.c")]);
+
+        (await client.ListPullRequestFilesAsync(Api, stub.Token, "acme/shop", 3, Cancel))!.Count.ShouldBe(150);
+        (await client.ListPullRequestFilesAsync(Api, stub.Token, "acme/shop", 4, Cancel)).ShouldBeEmpty();
+        (await client.CreateCheckoutTokenAsync(Api, jwt, 7, 11, Cancel)).Token.ShouldBe(stub.Token);
+        stub.TokenRequestBodies.Last().ShouldBe("""{"repository_ids":[11],"permissions":{"contents":"read"}}""");
+    }
+
+    [Theory]
+    [InlineData("https://github.com/acme/shop.git", "acme/shop")]
+    [InlineData("https://github.example.org/team/app", "team/app")]
+    [InlineData("https://github.com/shop.git", null)]
+    public void The_owner_and_name_come_from_the_clone_address(string address, string? fullName) =>
+        GitHubNames.FullNameOf(new Uri(address)).ShouldBe(fullName);
+
+    [Fact]
+    public async Task The_head_of_a_pull_request_is_read_like_a_branch()
+    {
+        var head = await stub.Git.CommitAsync("acme/shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = "version: 1" + Environment.NewLine }, "Head", branch: "topic");
+        await stub.Git.SetRefAsync("acme/shop", "refs/pull/3/head", head);
+        var cache = Directory.CreateTempSubdirectory("autocanvas-github-forge-").FullName;
+        try
+        {
+            var access = new RepositoryAccess(stub.Git.Url("acme/shop"), RepositoryAccess.TokenUserName, stub.Token, cache);
+
+            (await new GitHubForge(TimeSpan.FromSeconds(60)).ReadAutomationsAsync(access, "refs/pull/3/head", Cancel)).Commit.ShouldBe(head);
+            (await Should.ThrowAsync<ForgeException>(() => new GitHubForge(TimeSpan.FromSeconds(60)).ReadAutomationsAsync(access, "refs/pull/x/head", Cancel))).Message.ShouldContain("is not a branch, tag or pull request");
+        }
+        finally
+        {
+            foreach (var file in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories))
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+            }
+
+            Directory.Delete(cache, recursive: true);
+        }
     }
 
     [Fact]
@@ -87,12 +131,12 @@ public sealed class GitHubTests : IAsyncLifetime
     [Fact]
     public async Task The_GitHub_forge_reads_with_git_and_the_installation_token()
     {
-        await stub.Git.CommitAsync("shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = "version: 1\n" }, "Start");
+        await stub.Git.CommitAsync("acme/shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = "version: 1\n" }, "Start");
         var forge = new GitHubForge(TimeSpan.FromSeconds(60));
         var cache = Directory.CreateTempSubdirectory("autocanvas-github-forge-").FullName;
         try
         {
-            var access = new RepositoryAccess(stub.Git.Url("shop"), RepositoryAccess.TokenUserName, stub.Token, cache);
+            var access = new RepositoryAccess(stub.Git.Url("acme/shop"), RepositoryAccess.TokenUserName, stub.Token, cache);
 
             forge.Kind.ShouldBe(ForgeKind.GitHub);
             var head = await forge.ResolveAsync(access, null, Cancel);

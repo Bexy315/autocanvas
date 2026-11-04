@@ -138,7 +138,7 @@ public sealed class GenericGitForgeTests : IAsyncLifetime
         tagged.Commit.ShouldBe(first);
         tagged.Files.ShouldHaveSingleItem().Path.ShouldBe(".autocanvas/automations/build.yml");
         (await forge.ReadAutomationsAsync(Access(), "refs/heads/main", Cancel)).Files.ShouldBeEmpty();
-        (await Should.ThrowAsync<ForgeException>(() => forge.ReadAutomationsAsync(Access(), "refs/pull/1/head", Cancel))).Message.ShouldContain("is not a branch or tag");
+        (await Should.ThrowAsync<ForgeException>(() => forge.ReadAutomationsAsync(Access(), "refs/pull/1/merge", Cancel))).Message.ShouldContain("is not a branch, tag or pull request");
     }
 
     [Fact]

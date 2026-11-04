@@ -74,6 +74,29 @@ public sealed class RunValuesTests
         Resolve(values, "run.commit_short_sha").ShouldBe(run.CommitSha?[..7]);
     }
 
+    [Fact]
+    public void A_run_without_secrets_reads_every_secret_as_empty()
+    {
+        var run = new Run
+        {
+            Id = Guid.CreateVersion7(),
+            FolderId = Guid.CreateVersion7(),
+            AutomationName = "build",
+            AutomationVersion = 1,
+            Number = 1,
+            Yaml = "version: 1",
+            Trigger = RunTriggerKind.PullRequest,
+            TriggeredByName = "octocat",
+            SecretsWithheld = true,
+            CreatedAt = DateTimeOffset.UnixEpoch,
+        };
+        var values = new RunValues(run, new ResolvedConfiguration(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase), new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["TOKEN"] = "t0ken" }), "success");
+
+        Resolve(values, "secrets.TOKEN").ShouldBe(string.Empty);
+        Resolve(values, "secrets.MISSING").ShouldBe(string.Empty);
+        Resolve(values, "trigger.event").ShouldBe("pull_request");
+    }
+
     private static string? Resolve(RunValues values, string path)
     {
         values.TryResolve(path.Split('.'), out var value).ShouldBeTrue();

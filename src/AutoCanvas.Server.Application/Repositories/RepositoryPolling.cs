@@ -4,6 +4,7 @@ using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Queue;
 using AutoCanvas.Persistence.Repositories;
 using AutoCanvas.Server.Application.Audit;
+using AutoCanvas.Server.Application.Forges;
 using AutoCanvas.Server.Application.Triggers;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
@@ -29,19 +30,42 @@ public sealed class RepositoryPolling
     private readonly AutoCanvasDbContext database;
     private readonly RepositoryDiscovery discovery;
     private readonly RepositoryPushes pushes;
+    private readonly RepositoryPullRequests pullRequests;
     private readonly TimeProvider time;
 
     /// <summary>Creates the polling for one unit of work.</summary>
-    public RepositoryPolling(AutoCanvasDbContext database, RepositoryDiscovery discovery, IJobSignal signal, ConfigurationService configuration, IAuditLog audit, TimeProvider time)
+    public RepositoryPolling(AutoCanvasDbContext database, RepositoryDiscovery discovery, GitHubAccess github, IJobSignal signal, ConfigurationService configuration, IAuditLog audit, TimeProvider time)
     {
         this.database = database;
         this.discovery = discovery;
         this.time = time;
         pushes = new RepositoryPushes(database, discovery, signal, configuration, audit, time);
+        pullRequests = new RepositoryPullRequests(database, discovery, github, signal, configuration, audit, time);
     }
 
-    /// <summary>Handles the pushes webhooks stored, oldest first; each is taken out by one server.</summary>
+    /// <summary>Handles the pushes and pull requests webhooks stored, oldest first; each is taken out by one server.</summary>
     public async Task<TriggerRound> HandleReceivedAsync(CancellationToken cancellationToken)
+    {
+        var round = await HandlePushesAsync(cancellationToken).ConfigureAwait(false);
+        var pulls = await database.RepositoryPullRequests.AsNoTracking()
+            .OrderBy(p => p.ReceivedAt).ThenBy(p => p.Id)
+            .Take(MaxPushesPerPoll)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var pull in pulls)
+        {
+            if (await database.RepositoryPullRequests.Where(p => p.Id == pull.Id).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false) == 1
+                && await database.Repositories.FirstOrDefaultAsync(r => r.Id == pull.RepositoryId, cancellationToken).ConfigureAwait(false) is { } repository)
+            {
+                await pullRequests.HandleAsync(repository, pull, round, cancellationToken).ConfigureAwait(false);
+            }
+
+            database.ChangeTracker.Clear();
+        }
+
+        return round;
+    }
+
+    private async Task<TriggerRound> HandlePushesAsync(CancellationToken cancellationToken)
     {
         var received = await database.RepositoryPushes.AsNoTracking()
             .OrderBy(p => p.ReceivedAt).ThenBy(p => p.Id)

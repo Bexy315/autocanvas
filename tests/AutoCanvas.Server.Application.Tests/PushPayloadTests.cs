@@ -40,6 +40,19 @@ public sealed class PushPayloadTests
     }
 
     [Fact]
+    public void Fields_of_another_kind_than_expected_count_as_missing()
+    {
+        using var document = JsonDocument.Parse($$"""
+            {"ref":"refs/heads/main","before":"{{A}}","after":"{{B}}","total_commits_count":"many","commits":[1,"x",{"id":"{{B}}","added":"a.c"}],"pusher":"ada"}
+            """);
+
+        var push = PushPayload.Read(document.RootElement)!;
+
+        push.ChangedFiles.ShouldBeEmpty();
+        (push.Pusher, push.Message).ShouldBe((null, null));
+    }
+
+    [Fact]
     public void GitLab_tag_pushes_name_the_pusher_and_take_the_message_of_the_pushed_commit()
     {
         var push = Read(new
@@ -62,6 +75,7 @@ public sealed class PushPayloadTests
     [InlineData("""{"ref":"refs/heads/main","before":"--upload-pack=x","after":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}""")]
     [InlineData("""{"ref":"refs/heads/main"}""")]
     [InlineData("""[1, 2]""")]
+    [InlineData("""{"ref":"refs/heads/main","before":1,"after":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}""")]
     public void Anything_but_a_push_with_a_branch_or_tag_and_two_commits_is_none(string json)
     {
         using var document = JsonDocument.Parse(json);

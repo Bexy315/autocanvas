@@ -11,5 +11,8 @@ internal sealed class NoInstallations : IInstallationTokens
     public Task<string> TokenAsync(long installationId, CancellationToken cancellationToken) =>
         throw new ForgeException("No GitHub App in this test.");
 
+    public Task<string> CheckoutTokenAsync(long installationId, long repositoryId, CancellationToken cancellationToken) =>
+        throw new ForgeException("No GitHub App in this test.");
+
     public IReadOnlyList<string> Issued(long installationId) => [];
 }

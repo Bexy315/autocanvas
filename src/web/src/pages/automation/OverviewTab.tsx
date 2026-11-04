@@ -18,6 +18,7 @@ const triggerNames: Record<string, string> = {
   Webhook: 'Webhook',
   AutomationCompleted: 'After another automation',
   Push: 'Push',
+  PullRequest: 'Pull request',
 };
 
 /** What an automation is: what starts it, how its last runs went, and its file. */

@@ -300,7 +300,7 @@ const orders = {
     'jobs',
     'x-editor',
   ],
-  triggers: ['manual', 'webhook', 'push', 'schedule', 'automation_completed'],
+  triggers: ['manual', 'webhook', 'push', 'pull_request', 'schedule', 'automation_completed'],
   job: [
     'name',
     'needs',

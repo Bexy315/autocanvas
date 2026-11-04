@@ -40,7 +40,7 @@ public abstract class GitHubAppTests(DatabaseProvider provider) : DatabaseTest(p
     {
         await InitializeAsync();
         github = await GitHubStub.StartAsync();
-        await github.Git.CreateAsync("shop");
+        await github.Git.CreateAsync("acme/shop");
         github.Install(7, "acme", (ShopId, "shop"));
     }
 
@@ -163,7 +163,7 @@ public abstract class GitHubAppTests(DatabaseProvider provider) : DatabaseTest(p
     [Fact]
     public async Task A_repository_from_an_installation_is_connected_read_and_checked_out_with_installation_tokens()
     {
-        await github.Git.CommitAsync("shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = Build }, "Start");
+        await github.Git.CommitAsync("acme/shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = Build }, "Start");
         await using var factory = Factory();
         var root = await factory.SignedInAsync("root", isAdmin: true);
         await ConfigureAsync(root);
@@ -190,10 +190,12 @@ public abstract class GitHubAppTests(DatabaseProvider provider) : DatabaseTest(p
         await using var scope = factory.Services.CreateAsyncScope();
         var attempt = await scope.ServiceProvider.GetRequiredService<AutoCanvasDbContext>().JobAttempts.AsNoTracking().Where(a => a.Job!.RunId == run).Select(a => a.Id).SingleAsync(Cancel);
         var checkout = (await scope.ServiceProvider.GetRequiredService<JobOfferBuilder>().BuildAsync(attempt, Cancel)).Value!.Checkouts.ShouldHaveSingleItem();
-        (checkout.Url, checkout.UserName, checkout.Password).ShouldBe((github.Git.Url("shop"), "x-access-token", github.Token));
+        (checkout.Url, checkout.UserName, checkout.Password).ShouldBe((github.Git.Url("acme/shop"), "x-access-token", github.Token));
         var redactor = await scope.ServiceProvider.GetRequiredService<LogIngestion>().RedactorAsync(attempt, Cancel);
         redactor!.Redact($"token {github.Token}").ShouldNotContain(github.Token);
-        github.TokenRequests.ShouldBe(1);
+        // One token for the server, one for checkouts, which may only read this repository.
+        github.TokenRequests.ShouldBe(2);
+        github.TokenRequestBodies.ShouldContain(body => body.Contains("\"repository_ids\":[9001]", StringComparison.Ordinal) && body.Contains("\"contents\":\"read\"", StringComparison.Ordinal));
 
         // The app goes only once its repositories have.
         (await root.DeleteAsync(new Uri("/api/v1/forges/github", UriKind.Relative), Cancel)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -204,7 +206,7 @@ public abstract class GitHubAppTests(DatabaseProvider provider) : DatabaseTest(p
     [Fact]
     public async Task The_apps_events_bring_pushes_once_per_delivery_and_mark_uninstalled_repositories()
     {
-        var start = await github.Git.CommitAsync("shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = Build }, "Start");
+        var start = await github.Git.CommitAsync("acme/shop", new Dictionary<string, string?>(StringComparer.Ordinal) { [".autocanvas/automations/build.yml"] = Build }, "Start");
         await using var factory = Factory();
         var anonymous = factory.CreateClient();
         (await SendAsync(anonymous, "ping", "d0", "{}")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -212,7 +214,7 @@ public abstract class GitHubAppTests(DatabaseProvider provider) : DatabaseTest(p
         await ConfigureAsync(root);
         var folder = await FolderAsync(root);
         var repository = (await (await root.PostAsJsonAsync($"/api/v1/folders/{folder}/repositories/github", new { installationId = 7, repository = "acme/shop", pollMinutes = 0 }, Cancel)).JsonAsync()).GetProperty("id").GetGuid();
-        var pushed = await github.Git.CommitAsync("shop", new Dictionary<string, string?>(StringComparer.Ordinal) { ["README.md"] = "x" }, "Readme");
+        var pushed = await github.Git.CommitAsync("acme/shop", new Dictionary<string, string?>(StringComparer.Ordinal) { ["README.md"] = "x" }, "Readme");
         var push = JsonSerializer.Serialize(new
         {
             @ref = "refs/heads/main",

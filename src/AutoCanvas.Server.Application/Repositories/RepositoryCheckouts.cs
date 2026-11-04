@@ -48,7 +48,7 @@ internal sealed class RepositoryCheckouts(AutoCanvasDbContext database, Reposito
 
     /// <summary>The repository as a checkout: its address, user name and credential.</summary>
     public async Task<OfferedCheckout> CheckoutAsync(Repository repository, string? gitRef, string? path, int depth, CancellationToken cancellationToken) =>
-        new(repository.Url, gitRef, path, depth, RepositoryCredentials.UserNameOf(repository), await credentials.SecretAsync(repository, cancellationToken).ConfigureAwait(false));
+        new(repository.Url, gitRef, path, depth, RepositoryCredentials.UserNameOf(repository), await credentials.CheckoutSecretAsync(repository, cancellationToken).ConfigureAwait(false));
 
     /// <summary>The folder and the folders above it whose repositories apply, the nearest first.</summary>
     private async Task<List<Guid>> FolderIdsAsync(Guid folderId, CancellationToken cancellationToken)

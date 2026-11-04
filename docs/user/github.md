@@ -13,8 +13,8 @@ pushes start runs, and jobs check out its commits.
 :::note Status
 
 Admins set up the app under **Administration → Forges**. Connecting its repositories in a folder
-works through the HTTP API so far; the web UI for that follows later in S5. Pull requests, commit
-statuses and comments come in the next step of S5.
+works through the HTTP API so far; the web UI for that follows later in S5. Pull requests start
+runs; commit statuses and comments come next.
 
 :::
 
@@ -104,6 +104,16 @@ described under [Pushes](repositories.md#pushes). A repository connected in seve
 its automations in each. Polling still works alongside (`pollMinutes`, 5 by default), and is what
 remains when GitHub cannot reach the instance; with the events arriving, it can be turned off with
 `pollMinutes: 0`.
+
+## Pull requests
+
+GitHub sends the app's pull request events too: a pull request that is opened, gets new commits,
+is reopened, becomes ready for review or is edited starts the runs its automations'
+[`pull_request` triggers](triggers.md#pull-requests) ask for, with the files at its head. Closing
+one starts nothing. Runs of pull requests from forks get no secrets.
+
+A job checks out a GitHub repository with a token that may only read that repository, whatever
+started the run.
 
 When the app is uninstalled from an account, or its installation is suspended, the account's
 repositories say so in `lastError`.

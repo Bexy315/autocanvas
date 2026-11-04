@@ -357,6 +357,8 @@ describe('the automation panel', () => {
     await user.click(within(panel).getByLabelText('On pushes to the repository'));
     // Written as a block, in the file's own style of lists.
     expect(text()).toContain('  push:\n    branches:\n    - main\n');
+    await user.click(within(panel).getByLabelText('On pull requests'));
+    expect(text()).toContain('  pull_request:\n    branches:\n    - main\n');
     await user.click(within(panel).getByLabelText('When another automation finishes'));
     await user.type(within(panel).getByLabelText('Automation'), 'nightly');
     expect(text()).toContain('  automation_completed:\n    automation: nightly\n');
@@ -366,6 +368,7 @@ describe('the automation panel', () => {
     await user.click(within(panel).getByLabelText('By hand'));
     await user.click(within(panel).getByLabelText('By a webhook'));
     await user.click(within(panel).getByLabelText('On pushes to the repository'));
+    await user.click(within(panel).getByLabelText('On pull requests'));
     await user.click(within(panel).getByLabelText('When another automation finishes'));
     await user.click(within(panel).getByRole('button', { name: 'Remove schedule 1' }));
     expect(text()).not.toContain('triggers');

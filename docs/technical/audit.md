@@ -106,7 +106,7 @@ part of the log.
 | `group.member_removed` | admin | group | `userId`, `userName` |
 | `audit.pruned` | System | — | `before` (cut-off time), `deleted` (number of entries) |
 | `run.pruned` | System | — | `before` (cut-off time), `deleted` (number of runs, each with its jobs, logs and reports) |
-| `run.started` | an operator; System for schedules and followed automations; Anonymous for webhook calls | run | `automation`, `number`, `trigger` (`manual`, `schedule`, `webhook`, `automation_completed`, `push`) |
+| `run.started` | an operator; System for schedules and followed automations; Anonymous for webhook calls | run | `automation`, `number`, `trigger` (`manual`, `schedule`, `webhook`, `automation_completed`, `push`, `pull_request`) |
 | `automation.webhook_created` | an operator | automation | `hint`, `signed`, `replaced` |
 | `automation.webhook_deleted` | an operator | automation | `hint` |
 | `run.cancelled` | an operator | run | `automation`, `number` |

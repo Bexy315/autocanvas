@@ -31,6 +31,8 @@ public sealed class GitHubStub : IAsyncDisposable
     private readonly WebApplication app;
     private readonly RSA key = RSA.Create(2048);
     private readonly ConcurrentDictionary<long, (string Account, List<(long Id, string Name)> Repositories)> installations = new();
+    private readonly ConcurrentDictionary<int, IReadOnlyList<string>> pullRequestFiles = new();
+    private readonly ConcurrentQueue<string> tokenRequestBodies = new();
     private int tokenRequests;
 
     private GitHubStub(WebApplication app, string address, GitHttpServer git, string token)
@@ -60,6 +62,9 @@ public sealed class GitHubStub : IAsyncDisposable
     /// <summary>How many installation tokens were asked for.</summary>
     public int TokenRequests => tokenRequests;
 
+    /// <summary>The bodies of the token requests, as sent (empty for an unrestricted token).</summary>
+    public IReadOnlyCollection<string> TokenRequestBodies => tokenRequestBodies;
+
     /// <summary>Starts the stub with a Git server of its own.</summary>
     public static async Task<GitHubStub> StartAsync()
     {
@@ -77,7 +82,13 @@ public sealed class GitHubStub : IAsyncDisposable
         return stub;
     }
 
-    /// <summary>Installs the app on an account with access to repositories of the Git server, by name (also their <c>owner/name</c>'s second part).</summary>
+    /// <summary>The files pull request <paramref name="number"/> changes, as GitHub lists them.</summary>
+    public void SetPullRequestFiles(int number, params string[] files) => pullRequestFiles[number] = files;
+
+    /// <summary>
+    /// Installs the app on an account with access to repositories of the Git server, by name: the
+    /// Git server holds them as <c>account/name</c>.
+    /// </summary>
     public void Install(long installationId, string account, params (long Id, string Name)[] repositories) =>
         installations[installationId] = (account, [.. repositories]);
 
@@ -107,7 +118,8 @@ public sealed class GitHubStub : IAsyncDisposable
                 repository_selection = "selected",
                 suspended_at = (string?)null,
             }).ToList())),
-            ["api", "v3", "app", "installations", var id, "access_tokens"] when HttpMethods.IsPost(context.Request.Method) => AsApp(context, () => NewToken(id)),
+            ["api", "v3", "app", "installations", var id, "access_tokens"] when HttpMethods.IsPost(context.Request.Method) => AsApp(context, () => NewToken(id, Body(context))),
+            ["api", "v3", "repos", _, _, "pulls", var number, "files"] => AsInstallation(context, () => PullRequestFiles(number, context.Request.Query["page"])),
             ["api", "v3", "installation", "repositories"] => AsInstallation(context, () => (200, new { total_count = AllRepositories().Count(), repositories = AllRepositories().Select(Repository).ToList() })),
             ["api", "v3", "repos", var owner, var name] => AsInstallation(context, () => AllRepositories().FirstOrDefault(r => string.Equals($"{r.Account}/{r.Name}", $"{owner}/{name}", StringComparison.Ordinal)) is { Name: not null } found
                 ? (200, Repository(found))
@@ -144,8 +156,22 @@ public sealed class GitHubStub : IAsyncDisposable
         html_url = new Uri(Web, "apps/autocanvas-test").ToString(),
     };
 
-    private (int, object) NewToken(string id)
+    private static string Body(HttpContext context)
     {
+        using var reader = new StreamReader(context.Request.Body);
+        return reader.ReadToEndAsync().GetAwaiter().GetResult();
+    }
+
+    private (int, object) PullRequestFiles(string number, string? page)
+    {
+        var files = pullRequestFiles.GetValueOrDefault(int.Parse(number, CultureInfo.InvariantCulture)) ?? [];
+        var index = int.Parse(page ?? "1", CultureInfo.InvariantCulture) - 1;
+        return (200, files.Skip(index * 100).Take(100).Select(f => new { filename = f }).ToList());
+    }
+
+    private (int, object) NewToken(string id, string body)
+    {
+        tokenRequestBodies.Enqueue(body);
         if (!installations.ContainsKey(long.Parse(id, CultureInfo.InvariantCulture)))
         {
             return (404, new { message = "Not Found" });
@@ -162,7 +188,7 @@ public sealed class GitHubStub : IAsyncDisposable
     {
         id = repository.Id,
         full_name = $"{repository.Account}/{repository.Name}",
-        clone_url = Git.Url(repository.Name).ToString(),
+        clone_url = Git.Url($"{repository.Account}/{repository.Name}").ToString(),
         default_branch = "main",
         @private = true,
     };

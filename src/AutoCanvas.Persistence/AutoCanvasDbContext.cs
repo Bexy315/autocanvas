@@ -125,6 +125,9 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>Pushes reported by webhooks, waiting to be handled.</summary>
     public DbSet<RepositoryPush> RepositoryPushes => Set<RepositoryPush>();
 
+    /// <summary>Pull request events reported by forges, waiting to be handled.</summary>
+    public DbSet<RepositoryPullRequest> RepositoryPullRequests => Set<RepositoryPullRequest>();
+
     /// <summary>The instance's GitHub App (ADR-0022); at most one row.</summary>
     public DbSet<GitHubApp> GitHubApps => Set<GitHubApp>();
 
@@ -180,6 +183,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RepositoryRefConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryWebhookConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryPushConfiguration());
+        modelBuilder.ApplyConfiguration(new RepositoryPullRequestConfiguration());
         modelBuilder.ApplyConfiguration(new GitHubAppConfiguration());
         modelBuilder.ApplyConfiguration(new GitHubDeliveryConfiguration());
     }
