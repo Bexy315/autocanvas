@@ -12,9 +12,8 @@ pushes start runs, and jobs check out its commits.
 
 :::note Status
 
-Admins set up the app under **Administration → Forges**. Connecting its repositories in a folder
-works through the HTTP API so far; the web UI for that follows later in S5, as does editing a
-repository automation as a pull request.
+Admins set up the app under **Administration → Forges**; editors connect its repositories in a
+folder's **Repositories** tab and propose changes of their automations from the editor.
 
 :::
 
@@ -82,8 +81,9 @@ is connected; on GitHub, it stays until it is deleted there.
 
 ## Connecting a repository
 
-Editors of a folder see what the app reaches with
-`GET /api/v1/folders/<folder>/github/repositories` and connect one:
+Editors of a folder choose one under **Repositories** → **Connect a repository** → **GitHub**, which
+lists what the app's installations reach ([Repositories](repositories.md#in-the-web-ui)). Through the
+API, `GET /api/v1/folders/<folder>/github/repositories` lists them and this connects one:
 
 ```sh
 curl -b cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json' \
@@ -118,7 +118,8 @@ started the run.
 ## Proposing changes
 
 A repository automation is changed in its repository, so AutoCanvas does not save it. For a GitHub
-repository, an editor's change becomes a **pull request** instead
+repository, an editor's change becomes a **pull request** instead: in the editor, **Propose** opens a
+dialog for an optional title and commit message, and **Open pull request** links to it afterwards
 (`POST /api/v1/automations/<id>/pull-request` with the new `yaml`, and optionally `title` and
 `message`):
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import { useRecentRuns, useTriggers, type AutomationTriggers } from '../../api/automations';
+import { useRecentRuns, useTriggers, type AutomationTriggers, type AutomationView } from '../../api/automations';
 import type { Diagnostic } from '../../api/problem';
 import { hasRole } from '../../lib/roles';
 import { ErrorAlert } from '../../ui/Alert';
@@ -35,6 +35,7 @@ export function OverviewTab() {
           </div>
         </Section>
       )}
+      {automation.repository && <RepositorySourceCard source={automation.repository} />}
       <div className="grid gap-5 md:grid-cols-2">
         <Triggers id={automation.id} />
         <RecentRuns id={automation.id} />
@@ -43,13 +44,67 @@ export function OverviewTab() {
         title="File"
         actions={
           <Link to={`/automations/${automation.id}/edit`} className="text-sm font-medium text-accent hover:underline">
-            {hasRole(automation.myRole, 'Editor') ? 'Edit' : 'Open in editor'}
+            {hasRole(automation.myRole, 'Editor') && (automation.repository?.proposesChanges ?? true)
+              ? 'Edit'
+              : 'Open in editor'}
           </Link>
         }
       >
         <YamlView text={automation.yaml} label={`File of ${automation.title}`} />
       </Section>
     </div>
+  );
+}
+
+/** Where a repository automation comes from, and that it is changed there. */
+function RepositorySourceCard({ source }: { source: NonNullable<AutomationView['repository']> }) {
+  const commit = source.commit?.slice(0, 7);
+  return (
+    <Section title="From repository">
+      <div className="flex flex-col gap-2 p-3 text-sm">
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1">
+          <dt className="text-muted">Repository</dt>
+          <dd>
+            {source.webUrl ? (
+              <a href={source.webUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                {source.repositoryName}
+              </a>
+            ) : (
+              source.repositoryName
+            )}
+          </dd>
+          <dt className="text-muted">File</dt>
+          <dd className="font-mono text-xs leading-5">
+            {source.fileUrl ? (
+              <a href={source.fileUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                {source.path}
+              </a>
+            ) : (
+              source.path
+            )}
+          </dd>
+          {commit && (
+            <>
+              <dt className="text-muted">Commit</dt>
+              <dd className="font-mono text-xs leading-5">
+                {source.commitUrl ? (
+                  <a href={source.commitUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                    {commit}
+                  </a>
+                ) : (
+                  commit
+                )}
+              </dd>
+            </>
+          )}
+        </dl>
+        <p className="text-muted">
+          {source.proposesChanges
+            ? 'Changed in the repository: edits here become a pull request, and the automation follows once it is merged.'
+            : 'Changed in the repository: AutoCanvas follows its pushes, and it cannot be edited here.'}
+        </p>
+      </div>
+    </Section>
   );
 }
 
