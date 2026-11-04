@@ -73,6 +73,8 @@ internal static class ProtocolMapping
                 Ref = checkout.Ref ?? string.Empty,
                 Path = checkout.Path ?? string.Empty,
                 Depth = (uint)Math.Max(0, checkout.Depth),
+                Username = checkout.UserName ?? string.Empty,
+                Password = checkout.Password ?? string.Empty,
             });
         }
 

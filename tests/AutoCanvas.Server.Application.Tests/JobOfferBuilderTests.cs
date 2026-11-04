@@ -95,12 +95,15 @@ public abstract class JobOfferBuilderTests(DatabaseProvider provider) : Identity
         offered.Timeout.ShouldBe(TimeSpan.FromMinutes(60));
     }
 
-    [Fact]
-    public async Task Checking_out_connected_repositories_is_refused_with_a_reason()
+    [Theory]
+    [InlineData("self", "needs an automation from a repository")]
+    [InlineData("tools", "No repository named 'tools'")]
+    [InlineData("http://example.org/a.git", "needs an https address")]
+    public async Task A_managed_automation_has_no_self_and_unknown_repositories_or_plain_http_are_refused(string repository, string reason)
     {
-        var attempt = await StartAsync("version: 1\ntriggers:\n  manual: true\njobs:\n  a:\n    checkout:\n      - repository: self\n    steps:\n      - run: echo hi\n");
+        var attempt = await StartAsync($"version: 1\ntriggers:\n  manual: true\njobs:\n  a:\n    checkout:\n      - repository: {repository}\n    steps:\n      - run: echo hi\n");
 
-        (await BuildAsync(attempt)).ShouldFail(UseCaseErrorKind.Validation).Message.ShouldContain("connected repository");
+        (await BuildAsync(attempt)).ShouldFail(UseCaseErrorKind.Validation).Message.ShouldContain(reason);
     }
 
     [Fact]
@@ -164,7 +167,7 @@ public abstract class JobOfferBuilderTests(DatabaseProvider provider) : Identity
         var context = Database.CreateContext();
         await using (context)
         {
-            return await new JobOfferBuilder(context, new ConfigurationService(context, new SecretCipher(Key)), Clock).BuildAsync(attempt, Cancel);
+            return await new JobOfferBuilder(context, new ConfigurationService(context, new SecretCipher(Key)), new SecretCipher(Key), Clock).BuildAsync(attempt, Cancel);
         }
     }
 }

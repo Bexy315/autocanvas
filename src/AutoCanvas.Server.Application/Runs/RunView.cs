@@ -18,6 +18,8 @@ namespace AutoCanvas.Server.Application.Runs;
 /// <param name="FinishedAt">When it finished.</param>
 /// <param name="Jobs">Its jobs in the order of the automation file.</param>
 /// <param name="Yaml">The automation file the run runs, as it was when the run started.</param>
+/// <param name="Commit">The commit a repository automation ran at; <see langword="null"/> for a managed one.</param>
+/// <param name="Ref">The branch or tag of that commit, such as <c>refs/heads/main</c>.</param>
 public sealed record RunView(
     Guid Id,
     int Number,
@@ -33,4 +35,6 @@ public sealed record RunView(
     DateTimeOffset CreatedAt,
     DateTimeOffset? FinishedAt,
     IReadOnlyList<RunJobView> Jobs,
-    string Yaml);
+    string Yaml,
+    string? Commit = null,
+    string? Ref = null);

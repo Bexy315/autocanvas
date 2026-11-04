@@ -48,6 +48,7 @@ internal sealed class RunStarter(AutoCanvasDbContext database, IJobSignal signal
 
         var now = time.GetUtcNow();
         var last = await database.Runs.Where(r => r.AutomationId == automation.Id).MaxAsync(r => (int?)r.Number, cancellationToken).ConfigureAwait(false);
+        var (commit, gitRef) = await CommitOfAsync(automation, start, cancellationToken).ConfigureAwait(false);
         var run = new Run
         {
             Id = Guid.CreateVersion7(now),
@@ -57,6 +58,8 @@ internal sealed class RunStarter(AutoCanvasDbContext database, IJobSignal signal
             AutomationVersion = automation.CurrentVersion,
             Number = (last ?? 0) + 1,
             Yaml = yaml,
+            CommitSha = commit,
+            Ref = gitRef,
             Trigger = start.Trigger,
             TriggerData = start.Data,
             TriggeredById = start.TriggeredById,
@@ -76,5 +79,24 @@ internal sealed class RunStarter(AutoCanvasDbContext database, IJobSignal signal
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await signal.NotifyAsync(database, cancellationToken).ConfigureAwait(false);
         return UseCase.Success(run);
+    }
+
+    /// <summary>
+    /// The commit a repository automation runs at (ADR-0021): the start's, or the one its current
+    /// version was read at, on the repository's branch. Managed automations have none.
+    /// </summary>
+    private async Task<(string? Commit, string? Ref)> CommitOfAsync(Automation automation, RunStart start, CancellationToken cancellationToken)
+    {
+        if (automation.RepositoryId is not { } repositoryId)
+        {
+            return (null, null);
+        }
+
+        var commit = start.Commit ?? await database.AutomationVersions.AsNoTracking()
+            .Where(v => v.AutomationId == automation.Id && v.Number == automation.CurrentVersion)
+            .Select(v => v.CommitSha)
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        var branch = start.Ref ?? await database.Repositories.AsNoTracking().Where(r => r.Id == repositoryId).Select(r => r.ResolvedBranch).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return (commit, branch is null || branch.StartsWith("refs/", StringComparison.Ordinal) ? branch : $"refs/heads/{branch}");
     }
 }

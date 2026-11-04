@@ -209,7 +209,7 @@ public abstract class RunLogServiceTests(DatabaseProvider provider) : IdentityTe
         var context = Database.CreateContext();
         await using (context)
         {
-            return await action(new LogIngestion(context, new ConfigurationService(context, new SecretCipher(Key)), signal, Options.Create(options ?? new LogOptions()), Clock));
+            return await action(new LogIngestion(context, new ConfigurationService(context, new SecretCipher(Key)), new SecretCipher(Key), signal, Options.Create(options ?? new LogOptions()), Clock));
         }
     }
 

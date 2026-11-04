@@ -185,6 +185,11 @@ public sealed class AutomationService
         }
 
         var automation = found.Value.Automation;
+        if (await ReadOnlyAsync(automation, cancellationToken).ConfigureAwait(false) is { } readOnly)
+        {
+            return UseCase.Failure<AutomationView>(readOnly);
+        }
+
         var current = await database.AutomationVersions.AsNoTracking()
             .Where(v => v.AutomationId == id && v.Number == automation.CurrentVersion)
             .Select(v => v.Yaml)
@@ -267,6 +272,11 @@ public sealed class AutomationService
         }
 
         var automation = found.Value.Automation;
+        if (await ReadOnlyAsync(automation, cancellationToken).ConfigureAwait(false) is { } readOnly)
+        {
+            return UseCase.Failure<AutomationView>(readOnly);
+        }
+
         var key = name.Trim();
         if (string.Equals(key, automation.Name, StringComparison.Ordinal))
         {
@@ -299,6 +309,11 @@ public sealed class AutomationService
         }
 
         var automation = found.Value.Automation;
+        if (await ReadOnlyAsync(automation, cancellationToken).ConfigureAwait(false) is { } readOnly)
+        {
+            return UseCase.Failure<AutomationView>(readOnly);
+        }
+
         if (automation.FolderId == folderId)
         {
             return await GetAsync(actor, id, cancellationToken).ConfigureAwait(false);
@@ -345,6 +360,11 @@ public sealed class AutomationService
         }
 
         var automation = found.Value.Automation;
+        if (await ReadOnlyAsync(automation, cancellationToken).ConfigureAwait(false) is { } readOnly)
+        {
+            return UseCase.Failure<Done>(readOnly);
+        }
+
         database.Automations.Remove(automation);
         audit.Record(Entry(AuditActions.AutomationDeleted, automation, ("name", automation.Name), ("versions", automation.CurrentVersion)));
         try
@@ -454,6 +474,21 @@ public sealed class AutomationService
     {
         automation.Title = Cut(definition.Name?.Trim() is { Length: > 0 } title ? title : automation.Name, Automation.MaxTitleLength)!;
         automation.Description = Cut(string.IsNullOrWhiteSpace(definition.Description) ? null : definition.Description.Trim(), Automation.MaxDescriptionLength);
+    }
+
+    /// <summary>
+    /// Why a repository automation cannot be changed here (ADR-0021): its file in the repository is
+    /// the truth. <see langword="null"/> for a managed automation.
+    /// </summary>
+    private async Task<UseCaseError?> ReadOnlyAsync(Automation automation, CancellationToken cancellationToken)
+    {
+        if (automation.RepositoryId is not { } repositoryId)
+        {
+            return null;
+        }
+
+        var repository = await database.Repositories.AsNoTracking().Where(r => r.Id == repositoryId).Select(r => r.Name).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return UseCaseError.Conflict($"The automation comes from the repository '{repository}' ({automation.SourcePath}); change the file there, and AutoCanvas follows it.");
     }
 
     private static string? Cut(string? value, int length) => value is { Length: > 0 } && value.Length > length ? value[..length] : value;

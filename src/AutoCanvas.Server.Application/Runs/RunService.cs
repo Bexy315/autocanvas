@@ -105,7 +105,9 @@ public sealed class RunService
             run.CreatedAt,
             run.FinishedAt,
             [.. jobs.Select(j => new RunJobView(j.Key, j.Name, j.Status, j.ActivatedCase, j.Reason, j.AttemptCount, j.StartedAt, j.FinishedAt))],
-            run.Yaml));
+            run.Yaml,
+            run.CommitSha,
+            run.Ref));
     }
 
     /// <summary>The automation's runs, newest first, one page at a time (Viewer).</summary>

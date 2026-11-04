@@ -1,6 +1,9 @@
 using AutoCanvas.Core.Expressions;
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Core.Model;
+using AutoCanvas.Persistence.Runs;
+using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Variables;
 
 namespace AutoCanvas.Server.Application.Runs;
@@ -10,7 +13,7 @@ namespace AutoCanvas.Server.Application.Runs;
 /// job's environment and services are rendered on the server, and environment entries that read a
 /// secret are held back for the steps.
 /// </summary>
-public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationService configuration, TimeProvider time)
+public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationService configuration, SecretCipher cipher, TimeProvider time)
 {
     /// <summary>How long a service gets to become ready.</summary>
     public static readonly TimeSpan ServiceReadyTimeout = TimeSpan.FromMinutes(2);
@@ -28,15 +31,10 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
         }
 
         var (attempt, job, run, step, values) = context;
-        var checkouts = new List<OfferedCheckout>();
-        foreach (var repository in step.Checkout.Repositories)
+        var checkouts = await CheckoutsAsync(run, step.Checkout, cancellationToken).ConfigureAwait(false);
+        if (checkouts.Error is { } unsupported)
         {
-            if (!Uri.TryCreate(repository.Repository, UriKind.Absolute, out var url) || !string.Equals(url.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
-            {
-                return Unsupported($"Checking out '{repository.Repository}' needs a connected repository, which AutoCanvas does not support yet; use an https address.");
-            }
-
-            checkouts.Add(new OfferedCheckout(url, repository.Ref, repository.Path, repository.Depth ?? 1));
+            return UseCase.Failure<OfferedJob>(unsupported);
         }
 
         var services = new List<OfferedService>();
@@ -68,13 +66,66 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
             job.Name,
             TimeSpan.FromMinutes(attempt.TimeoutMinutes),
             step.Image is null ? null : new SecretReads(values).Render(step.Image),
-            checkouts,
+            checkouts.Value!,
             services,
             RenderAll(step.Env, values, keepSecrets: false),
             [.. step.Reports.Select(r => new OfferedReport(r.Format, r.Paths, r.Name ?? r.Format))]));
     }
 
-    private static UseCaseResult<OfferedJob> Unsupported(string message) => UseCase.Failure<OfferedJob>(UseCaseError.Invalid("job", message));
+    /// <summary>
+    /// What the job checks out (ADR-0021): a repository automation its own commit unless it says
+    /// otherwise; <c>self</c>; a repository connected in the run's folder or above, by name, with its
+    /// credential; or a public https address.
+    /// </summary>
+    private async Task<UseCaseResult<List<OfferedCheckout>>> CheckoutsAsync(Run run, CheckoutSetting setting, CancellationToken cancellationToken)
+    {
+        var repositories = new RepositoryCheckouts(database, cipher);
+        var self = await repositories.OfAutomationAsync(run.AutomationId, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<CheckoutRepository> wanted = setting.Kind switch
+        {
+            CheckoutKind.Default => self is null ? [] : [new CheckoutRepository(Self, null, null, null)],
+            CheckoutKind.Disabled => [],
+            _ => setting.Repositories,
+        };
+
+        var checkouts = new List<OfferedCheckout>();
+        foreach (var repository in wanted)
+        {
+            var depth = repository.Depth ?? 1;
+            if (string.Equals(repository.Repository, Self, StringComparison.Ordinal))
+            {
+                if (self is null)
+                {
+                    return Unsupported<List<OfferedCheckout>>("'checkout: self' needs an automation from a repository; this one is managed in AutoCanvas. Name a repository or an https address instead.");
+                }
+
+                checkouts.Add(new OfferedCheckout(self.Url, repository.Ref ?? run.CommitSha ?? self.ResolvedBranch, repository.Path, depth, self.UserName, repositories.SecretOf(self)));
+            }
+            else if (Uri.TryCreate(repository.Repository, UriKind.Absolute, out var url))
+            {
+                if (!string.Equals(url.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
+                {
+                    return Unsupported<List<OfferedCheckout>>($"Checking out '{repository.Repository}' needs an https address, or the name of a connected repository.");
+                }
+
+                checkouts.Add(new OfferedCheckout(url, repository.Ref, repository.Path, depth));
+            }
+            else if (await repositories.ByNameAsync(run.FolderId, repository.Repository, cancellationToken).ConfigureAwait(false) is { } named)
+            {
+                checkouts.Add(new OfferedCheckout(named.Url, repository.Ref ?? named.ResolvedBranch, repository.Path, depth, named.UserName, repositories.SecretOf(named)));
+            }
+            else
+            {
+                return Unsupported<List<OfferedCheckout>>($"No repository named '{repository.Repository}' is connected in the run's folder or the folders above it.");
+            }
+        }
+
+        return UseCase.Success(checkouts);
+    }
+
+    private const string Self = "self";
+
+    private static UseCaseResult<T> Unsupported<T>(string message) => UseCase.Failure<T>(UseCaseError.Invalid("job", message));
 
     /// <summary>
     /// Renders every value; without <paramref name="keepSecrets"/>, entries that read a secret are

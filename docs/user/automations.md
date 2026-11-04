@@ -129,7 +129,16 @@ checkout:
     depth: 0                         # full history; default 1
 ```
 
-`repository` is `self`, the name of a repository connected to AutoCanvas, or an https URL.
+`repository` is `self`, the name of a repository connected to AutoCanvas, or an https URL:
+
+- `self` is the repository a repository automation comes from, at the run's commit; a managed
+  automation has none, and its run fails with a message;
+- a name is a repository connected in the automation's folder or a folder above it, checked out at
+  its branch with its credential ([Repositories](repositories.md#runs-and-checkouts));
+- an https URL is checked out without a credential.
+
+Without `checkout`, a repository automation checks out its own commit; a managed one checks out
+nothing.
 
 ### Services
 

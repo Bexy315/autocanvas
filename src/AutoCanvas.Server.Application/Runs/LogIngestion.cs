@@ -3,6 +3,7 @@ using System.Text.Json;
 using AutoCanvas.Core.Secrets;
 using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Runs;
+using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,7 @@ namespace AutoCanvas.Server.Application.Runs;
 /// once per sequence number, long lines shortened, and no more per attempt than
 /// <see cref="LogOptions.MaxBytesPerJob"/>.
 /// </summary>
-public sealed class LogIngestion(AutoCanvasDbContext database, ConfigurationService configuration, LogSignal signal, IOptions<LogOptions> options, TimeProvider time)
+public sealed class LogIngestion(AutoCanvasDbContext database, ConfigurationService configuration, SecretCipher cipher, LogSignal signal, IOptions<LogOptions> options, TimeProvider time)
 {
     /// <summary>The longest line kept, in characters; longer ones are cut.</summary>
     public const int MaxLineLength = 16 * 1024;
@@ -34,7 +35,14 @@ public sealed class LogIngestion(AutoCanvasDbContext database, ConfigurationServ
     public async Task<SecretRedactor?> RedactorAsync(Guid attemptId, CancellationToken cancellationToken)
     {
         var context = await AttemptContext.LoadAsync(database, configuration, time, attemptId, track: false, cancellationToken).ConfigureAwait(false);
-        return context is null ? null : new SecretRedactor(context.Values.Secrets.Values);
+        if (context is null)
+        {
+            return null;
+        }
+
+        // Repository credentials the job may have checked out with are secrets as well (ADR-0021).
+        var credentials = await new RepositoryCheckouts(database, cipher).SecretsAsync(context.Run.FolderId, cancellationToken).ConfigureAwait(false);
+        return new SecretRedactor([.. context.Values.Secrets.Values, .. credentials]);
     }
 
     /// <summary>Stores a chunk of the runner's attempt.</summary>
