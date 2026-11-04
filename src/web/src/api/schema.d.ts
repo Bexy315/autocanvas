@@ -1634,6 +1634,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/forges/github/manifest/launch': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Take the browser to GitHub with the manifest
+     * @description A plain form post from the UI with the field `state` of a manifest of the last hour; answers a page that posts the manifest to GitHub at once. The state stands in for the X-AutoCanvas-Request header. Needs an admin.
+     */
+    post: operations['LaunchGitHubAppManifest'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/forges/github/created': {
     parameters: {
       query?: never;
@@ -8182,6 +8202,26 @@ export interface operations {
         };
         content: {
           'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  LaunchGitHubAppManifest: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/html': string;
         };
       };
     };

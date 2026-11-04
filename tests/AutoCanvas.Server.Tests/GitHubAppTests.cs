@@ -84,6 +84,37 @@ public abstract class GitHubAppTests(DatabaseProvider provider) : DatabaseTest(p
     }
 
     [Fact]
+    public async Task The_launch_page_posts_the_manifest_to_GitHub_under_a_policy_of_its_own()
+    {
+        await using var factory = Factory();
+        var root = await factory.SignedInAsync("root", isAdmin: true);
+        var manifest = await (await root.PostAsJsonAsync("/api/v1/forges/github/manifest", new { organization = "acme", webAddress = github.Web.ToString() }, Cancel)).JsonAsync();
+        var state = manifest.GetProperty("state").GetString()!;
+
+        // A plain form post, as the browser makes it: no X-AutoCanvas-Request header.
+        using var form = new FormUrlEncodedContent([new KeyValuePair<string, string>("state", state)]);
+        var launched = await root.PostAsync(new Uri("/api/v1/forges/github/manifest/launch", UriKind.Relative), form, Cancel);
+
+        launched.StatusCode.ShouldBe(HttpStatusCode.OK);
+        launched.Content.Headers.ContentType!.MediaType.ShouldBe("text/html");
+        var policy = launched.Headers.GetValues("Content-Security-Policy").Single();
+        policy.ShouldContain($"form-action {github.Web.GetLeftPart(UriPartial.Authority)}");
+        policy.ShouldContain("script-src 'sha256-");
+        var html = await launched.Content.ReadAsStringAsync(Cancel);
+        html.ShouldContain($"action=\"{System.Net.WebUtility.HtmlEncode(manifest.GetProperty("action").GetString()!)}\"");
+        html.ShouldContain("name=\"manifest\"");
+        html.ShouldContain("&quot;redirect_url&quot;");
+
+        using var forged = new FormUrlEncodedContent([new KeyValuePair<string, string>("state", "forged")]);
+        var refused = await root.PostAsync(new Uri("/api/v1/forges/github/manifest/launch", UriKind.Relative), forged, Cancel);
+        refused.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await refused.Content.ReadAsStringAsync(Cancel)).ShouldContain("Back to Forges");
+        var ada = await factory.SignedInAsync("ada");
+        using var again = new FormUrlEncodedContent([new KeyValuePair<string, string>("state", state)]);
+        (await ada.PostAsync(new Uri("/api/v1/forges/github/manifest/launch", UriKind.Relative), again, Cancel)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task The_code_GitHub_hands_back_becomes_the_app_whose_secrets_are_stored_encrypted()
     {
         await using var factory = Factory();

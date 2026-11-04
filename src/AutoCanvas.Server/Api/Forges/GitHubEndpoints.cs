@@ -36,6 +36,12 @@ internal static class GitHubEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status409Conflict);
 
+        github.MapPost("/manifest/launch", LaunchAsync)
+            .WithName("LaunchGitHubAppManifest")
+            .Produces<string>(StatusCodes.Status200OK, "text/html")
+            .WithSummary("Take the browser to GitHub with the manifest")
+            .WithDescription("A plain form post from the UI with the field `state` of a manifest of the last hour; answers a page that posts the manifest to GitHub at once. The state stands in for the X-AutoCanvas-Request header. Needs an admin.");
+
         github.MapPost("/created", CompleteAsync)
             .WithName("CompleteGitHubApp")
             .Produces<GitHubForgeView>()
@@ -108,6 +114,16 @@ internal static class GitHubEndpoints
 
     private static async Task<IResult> ManifestAsync(NewGitHubManifest? request, GitHubAppService github, CancellationToken cancellationToken) =>
         ApiResults.Ok(await github.ManifestAsync(request ?? new NewGitHubManifest(), cancellationToken).ConfigureAwait(false));
+
+    private static async Task<IResult> LaunchAsync(HttpContext context, GitHubAppService github, CancellationToken cancellationToken)
+    {
+        var state = context.Request.HasFormContentType ? (await context.Request.ReadFormAsync(cancellationToken).ConfigureAwait(false))["state"].ToString() : string.Empty;
+        var launched = await github.LaunchAsync(state, cancellationToken).ConfigureAwait(false);
+        var (html, policy) = launched.Value is { } manifest ? GitHubLaunchPage.Launch(manifest) : GitHubLaunchPage.Refused(launched.Error!.Message);
+        context.Response.Headers.ContentSecurityPolicy = policy;
+        context.Response.Headers.CacheControl = "no-store";
+        return TypedResults.Content(html, "text/html; charset=utf-8", statusCode: launched.Value is null ? StatusCodes.Status400BadRequest : StatusCodes.Status200OK);
+    }
 
     private static async Task<IResult> CompleteAsync(GitHubAppCompletion completion, HttpContext context, GitHubAppService github, CancellationToken cancellationToken) =>
         ApiResults.Ok(await github.CompleteAsync(context.User.ToActor(), completion, cancellationToken).ConfigureAwait(false));
