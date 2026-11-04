@@ -15,6 +15,7 @@ internal sealed class RunConfiguration : IEntityTypeConfiguration<Run>
         builder.Property(r => r.CommitSha).HasMaxLength(Repositories.Repository.MaxCommitLength);
         builder.Property(r => r.Ref).HasMaxLength(Repositories.Repository.MaxUrlLength);
         builder.HasIndex(r => r.RepositoryId);
+        builder.Property(r => r.ReportedState).HasConversion<string>().HasMaxLength(20);
         builder.Property(r => r.Trigger).HasConversion<string>().HasMaxLength(30);
         builder.Property(r => r.TriggeredByName).HasMaxLength(Run.MaxTriggeredByNameLength);
         builder.Property(r => r.CancelledByName).HasMaxLength(Run.MaxTriggeredByNameLength);

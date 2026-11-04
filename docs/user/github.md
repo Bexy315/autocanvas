@@ -13,8 +13,8 @@ pushes start runs, and jobs check out its commits.
 :::note Status
 
 Admins set up the app under **Administration → Forges**. Connecting its repositories in a folder
-works through the HTTP API so far; the web UI for that follows later in S5. Pull requests start
-runs; commit statuses and comments come next.
+works through the HTTP API so far; the web UI for that follows later in S5, as does editing a
+repository automation as a pull request.
 
 :::
 
@@ -51,8 +51,8 @@ The manifest asks for these permissions and events:
 | Permission | Access | For |
 |---|---|---|
 | Contents | read and write | reading automation files, checkouts, and later branches for edits |
-| Pull requests | read and write | pull request triggers and comments (next step) |
-| Commit statuses | read and write | reporting runs on commits (next step) |
+| Pull requests | read and write | pull request triggers and the comment with the results |
+| Commit statuses | read and write | each run's result on its commit |
 | Checks | read and write | reporting runs as checks (later) |
 | Metadata | read | required by GitHub |
 
@@ -114,6 +114,23 @@ one starts nothing. Runs of pull requests from forks get no secrets.
 
 A job checks out a GitHub repository with a token that may only read that repository, whatever
 started the run.
+
+## Results on GitHub
+
+Every run of an automation from a GitHub repository shows on its commit, whatever started it:
+
+- **A commit status** named `AutoCanvas / <automation> (<event>)`, such as
+  `AutoCanvas / build (push)` or `AutoCanvas / build (pull_request)`: *pending* while the run runs,
+  then *success*, *failure* or *error* (cancelled). Its description says how long the run took and
+  how many tests failed; with a public address it links to the run. A push and a pull request of the
+  same commit have statuses of their own. Branch protection on GitHub can require them.
+- **A comment on the pull request**, for runs of a pull request: one per pull request, with the latest
+  run of each automation for its head commit, its result, tests and line coverage. Later runs update
+  it; if someone deletes it, the next result writes a new one.
+
+The server reports within seconds of a run's start and end. A report GitHub refuses (for example
+when the app was uninstalled) is logged on the server and not tried again; the run itself is not
+affected.
 
 When the app is uninstalled from an account, or its installation is suspended, the account's
 repositories say so in `lastError`.

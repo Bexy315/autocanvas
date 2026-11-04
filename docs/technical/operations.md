@@ -241,6 +241,11 @@ Pushes that arrive by a repository's webhook (`POST /api/v1/hooks/acg_…`) are 
 stored (`repository_pushes`); the server that took the call handles them right away, the others
 look for stored pushes every 5 seconds. The forges must reach the server's public address.
 
+Every 5 seconds the server also reports runs of GitHub repository automations whose state changed:
+a commit status and, for pull requests, the comment ([GitHub](../user/github.md#results-on-github)).
+Each change is taken by one server (`runs.reported_state`) and reported once; a report that fails is
+logged as a warning and not tried again.
+
 ## Reverse proxies and HTTPS
 
 The session cookie is marked `Secure` when the server sees an HTTPS request or when the public

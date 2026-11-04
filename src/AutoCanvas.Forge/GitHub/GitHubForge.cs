@@ -2,8 +2,8 @@ namespace AutoCanvas.Forge.GitHub;
 
 /// <summary>
 /// GitHub (ADR-0022): repositories are read with git over https like any Git repository, with an
-/// installation token of the GitHub App as the credential. Statuses, comments and pull requests come
-/// with the pull request step of S5.
+/// installation token of the GitHub App as the credential. It has commit statuses, comments and pull
+/// requests, which the server reaches through the GitHub App.
 /// </summary>
 public sealed class GitHubForge(TimeSpan timeout) : IForge
 {
@@ -13,7 +13,7 @@ public sealed class GitHubForge(TimeSpan timeout) : IForge
     public ForgeKind Kind => ForgeKind.GitHub;
 
     /// <inheritdoc />
-    public ForgeCapabilities Capabilities => ForgeCapabilities.None;
+    public ForgeCapabilities Capabilities { get; } = new(CommitStatus: true, Comments: true, PullRequests: true);
 
     /// <inheritdoc />
     public Task<ResolvedBranch> ResolveAsync(RepositoryAccess access, string? branch, CancellationToken cancellationToken) =>

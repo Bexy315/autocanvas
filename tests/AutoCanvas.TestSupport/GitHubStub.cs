@@ -33,7 +33,10 @@ public sealed class GitHubStub : IAsyncDisposable
     private readonly ConcurrentDictionary<long, (string Account, List<(long Id, string Name)> Repositories)> installations = new();
     private readonly ConcurrentDictionary<int, IReadOnlyList<string>> pullRequestFiles = new();
     private readonly ConcurrentQueue<string> tokenRequestBodies = new();
+    private readonly ConcurrentQueue<(string Commit, JsonElement Status)> statuses = new();
+    private readonly ConcurrentDictionary<long, (int Number, string Body)> comments = new();
     private int tokenRequests;
+    private long lastComment = 100;
 
     private GitHubStub(WebApplication app, string address, GitHttpServer git, string token)
     {
@@ -82,6 +85,15 @@ public sealed class GitHubStub : IAsyncDisposable
         return stub;
     }
 
+    /// <summary>The commit statuses set, in order: the commit and the status as sent.</summary>
+    public IReadOnlyCollection<(string Commit, JsonElement Status)> Statuses => statuses;
+
+    /// <summary>The comments on pull requests by id: the pull request's number and the text.</summary>
+    public IReadOnlyDictionary<long, (int Number, string Body)> Comments => comments;
+
+    /// <summary>Deletes a comment, as someone could on GitHub.</summary>
+    public void DeleteComment(long id) => comments.TryRemove(id, out _);
+
     /// <summary>The files pull request <paramref name="number"/> changes, as GitHub lists them.</summary>
     public void SetPullRequestFiles(int number, params string[] files) => pullRequestFiles[number] = files;
 
@@ -120,6 +132,9 @@ public sealed class GitHubStub : IAsyncDisposable
             }).ToList())),
             ["api", "v3", "app", "installations", var id, "access_tokens"] when HttpMethods.IsPost(context.Request.Method) => AsApp(context, () => NewToken(id, Body(context))),
             ["api", "v3", "repos", _, _, "pulls", var number, "files"] => AsInstallation(context, () => PullRequestFiles(number, context.Request.Query["page"])),
+            ["api", "v3", "repos", _, _, "statuses", var commit] when HttpMethods.IsPost(context.Request.Method) => AsInstallation(context, () => Status(commit, Body(context))),
+            ["api", "v3", "repos", _, _, "issues", var number, "comments"] when HttpMethods.IsPost(context.Request.Method) => AsInstallation(context, () => NewComment(number, Body(context))),
+            ["api", "v3", "repos", _, _, "issues", "comments", var id] when HttpMethods.IsPatch(context.Request.Method) => AsInstallation(context, () => UpdateComment(id, Body(context))),
             ["api", "v3", "installation", "repositories"] => AsInstallation(context, () => (200, new { total_count = AllRepositories().Count(), repositories = AllRepositories().Select(Repository).ToList() })),
             ["api", "v3", "repos", var owner, var name] => AsInstallation(context, () => AllRepositories().FirstOrDefault(r => string.Equals($"{r.Account}/{r.Name}", $"{owner}/{name}", StringComparison.Ordinal)) is { Name: not null } found
                 ? (200, Repository(found))
@@ -160,6 +175,34 @@ public sealed class GitHubStub : IAsyncDisposable
     {
         using var reader = new StreamReader(context.Request.Body);
         return reader.ReadToEndAsync().GetAwaiter().GetResult();
+    }
+
+    private (int, object) Status(string commit, string body)
+    {
+        using var document = JsonDocument.Parse(body);
+        statuses.Enqueue((commit, document.RootElement.Clone()));
+        return (201, new { id = statuses.Count });
+    }
+
+    private (int, object) NewComment(string number, string body)
+    {
+        var id = Interlocked.Increment(ref lastComment);
+        using var document = JsonDocument.Parse(body);
+        comments[id] = (int.Parse(number, CultureInfo.InvariantCulture), document.RootElement.GetProperty("body").GetString()!);
+        return (201, new { id });
+    }
+
+    private (int, object) UpdateComment(string id, string body)
+    {
+        var commentId = long.Parse(id, CultureInfo.InvariantCulture);
+        if (!comments.TryGetValue(commentId, out var comment))
+        {
+            return (404, new { message = "Not Found" });
+        }
+
+        using var document = JsonDocument.Parse(body);
+        comments[commentId] = (comment.Number, document.RootElement.GetProperty("body").GetString()!);
+        return (200, new { id = commentId });
     }
 
     private (int, object) PullRequestFiles(string number, string? page)
