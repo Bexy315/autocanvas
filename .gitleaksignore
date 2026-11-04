@@ -6,3 +6,7 @@ c70fa1dad1c9a5dd2d09c2940289d04dcc5bcdf0:tests/AutoCanvas.Server.Tests/AutoCanva
 # An example setup token in docs/user/installation.md, made up for the docs and replaced by a
 # placeholder in the next commit of PR #66; it never belonged to a server.
 0fe1ac97ad5c5c35f37300f2f4fc183c20f6e141:docs/user/installation.md:generic-api-key:51
+
+# A made-up PEM header as the content of a test's fake .pem file in PR #74, with no key in it;
+# replaced by plain text in the next commit. The branch is squash-merged.
+eb23790379241031a42a124dfb7a633a255a9574:src/web/src/pages/admin/forges.test.tsx:private-key:81

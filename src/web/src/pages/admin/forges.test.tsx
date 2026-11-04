@@ -78,7 +78,7 @@ describe('the forges', () => {
     await user.type(within(dialog).getByLabelText('App ID'), '4242');
     await user.upload(
       within(dialog).getByLabelText(/Or load the .pem file/),
-      new File(['-----BEGIN RSA PRIVATE KEY-----'], 'app.pem'),
+      new File(['the key from the file'], 'app.pem'),
     );
     await user.type(within(dialog).getByLabelText('Webhook secret'), 'hook-secret');
     await user.click(within(dialog).getByRole('button', { name: 'Enter app' }));
@@ -87,7 +87,7 @@ describe('the forges', () => {
     const sent = requests.find((request) => request.method === 'PUT');
     expect(await sent?.json()).toEqual({
       appId: 4242,
-      privateKey: '-----BEGIN RSA PRIVATE KEY-----',
+      privateKey: 'the key from the file',
       webhookSecret: 'hook-secret',
       webAddress: null,
     });
