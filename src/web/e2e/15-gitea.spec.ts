@@ -1,9 +1,29 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { dockerHost, Gitea } from './gitea';
 import { signIn, snapshot } from './helpers';
 import { dockerAvailable, startRunner, type Runner } from './runner';
 
 const csrf = { 'X-AutoCanvas-Request': '1' };
+
+/** A run's jobs, their attempts' errors and logs, for the message of a failed assertion. */
+async function runReport(page: Page, runId: string): Promise<string> {
+  const run = (await (await page.request.get(`/api/v1/runs/${runId}`)).json()) as {
+    jobs: { key: string; status: string; attempts: { id: string; status: string; error: string | null }[] }[];
+  };
+  const attempts = run.jobs.flatMap((job) => job.attempts.map((attempt) => ({ job: job.key, ...attempt })));
+  const logs = await Promise.all(
+    attempts.map(async (attempt) => {
+      const log = (await (
+        await page.request.get(`/api/v1/runs/${runId}/attempts/${attempt.id}/log?limit=1000`)
+      ).json()) as {
+        chunks: { lines: string[] }[];
+      };
+      const lines = log.chunks.flatMap((chunk) => chunk.lines).join('\n');
+      return `${attempt.job} (${attempt.status}): ${attempt.error ?? ''}\n${lines}`;
+    }),
+  );
+  return logs.join('\n\n') || JSON.stringify(run.jobs);
+}
 
 /** Runs on pushes to main; its job checks out the pushed commit and shows the pushed file. */
 const build = `version: 1
@@ -76,8 +96,10 @@ test('a private Gitea repository is connected, a push through its webhook runs t
       const run = runs.items.find((item) => item.trigger === 'Push');
       return run && run.state !== 'Running' ? run : null;
     };
-    await expect.poll(async () => (await finished())?.state, { timeout: 240_000, intervals: [2000] }).toBe('Succeeded');
+    await expect.poll(async () => (await finished())?.state, { timeout: 240_000, intervals: [2000] }).toBeTruthy();
     const run = await finished();
+    // A failed run says why in its attempts and logs; the CI output shows it.
+    expect(run?.state, run?.state === 'Succeeded' ? '' : await runReport(page, run?.id ?? '')).toBe('Succeeded');
     const detail = (await (await page.request.get(`/api/v1/runs/${run?.id ?? ''}`)).json()) as {
       commit: string;
       ref: string;
