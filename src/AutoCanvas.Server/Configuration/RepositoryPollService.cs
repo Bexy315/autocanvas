@@ -103,7 +103,7 @@ internal sealed partial class RepositoryPollService(
     [LoggerMessage(Level = LogLevel.Information, Message = "A push started run {Run}.")]
     private static partial void LogStarted(ILogger logger, string run);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "A push started nothing: {Reason}")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Repositories: {Reason}")]
     private static partial void LogSkipped(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Polling the repositories failed; it is tried again shortly.")]

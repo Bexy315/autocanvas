@@ -1,8 +1,8 @@
 // Takes the pictures of the user guide again: runs the smoke test (it sets the admin's password),
 // the walk-through against the real server with a runner, the setup, the forges against a GitHub
-// stand-in and the repositories against a local Git server (needs `npm run build`, the server and
-// runner builds and Docker), then copies test-results/docs/*.png to docs/user/img/. Run it after a
-// change that alters what the pictures show, and commit the result.
+// stand-in, the repositories against a local Git server and the GitHub way against both (needs
+// `npm run build`, the server and runner builds and Docker), then copies test-results/docs/*.png to
+// docs/user/img/. Run it after a change that alters what the pictures show, and commit the result.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +15,7 @@ const cli = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', imp
 rmSync(shots, { recursive: true, force: true });
 execFileSync(
   process.execPath,
-  [cli, 'test', '01-smoke', '11-walk-through', '12-setup', '13-forges', '14-repositories'],
+  [cli, 'test', '01-smoke', '11-walk-through', '12-setup', '13-forges', '14-repositories', '16-github'],
   {
     cwd: root,
     stdio: 'inherit',

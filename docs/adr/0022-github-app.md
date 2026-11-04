@@ -1,6 +1,6 @@
 # 0022. Integrate GitHub through one GitHub App per instance
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-04
 
 ## Context
