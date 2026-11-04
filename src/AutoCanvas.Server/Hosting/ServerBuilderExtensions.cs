@@ -14,6 +14,7 @@ using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Setup;
 using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Forge;
+using AutoCanvas.Forge.GitHub;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -95,6 +96,8 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IPostConfigureOptions<RepositoryOptions>>(provider => provider.GetRequiredService<RepositoryOptionsSetup>());
         services.AddSingleton<IValidateOptions<RepositoryOptions>>(provider => provider.GetRequiredService<RepositoryOptionsSetup>());
         services.AddSingleton<IForge>(provider => new GenericGitForge(provider.GetRequiredService<IOptions<RepositoryOptions>>().Value.GitTimeout));
+        services.AddSingleton<IForge>(provider => new GitHubForge(provider.GetRequiredService<IOptions<RepositoryOptions>>().Value.GitTimeout));
+        services.AddHttpClient<GitHubClient>(http => http.Timeout = TimeSpan.FromSeconds(30));
         services.AddHostedService<RepositoryPollService>();
     }
 

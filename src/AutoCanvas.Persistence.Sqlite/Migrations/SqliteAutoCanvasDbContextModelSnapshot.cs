@@ -336,6 +336,110 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Forges.GitHubApp", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApiAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("api_address");
+
+                    b.Property<long>("AppId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("app_id");
+
+                    b.Property<string>("ClientId")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientSecretCiphertext")
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("client_secret_ciphertext");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("HtmlUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("html_url");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OwnerLogin")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_login");
+
+                    b.Property<string>("PrivateKeyCiphertext")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("private_key_ciphertext");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("WebAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("web_address");
+
+                    b.Property<string>("WebhookSecretCiphertext")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("webhook_secret_ciphertext");
+
+                    b.HasKey("Id")
+                        .HasName("pk_github_apps");
+
+                    b.ToTable("github_apps", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Forges.GitHubDelivery", b =>
+                {
+                    b.Property<string>("DeliveryId")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("delivery_id");
+
+                    b.Property<long>("ReceivedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("received_at");
+
+                    b.HasKey("DeliveryId")
+                        .HasName("pk_github_deliveries");
+
+                    b.HasIndex("ReceivedAt")
+                        .HasDatabaseName("ix_github_deliveries_received_at");
+
+                    b.ToTable("github_deliveries", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Identity.ApiToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -911,9 +1015,17 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("default_branch");
 
+                    b.Property<long?>("ExternalId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("external_id");
+
                     b.Property<Guid>("FolderId")
                         .HasColumnType("TEXT")
                         .HasColumnName("folder_id");
+
+                    b.Property<long?>("InstallationId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("installation_id");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -981,6 +1093,9 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_repositories");
+
+                    b.HasIndex("ExternalId")
+                        .HasDatabaseName("ix_repositories_external_id");
 
                     b.HasIndex("FolderId", "NormalizedName")
                         .IsUnique()

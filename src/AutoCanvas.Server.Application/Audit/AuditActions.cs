@@ -167,4 +167,13 @@ public static class AuditActions
 
     /// <summary>A repository's webhook address was deleted; details: <c>name</c>, <c>hint</c>.</summary>
     public const string RepositoryWebhookDeleted = "repository.webhook_deleted";
+
+    /// <summary>The GitHub App was created with GitHub's manifest flow; details: <c>slug</c>, <c>owner</c>.</summary>
+    public const string GitHubAppCreated = "github.app_created";
+
+    /// <summary>A GitHub App, or a new key or webhook secret of it, was entered by hand; details: <c>slug</c>, <c>owner</c>.</summary>
+    public const string GitHubAppConfigured = "github.app_configured";
+
+    /// <summary>The GitHub App was removed from the instance; details: <c>slug</c>, <c>owner</c>.</summary>
+    public const string GitHubAppDeleted = "github.app_deleted";
 }

@@ -15,7 +15,7 @@ namespace AutoCanvas.Server.Application.Runs;
 /// once per sequence number, long lines shortened, and no more per attempt than
 /// <see cref="LogOptions.MaxBytesPerJob"/>.
 /// </summary>
-public sealed class LogIngestion(AutoCanvasDbContext database, ConfigurationService configuration, SecretCipher cipher, LogSignal signal, IOptions<LogOptions> options, TimeProvider time)
+public sealed class LogIngestion(AutoCanvasDbContext database, ConfigurationService configuration, RepositoryCredentials repositoryCredentials, LogSignal signal, IOptions<LogOptions> options, TimeProvider time)
 {
     /// <summary>The longest line kept, in characters; longer ones are cut.</summary>
     public const int MaxLineLength = 16 * 1024;
@@ -41,7 +41,7 @@ public sealed class LogIngestion(AutoCanvasDbContext database, ConfigurationServ
         }
 
         // Repository credentials the job may have checked out with are secrets as well (ADR-0021).
-        var credentials = await new RepositoryCheckouts(database, cipher).SecretsAsync(context.Run.FolderId, cancellationToken).ConfigureAwait(false);
+        var credentials = await new RepositoryCheckouts(database, repositoryCredentials).SecretsAsync(context.Run.FolderId, cancellationToken).ConfigureAwait(false);
         return new SecretRedactor([.. context.Values.Secrets.Values, .. credentials]);
     }
 

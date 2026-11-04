@@ -430,6 +430,68 @@
         }
       }
     },
+    "/api/v1/forges/github/events": {
+      "post": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Take an event of the GitHub App",
+        "description": "GitHub calls it with the app's events, signed with its webhook secret (`X-Hub-Signature-256`); each delivery is taken once. A push starts its runs shortly; other events do nothing for now.",
+        "operationId": "ReceiveGitHubEvent",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivedHookView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/setup": {
       "get": {
         "tags": [
@@ -5887,6 +5949,360 @@
           }
         }
       }
+    },
+    "/api/v1/forges/github": {
+      "get": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Get the GitHub App",
+        "description": "The instance's GitHub App without its secrets, with its installations and where GitHub sends its events; `app` is null while none is set up. Needs an admin.",
+        "operationId": "GetGitHubApp",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubForgeView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Enter an existing GitHub App",
+        "description": "Enters an app created on GitHub by hand, or a new private key or webhook secret of the app; GitHub is asked whether the id and key belong together. Needs an admin.",
+        "operationId": "ConfigureGitHubApp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitHubAppSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubForgeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Remove the GitHub App",
+        "description": "Removes the app from the instance; it stays on GitHub. Refused while GitHub repositories are connected. Needs an admin.",
+        "operationId": "DeleteGitHubApp",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forges/github/manifest": {
+      "post": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Start creating the GitHub App",
+        "description": "The manifest of a new app and the GitHub address to post it to as the form field `manifest`, in the browser. GitHub then sends the browser back to `/admin/forges/github/created` with a code. Needs the instance's public address and an admin.",
+        "operationId": "CreateGitHubAppManifest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/NewGitHubManifest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubManifestView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forges/github/created": {
+      "post": {
+        "tags": [
+          "Forges"
+        ],
+        "summary": "Finish creating the GitHub App",
+        "description": "Turns the code GitHub handed the browser into the app, its private key and secrets, and stores them encrypted. Needs an admin.",
+        "operationId": "CompleteGitHubApp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitHubAppCompletion"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitHubForgeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/github/repositories": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "List the repositories the GitHub App reaches",
+        "description": "The repositories of every installation of the app, to connect one in the folder. Needs Editor.",
+        "operationId": "ListGitHubRepositories",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitHubRepositoryView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/folders/{id}/repositories/github": {
+      "post": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Connect a GitHub repository",
+        "description": "Connects a repository of an installation of the GitHub App in the folder and reads its automations; it is reached with the app's installation tokens. Needs Editor.",
+        "operationId": "ConnectGitHubRepository",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewGitHubRepository"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7105,6 +7521,289 @@
         },
         "description": "A folder as the caller sees it."
       },
+      "GitHubAppCompletion": {
+        "required": [
+          "code",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The code to turn into the app and its secrets, valid for an hour."
+          },
+          "state": {
+            "type": "string",
+            "description": "The state of the manifest it was created from."
+          }
+        },
+        "description": "What GitHub hands the browser back after creating the app."
+      },
+      "GitHubAppSettings": {
+        "required": [
+          "appId",
+          "privateKey",
+          "webhookSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "appId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "GitHub's id of the app.",
+            "format": "int64"
+          },
+          "privateKey": {
+            "type": "string",
+            "description": "One of its private keys, in PEM."
+          },
+          "webhookSecret": {
+            "type": "string",
+            "description": "The secret of its webhook."
+          },
+          "webAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The web address of a GitHub Enterprise Server; `https://github.com` when unset."
+          },
+          "apiAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The API address, when it is not the usual one for string? GitHubAppSettings.WebAddress."
+          }
+        },
+        "description": "An existing GitHub App, entered by hand."
+      },
+      "GitHubAppView": {
+        "required": [
+          "appId",
+          "slug",
+          "name",
+          "ownerLogin",
+          "htmlUrl",
+          "installUrl",
+          "webAddress",
+          "apiAddress",
+          "webhookUrl",
+          "installations",
+          "installationsError",
+          "createdAt",
+          "createdByName"
+        ],
+        "type": "object",
+        "properties": {
+          "appId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "GitHub's id of the app.",
+            "format": "int64"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Its name in addresses."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name."
+          },
+          "ownerLogin": {
+            "type": "string",
+            "description": "The account or organization that owns it."
+          },
+          "htmlUrl": {
+            "type": "string",
+            "description": "Its page on GitHub.",
+            "format": "uri"
+          },
+          "installUrl": {
+            "type": "string",
+            "description": "Where it is installed on another account.",
+            "format": "uri"
+          },
+          "webAddress": {
+            "type": "string",
+            "description": "GitHub's web address.",
+            "format": "uri"
+          },
+          "apiAddress": {
+            "type": "string",
+            "description": "GitHub's API address.",
+            "format": "uri"
+          },
+          "webhookUrl": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The address GitHub sends its events to; `null` while the instance has no public address.",
+            "format": "uri"
+          },
+          "installations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitHubInstallation"
+            },
+            "description": "Where it is installed."
+          },
+          "installationsError": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why the installations could not be read; `null` when they could."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was set up.",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": "string",
+            "description": "Who set it up."
+          }
+        },
+        "description": "The instance's GitHub App, without its secrets."
+      },
+      "GitHubForgeView": {
+        "required": [
+          "app"
+        ],
+        "type": "object",
+        "properties": {
+          "app": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The GitHub App; `null` while none is set up.",
+                "$ref": "#/components/schemas/GitHubAppView"
+              }
+            ]
+          }
+        },
+        "description": "Whether GitHub is set up, and how."
+      },
+      "GitHubInstallation": {
+        "required": [
+          "id",
+          "account",
+          "accountType",
+          "allRepositories",
+          "suspended"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The installation's id.",
+            "format": "int64"
+          },
+          "account": {
+            "type": "string",
+            "description": "The account or organization it is installed on."
+          },
+          "accountType": {
+            "type": "string",
+            "description": "`User` or `Organization`."
+          },
+          "allRepositories": {
+            "type": "boolean",
+            "description": "Whether it covers all of the account's repositories, or chosen ones."
+          },
+          "suspended": {
+            "type": "boolean",
+            "description": "Whether it is suspended."
+          }
+        },
+        "description": "Where a GitHub App is installed."
+      },
+      "GitHubManifestView": {
+        "required": [
+          "action",
+          "manifest",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The address to post the form to, with the state in its query.",
+            "format": "uri"
+          },
+          "manifest": {
+            "type": "string",
+            "description": "The app's manifest, as JSON."
+          },
+          "state": {
+            "type": "string",
+            "description": "The state GitHub hands back with the code; valid for an hour."
+          }
+        },
+        "description": "What the browser sends to GitHub to create the app: a form posted to Uri GitHubManifestView.Action with\nthe field `manifest`."
+      },
+      "GitHubRepositoryView": {
+        "required": [
+          "installationId",
+          "account",
+          "id",
+          "fullName",
+          "defaultBranch",
+          "private"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The installation it is reached through.",
+            "format": "int64"
+          },
+          "account": {
+            "type": "string",
+            "description": "The account or organization of that installation."
+          },
+          "id": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "GitHub's id of the repository.",
+            "format": "int64"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Its `owner/name`."
+          },
+          "defaultBranch": {
+            "type": "string",
+            "description": "Its default branch."
+          },
+          "private": {
+            "type": "boolean",
+            "description": "Whether it is private."
+          }
+        },
+        "description": "A repository the GitHub App can reach, to connect in a folder."
+      },
       "GrantView": {
         "required": [
           "id",
@@ -7744,6 +8443,73 @@
           }
         },
         "description": "Where to move a folder."
+      },
+      "NewGitHubManifest": {
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The organization to create it in; the signed-in GitHub account when unset."
+          },
+          "webAddress": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The web address of a GitHub Enterprise Server; `https://github.com` when unset."
+          }
+        },
+        "description": "Where to create the GitHub App."
+      },
+      "NewGitHubRepository": {
+        "required": [
+          "installationId",
+          "repository"
+        ],
+        "type": "object",
+        "properties": {
+          "installationId": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "The installation it is reached through.",
+            "format": "int64"
+          },
+          "repository": {
+            "type": "string",
+            "description": "Its `owner/name`."
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its name in the folder; the repository's name when unset."
+          },
+          "defaultBranch": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The branch to read automations from; the repository's default when unset."
+          },
+          "pollMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "description": "How often to poll it, in minutes; 0 not to (the app's events then bring the pushes). Default: 5.",
+            "format": "int32"
+          }
+        },
+        "description": "A repository of an installation of the GitHub App to connect in a folder."
       },
       "NewRepository": {
         "required": [
@@ -10334,6 +11100,9 @@
     },
     {
       "name": "Triggers"
+    },
+    {
+      "name": "Forges"
     },
     {
       "name": "Setup"

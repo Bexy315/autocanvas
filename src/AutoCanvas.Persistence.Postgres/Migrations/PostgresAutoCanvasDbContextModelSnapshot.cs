@@ -341,6 +341,110 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Forges.GitHubApp", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApiAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("api_address");
+
+                    b.Property<long>("AppId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("app_id");
+
+                    b.Property<string>("ClientId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("ClientSecretCiphertext")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("client_secret_ciphertext");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("HtmlUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("html_url");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OwnerLogin")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("owner_login");
+
+                    b.Property<string>("PrivateKeyCiphertext")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasColumnName("private_key_ciphertext");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("WebAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("web_address");
+
+                    b.Property<string>("WebhookSecretCiphertext")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("webhook_secret_ciphertext");
+
+                    b.HasKey("Id")
+                        .HasName("pk_github_apps");
+
+                    b.ToTable("github_apps", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Forges.GitHubDelivery", b =>
+                {
+                    b.Property<string>("DeliveryId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("delivery_id");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.HasKey("DeliveryId")
+                        .HasName("pk_github_deliveries");
+
+                    b.HasIndex("ReceivedAt")
+                        .HasDatabaseName("ix_github_deliveries_received_at");
+
+                    b.ToTable("github_deliveries", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Identity.ApiToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -916,9 +1020,17 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("default_branch");
 
+                    b.Property<long?>("ExternalId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("external_id");
+
                     b.Property<Guid>("FolderId")
                         .HasColumnType("uuid")
                         .HasColumnName("folder_id");
+
+                    b.Property<long?>("InstallationId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("installation_id");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -986,6 +1098,9 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_repositories");
+
+                    b.HasIndex("ExternalId")
+                        .HasDatabaseName("ix_repositories_external_id");
 
                     b.HasIndex("FolderId", "NormalizedName")
                         .IsUnique()

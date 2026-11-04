@@ -24,6 +24,7 @@ internal sealed class RepositoryConfiguration : IEntityTypeConfiguration<Reposit
         builder.Property(r => r.LastError).HasMaxLength(Repository.MaxErrorLength);
         builder.Property(r => r.CreatedByName).HasMaxLength(User.MaxUserNameLength);
         builder.HasIndex(r => new { r.FolderId, r.NormalizedName }).IsUnique();
+        builder.HasIndex(r => r.ExternalId);
 
         // Restrict: a folder with connected repositories is not deleted (the use case refuses it).
         builder.HasOne(r => r.Folder).WithMany().HasForeignKey(r => r.FolderId).OnDelete(DeleteBehavior.Restrict);

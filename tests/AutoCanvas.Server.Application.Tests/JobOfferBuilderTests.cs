@@ -1,6 +1,7 @@
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Folders;
+using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
@@ -167,7 +168,7 @@ public abstract class JobOfferBuilderTests(DatabaseProvider provider) : Identity
         var context = Database.CreateContext();
         await using (context)
         {
-            return await new JobOfferBuilder(context, new ConfigurationService(context, new SecretCipher(Key)), new SecretCipher(Key), Clock).BuildAsync(attempt, Cancel);
+            return await new JobOfferBuilder(context, new ConfigurationService(context, new SecretCipher(Key)), new RepositoryCredentials(new SecretCipher(Key), NoInstallations.Instance), Clock).BuildAsync(attempt, Cancel);
         }
     }
 }

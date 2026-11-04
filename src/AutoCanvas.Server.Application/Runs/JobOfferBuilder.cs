@@ -1,3 +1,4 @@
+using AutoCanvas.Forge;
 using AutoCanvas.Core.Expressions;
 using AutoCanvas.Persistence;
 using AutoCanvas.Server.Application.Common;
@@ -13,7 +14,7 @@ namespace AutoCanvas.Server.Application.Runs;
 /// job's environment and services are rendered on the server, and environment entries that read a
 /// secret are held back for the steps.
 /// </summary>
-public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationService configuration, SecretCipher cipher, TimeProvider time)
+public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationService configuration, RepositoryCredentials credentials, TimeProvider time)
 {
     /// <summary>How long a service gets to become ready.</summary>
     public static readonly TimeSpan ServiceReadyTimeout = TimeSpan.FromMinutes(2);
@@ -31,7 +32,17 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
         }
 
         var (attempt, job, run, step, values) = context;
-        var checkouts = await CheckoutsAsync(run, step.Checkout, cancellationToken).ConfigureAwait(false);
+        UseCaseResult<List<OfferedCheckout>> checkouts;
+        try
+        {
+            checkouts = await CheckoutsAsync(run, step.Checkout, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ForgeException exception)
+        {
+            // Such as a GitHub repository whose installation token cannot be had now.
+            checkouts = Unsupported<List<OfferedCheckout>>($"A repository cannot be checked out: {exception.Message}");
+        }
+
         if (checkouts.Error is { } unsupported)
         {
             return UseCase.Failure<OfferedJob>(unsupported);
@@ -79,7 +90,7 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
     /// </summary>
     private async Task<UseCaseResult<List<OfferedCheckout>>> CheckoutsAsync(Run run, CheckoutSetting setting, CancellationToken cancellationToken)
     {
-        var repositories = new RepositoryCheckouts(database, cipher);
+        var repositories = new RepositoryCheckouts(database, credentials);
         var self = await repositories.OfAutomationAsync(run.AutomationId, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<CheckoutRepository> wanted = setting.Kind switch
         {
@@ -99,7 +110,7 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
                     return Unsupported<List<OfferedCheckout>>("'checkout: self' needs an automation from a repository; this one is managed in AutoCanvas. Name a repository or an https address instead.");
                 }
 
-                checkouts.Add(new OfferedCheckout(self.Url, repository.Ref ?? run.CommitSha ?? self.ResolvedBranch, repository.Path, depth, self.UserName, repositories.SecretOf(self)));
+                checkouts.Add(await repositories.CheckoutAsync(self, repository.Ref ?? run.CommitSha ?? self.ResolvedBranch, repository.Path, depth, cancellationToken).ConfigureAwait(false));
             }
             else if (Uri.TryCreate(repository.Repository, UriKind.Absolute, out var url))
             {
@@ -112,7 +123,7 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
             }
             else if (await repositories.ByNameAsync(run.FolderId, repository.Repository, cancellationToken).ConfigureAwait(false) is { } named)
             {
-                checkouts.Add(new OfferedCheckout(named.Url, repository.Ref ?? named.ResolvedBranch, repository.Path, depth, named.UserName, repositories.SecretOf(named)));
+                checkouts.Add(await repositories.CheckoutAsync(named, repository.Ref ?? named.ResolvedBranch, repository.Path, depth, cancellationToken).ConfigureAwait(false));
             }
             else
             {

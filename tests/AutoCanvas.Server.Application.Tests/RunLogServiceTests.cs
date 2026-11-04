@@ -7,6 +7,7 @@ using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Persistence.Sqlite;
 using AutoCanvas.Server.Application.Common;
 using AutoCanvas.Server.Application.Folders;
+using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
@@ -209,7 +210,7 @@ public abstract class RunLogServiceTests(DatabaseProvider provider) : IdentityTe
         var context = Database.CreateContext();
         await using (context)
         {
-            return await action(new LogIngestion(context, new ConfigurationService(context, new SecretCipher(Key)), new SecretCipher(Key), signal, Options.Create(options ?? new LogOptions()), Clock));
+            return await action(new LogIngestion(context, new ConfigurationService(context, new SecretCipher(Key)), new RepositoryCredentials(new SecretCipher(Key), NoInstallations.Instance), signal, Options.Create(options ?? new LogOptions()), Clock));
         }
     }
 

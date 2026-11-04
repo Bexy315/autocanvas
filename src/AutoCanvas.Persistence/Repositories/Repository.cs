@@ -89,6 +89,12 @@ public sealed class Repository
     /// <summary>When it is polled next; <see langword="null"/> when it is due now (or polling is off).</summary>
     public DateTimeOffset? NextPollAt { get; set; }
 
+    /// <summary>For a GitHub repository: the installation of the GitHub App it is reached through.</summary>
+    public long? InstallationId { get; set; }
+
+    /// <summary>For a GitHub repository: GitHub's id of it, which stays when it is renamed or moved.</summary>
+    public long? ExternalId { get; set; }
+
     /// <summary>When it was connected.</summary>
     public required DateTimeOffset CreatedAt { get; init; }
 

@@ -43,25 +43,13 @@ public sealed class RepositoryService(
             return UseCase.Failure<RepositoryView>(invalid);
         }
 
-        var folder = await access.RequireAsync(actor, folderId, FolderRole.Editor, track: false, cancellationToken).ConfigureAwait(false);
-        if (folder.Error is { } denied)
-        {
-            return UseCase.Failure<RepositoryView>(denied);
-        }
-
-        var normalized = IdentityNames.Normalize(name);
-        if (await database.Repositories.AnyAsync(r => r.FolderId == folderId && r.NormalizedName == normalized, cancellationToken).ConfigureAwait(false))
-        {
-            return UseCase.Failure<RepositoryView>(UseCaseError.Conflict($"The folder has a repository named '{name}' already.", "name"));
-        }
-
         var now = time.GetUtcNow();
         var repository = new Repository
         {
             Id = Guid.CreateVersion7(now),
             FolderId = folderId,
             Name = name,
-            NormalizedName = normalized,
+            NormalizedName = IdentityNames.Normalize(name),
             Kind = RepositoryKind.GenericGit,
             Url = url,
             DefaultBranch = Empty(request.DefaultBranch),
@@ -72,6 +60,25 @@ public sealed class RepositoryService(
             UpdatedAt = now,
         };
         SetCredential(repository, Empty(request.Secret));
+        return await AddAsync(actor, repository, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Connects a repository made up by a caller (Editor on its folder): checks its name in the
+    /// folder, reads it, records its refs and syncs it. Also used for GitHub repositories.
+    /// </summary>
+    internal async Task<UseCaseResult<RepositoryView>> AddAsync(Actor actor, Repository repository, CancellationToken cancellationToken)
+    {
+        var folder = await access.RequireAsync(actor, repository.FolderId, FolderRole.Editor, track: false, cancellationToken).ConfigureAwait(false);
+        if (folder.Error is { } denied)
+        {
+            return UseCase.Failure<RepositoryView>(denied);
+        }
+
+        if (await database.Repositories.AnyAsync(r => r.FolderId == repository.FolderId && r.NormalizedName == repository.NormalizedName, cancellationToken).ConfigureAwait(false))
+        {
+            return UseCase.Failure<RepositoryView>(UseCaseError.Conflict($"The folder has a repository named '{repository.Name}' already.", "name"));
+        }
 
         var (refs, unreadable) = await RefsAsync(repository, cancellationToken).ConfigureAwait(false);
         if (unreadable is not null)
@@ -79,14 +86,18 @@ public sealed class RepositoryService(
             return UseCase.Failure<RepositoryView>(unreadable);
         }
 
-        repository.NextPollAt = NextPoll(repository, now);
+        repository.NextPollAt = NextPoll(repository, time.GetUtcNow());
         database.Repositories.Add(repository);
         RepositoryPushes.RecordBaseline(database, repository.Id, refs!);
-        audit.Record(Entry(AuditActions.RepositoryConnected, repository, ("address", url.ToString()), ("credential", repository.CredentialCiphertext is not null)));
+        audit.Record(Entry(AuditActions.RepositoryConnected, repository, ("kind", repository.Kind.ToString()), ("address", repository.Url.ToString()), ("credential", repository.CredentialCiphertext is not null)));
         await discovery.SyncAsync(actor, repository, cancellationToken).ConfigureAwait(false);
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return UseCase.Success(await ViewAsync(repository, cancellationToken).ConfigureAwait(false));
     }
+
+    /// <summary>Whether a name, a branch and a polling interval are all right for a new repository.</summary>
+    internal static UseCaseError? Check(string name, string? defaultBranch, int? pollMinutes) =>
+        Names.Check("name", name, Repository.MaxNameLength, "repository") ?? CheckBranch(defaultBranch) ?? CheckPolling(pollMinutes);
 
     /// <summary>
     /// The refs of a repository to connect. Only a repository that can be read is connected; git
@@ -98,8 +109,9 @@ public sealed class RepositoryService(
         try
         {
             var forge = discovery.ForgeOf(repository);
-            await forge.ResolveAsync(discovery.AccessOf(repository), repository.DefaultBranch, cancellationToken).ConfigureAwait(false);
-            return (await forge.ListRefsAsync(discovery.AccessOf(repository), cancellationToken).ConfigureAwait(false), null);
+            var reach = await discovery.AccessAsync(repository, cancellationToken).ConfigureAwait(false);
+            await forge.ResolveAsync(reach, repository.DefaultBranch, cancellationToken).ConfigureAwait(false);
+            return (await forge.ListRefsAsync(reach, cancellationToken).ConfigureAwait(false), null);
         }
         catch (ForgeException exception)
         {
@@ -166,6 +178,11 @@ public sealed class RepositoryService(
         }
 
         var repository = found.Value!;
+        if (repository.Kind == RepositoryKind.GitHub && (change.UserName is not null || change.Secret is not null))
+        {
+            return UseCase.Failure<RepositoryView>(UseCaseError.Invalid("secret", "A GitHub repository is reached with the GitHub App's tokens; it has no credential of its own."));
+        }
+
         var changed = new List<string>();
         if (change.Name is { } newName && !string.Equals(newName.Trim(), repository.Name, StringComparison.Ordinal))
         {
@@ -294,7 +311,8 @@ public sealed class RepositoryService(
         repository.CredentialKeyId = secret is null ? null : cipher.Key.Id;
     }
 
-    private async Task<string> UserNameAsync(Actor actor, CancellationToken cancellationToken) =>
+    /// <summary>The actor's user name, for who connected a repository.</summary>
+    internal async Task<string> UserNameAsync(Actor actor, CancellationToken cancellationToken) =>
         await database.Users.Where(u => u.Id == actor.UserId).Select(u => u.UserName).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false) ?? "system";
 
     private static UseCaseError NotFound => UseCaseError.NotFound("The repository does not exist, or you may not see it.");
@@ -324,7 +342,7 @@ public sealed class RepositoryService(
     private static DateTimeOffset? NextPoll(Repository repository, DateTimeOffset now) =>
         repository.PollMinutes == 0 ? null : now.AddMinutes(repository.PollMinutes);
 
-    private static string? Empty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    internal static string? Empty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static void DeleteCache(string path)
     {

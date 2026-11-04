@@ -86,7 +86,7 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
             }
         }
 
-        // Webhook secrets, of automations and repositories, as well.
+        // Webhook secrets, of automations and repositories, and the GitHub App's, as well.
         var hooks = await RotateWebhooksAsync(next, broken, cancellationToken).ConfigureAwait(false);
         if (broken.Count > 0)
         {
@@ -104,7 +104,7 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
         return UseCase.Success(secrets.Count);
     }
 
-    /// <summary>Re-encrypts the webhook secrets; adds the ones that do not decrypt to <paramref name="broken"/>.</summary>
+    /// <summary>Re-encrypts the webhook secrets and the GitHub App's; adds the ones that do not decrypt to <paramref name="broken"/>.</summary>
     private async Task<int> RotateWebhooksAsync(SecretCipher next, List<string> broken, CancellationToken cancellationToken)
     {
         var automations = await database.AutomationWebhooks.Where(w => w.SigningSecret != null).ToListAsync(cancellationToken).ConfigureAwait(false);
@@ -135,7 +135,35 @@ public sealed class MasterKeyGuard(AutoCanvasDbContext database, SecretCipher ci
             }
         }
 
+        await RotateGitHubAppAsync(next, broken, cancellationToken).ConfigureAwait(false);
         return automations.Count + repositories.Count;
+    }
+
+    /// <summary>Re-encrypts the GitHub App's private key and secrets (ADR-0022); adds them to <paramref name="broken"/> when they do not decrypt.</summary>
+    private async Task RotateGitHubAppAsync(SecretCipher next, List<string> broken, CancellationToken cancellationToken)
+    {
+        if (await database.GitHubApps.FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false) is not { } app)
+        {
+            return;
+        }
+
+        string? Rotate(string ciphertext, string name)
+        {
+            if (cipher.Decrypt(Forges.GitHubAccess.SecretScope, name, ciphertext) is { } value)
+            {
+                return next.Encrypt(Forges.GitHubAccess.SecretScope, name, value);
+            }
+
+            broken.Add($"github-app/{name}");
+            return null;
+        }
+
+        app.PrivateKeyCiphertext = Rotate(app.PrivateKeyCiphertext, Forges.GitHubAccess.PrivateKeyName) ?? app.PrivateKeyCiphertext;
+        app.WebhookSecretCiphertext = Rotate(app.WebhookSecretCiphertext, Forges.GitHubAccess.WebhookSecretName) ?? app.WebhookSecretCiphertext;
+        if (app.ClientSecretCiphertext is { } client)
+        {
+            app.ClientSecretCiphertext = Rotate(client, Forges.GitHubAccess.ClientSecretName) ?? client;
+        }
     }
 
     private static string Encrypt(SecretCipher with) => with.Encrypt(CheckScope, CheckName, CheckText);
