@@ -23,4 +23,8 @@ public sealed record RunSummary(
     RunTriggerKind Trigger,
     string TriggeredByName,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? FinishedAt);
+    DateTimeOffset? FinishedAt)
+{
+    /// <summary>The pull request the run is for, if a pull request started it.</summary>
+    public int? PullRequest { get; init; }
+}

@@ -7,6 +7,7 @@ using AutoCanvas.Persistence.Queue;
 using AutoCanvas.Persistence.Runs;
 using AutoCanvas.Server.Application.Audit;
 using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Variables;
 using Microsoft.EntityFrameworkCore;
@@ -90,6 +91,9 @@ public sealed class RunService
 
         var run = found.Value!;
         var jobs = await JobsAsync(run.Id, track: false, cancellationToken).ConfigureAwait(false);
+        var repository = run.RepositoryId is { } repositoryId
+            ? await database.Repositories.AsNoTracking().FirstOrDefaultAsync(r => r.Id == repositoryId, cancellationToken).ConfigureAwait(false)
+            : null;
         return UseCase.Success(new RunView(
             run.Id,
             run.Number,
@@ -107,7 +111,12 @@ public sealed class RunService
             [.. jobs.Select(j => new RunJobView(j.Key, j.Name, j.Status, j.ActivatedCase, j.Reason, j.AttemptCount, j.StartedAt, j.FinishedAt))],
             run.Yaml,
             run.CommitSha,
-            run.Ref));
+            run.Ref)
+        {
+            CommitUrl = repository is null ? null : RepositoryLinks.Commit(repository, run.CommitSha),
+            PullRequest = run.PullRequest,
+            PullRequestUrl = repository is null ? null : RepositoryLinks.PullRequest(repository, run.PullRequest),
+        });
     }
 
     /// <summary>The automation's runs, newest first, one page at a time (Viewer).</summary>
@@ -148,7 +157,7 @@ public sealed class RunService
             .Where(r => r.AutomationId == automationId && (before == null || r.Number < before))
             .OrderByDescending(r => r.Number)
             .Take(limit.Value + 1)
-            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.FolderId, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt))
+            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.FolderId, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt) { PullRequest = r.PullRequest })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var next = rows.Count > limit.Value ? rows[limit.Value - 1].Number.ToString(CultureInfo.InvariantCulture) : null;
         return UseCase.Success(new Page<RunSummary>([.. rows.Take(limit.Value)], next));
@@ -192,7 +201,7 @@ public sealed class RunService
         var rows = await runs.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
             .Skip(skip)
             .Take(limit.Value + 1)
-            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.FolderId, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt))
+            .Select(r => new RunSummary(r.Id, r.Number, r.AutomationId, r.AutomationName, r.FolderId, r.State, r.Trigger, r.TriggeredByName, r.CreatedAt, r.FinishedAt) { PullRequest = r.PullRequest })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var items = rows.Take(limit.Value).ToList();
         var next = rows.Count > limit.Value ? TimeCursor.After(items.Select(r => r.CreatedAt), items[^1].CreatedAt, after.Value) : null;

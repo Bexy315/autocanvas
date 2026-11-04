@@ -302,7 +302,8 @@ public sealed class RepositoryService(
             RepositoryDiscovery.ProblemsOf(repository),
             count,
             repository.CreatedAt,
-            repository.CreatedByName);
+            repository.CreatedByName,
+            RepositoryLinks.Web(repository));
     }
 
     private void SetCredential(Repository repository, string? secret)

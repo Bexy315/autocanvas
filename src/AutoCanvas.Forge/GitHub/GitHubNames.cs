@@ -19,4 +19,13 @@ public static class GitHubNames
         var name = parts[^1].EndsWith(".git", StringComparison.OrdinalIgnoreCase) ? parts[^1][..^4] : parts[^1];
         return parts[^2].Length > 0 && name.Length > 0 ? $"{parts[^2]}/{name}" : null;
     }
+
+    /// <summary>The repository's page, from its clone address: <c>https://github.com/acme/shop</c>.</summary>
+    public static Uri? WebOf(Uri cloneUrl)
+    {
+        ArgumentNullException.ThrowIfNull(cloneUrl);
+        var path = cloneUrl.AbsolutePath.TrimEnd('/');
+        path = path.EndsWith(".git", StringComparison.OrdinalIgnoreCase) ? path[..^4] : path;
+        return FullNameOf(cloneUrl) is null ? null : new Uri(cloneUrl, path);
+    }
 }

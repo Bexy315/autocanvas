@@ -144,6 +144,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/automations/{id}/pull-request': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Propose a change of a repository automation as a pull request
+     * @description A repository automation is changed in its repository: the new file becomes a branch with one commit, from the commit of the current version, and a pull request into the repository's branch. GitHub repositories only. Needs Editor.
+     */
+    post: operations['ProposeAutomationChange'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/setup': {
     parameters: {
       query?: never;
@@ -1902,6 +1922,15 @@ export interface components {
       /** @description The new password: 12 to 256 characters, not the user name. */
       newPassword: string;
     };
+    /** @description A new text of a repository automation, to propose as a pull request. */
+    ChangeProposal: {
+      /** @description The automation file as it should be. */
+      yaml: string;
+      /** @description The pull request's title; the commit message when unset. */
+      title?: null | string;
+      /** @description The commit message; `Change {automation} in AutoCanvas` when unset. */
+      message?: null | string;
+    };
     /**
      * @description Which results of the followed automation start a run (`on`).
      * @enum {unknown}
@@ -2803,6 +2832,21 @@ export interface components {
       detail?: null | string;
       instance?: null | string;
     };
+    /** @description The pull request a change was proposed as. */
+    ProposedChangeView: {
+      /**
+       * Format: int32
+       * @description Its number.
+       */
+      number: number | string;
+      /**
+       * Format: uri
+       * @description Its page on the forge.
+       */
+      url: string;
+      /** @description The branch with the change. */
+      branch: string;
+    };
     /** @description What became of a call of a repository's webhook address. */
     ReceivedHookView: {
       /** @description Whether it was a push, which starts its runs shortly. */
@@ -2945,6 +2989,25 @@ export interface components {
       path: string;
       /** @description The commit the current version was read at. */
       commit: null | string;
+      /** @description Which forge it lives on: `GenericGit` or `GitHub`. */
+      kind?: string;
+      /** @description Whether a change made in AutoCanvas can be proposed as a pull request (GitHub). */
+      proposesChanges?: boolean;
+      /**
+       * Format: uri
+       * @description The page of the repository on its forge, when known.
+       */
+      webUrl?: null | string;
+      /**
+       * Format: uri
+       * @description The file at string? RepositorySource.Commit on the forge, when known.
+       */
+      fileUrl?: null | string;
+      /**
+       * Format: uri
+       * @description The commit on the forge, when known.
+       */
+      commitUrl?: null | string;
     };
     /** @description A repository connected in a folder; its credential never comes back. */
     RepositoryView: {
@@ -3009,6 +3072,11 @@ export interface components {
       createdAt: string;
       /** @description Who connected it. */
       createdByName: string;
+      /**
+       * Format: uri
+       * @description Its page on its forge, when known (GitHub).
+       */
+      webUrl?: null | string;
     };
     /** @description A repository's webhook address, without its token and secret. */
     RepositoryWebhookView: {
@@ -3204,6 +3272,11 @@ export interface components {
        * @description When it finished.
        */
       finishedAt: null | string;
+      /**
+       * Format: int32
+       * @description The pull request the run is for, if a pull request started it.
+       */
+      pullRequest?: null | number | string;
     };
     /**
      * @description What started a run; readable as `trigger.event`.
@@ -3267,6 +3340,21 @@ export interface components {
       commit?: null | string;
       /** @description The branch or tag of that commit, such as `refs/heads/main`. */
       ref?: null | string;
+      /**
+       * Format: uri
+       * @description The commit on its forge, when known.
+       */
+      commitUrl?: null | string;
+      /**
+       * Format: int32
+       * @description The pull request the run is for, if a pull request started it.
+       */
+      pullRequest?: null | number | string;
+      /**
+       * Format: uri
+       * @description That pull request on its forge, when known.
+       */
+      pullRequestUrl?: null | string;
     };
     /** @description A new version of an automation. */
     SaveAutomationRequest: {
@@ -4051,6 +4139,68 @@ export interface operations {
       };
       /** @description Too Many Requests */
       429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ProposeAutomationChange: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangeProposal'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProposedChangeView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };

@@ -108,9 +108,8 @@ public sealed class AutomationService
             .FirstAsync(cancellationToken).ConfigureAwait(false);
         var yaml = current.Yaml;
         var repository = automation.RepositoryId is { } repositoryId
-            ? new RepositorySource(
-                repositoryId,
-                await database.Repositories.Where(r => r.Id == repositoryId).Select(r => r.Name).FirstAsync(cancellationToken).ConfigureAwait(false),
+            ? RepositorySource.Of(
+                await database.Repositories.AsNoTracking().FirstAsync(r => r.Id == repositoryId, cancellationToken).ConfigureAwait(false),
                 automation.SourcePath ?? string.Empty,
                 current.CommitSha)
             : null;
@@ -156,7 +155,7 @@ public sealed class AutomationService
 
         var rows = await query.OrderBy(a => a.NormalizedName).Take(limit.Value + 1).ToListAsync(cancellationToken).ConfigureAwait(false);
         var repositoryIds = rows.Where(a => a.RepositoryId is not null).Select(a => a.RepositoryId!.Value).Distinct().ToList();
-        var repositoryNames = await database.Repositories.AsNoTracking().Where(r => repositoryIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Name, cancellationToken).ConfigureAwait(false);
+        var repositories = await database.Repositories.AsNoTracking().Where(r => repositoryIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, cancellationToken).ConfigureAwait(false);
         var items = rows.Take(limit.Value).Select(a => new AutomationSummary(
             a.Id,
             a.Name,
@@ -164,7 +163,7 @@ public sealed class AutomationService
             a.Description,
             a.CurrentVersion,
             a.UpdatedAt,
-            a.RepositoryId is { } repositoryId ? new RepositorySource(repositoryId, repositoryNames[repositoryId], a.SourcePath ?? string.Empty, null) : null)).ToList();
+            a.RepositoryId is { } repositoryId ? RepositorySource.Of(repositories[repositoryId], a.SourcePath ?? string.Empty, null) : null)).ToList();
         var next = rows.Count > limit.Value ? NameCursor.Encode(rows[limit.Value - 1].NormalizedName) : null;
         return UseCase.Success(new Page<AutomationSummary>(items, next));
     }

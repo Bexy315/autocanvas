@@ -37,4 +37,14 @@ public sealed record RunView(
     IReadOnlyList<RunJobView> Jobs,
     string Yaml,
     string? Commit = null,
-    string? Ref = null);
+    string? Ref = null)
+{
+    /// <summary>The commit on its forge, when known.</summary>
+    public Uri? CommitUrl { get; init; }
+
+    /// <summary>The pull request the run is for, if a pull request started it.</summary>
+    public int? PullRequest { get; init; }
+
+    /// <summary>That pull request on its forge, when known.</summary>
+    public Uri? PullRequestUrl { get; init; }
+}

@@ -178,6 +178,50 @@ public sealed class GitHubClient(HttpClient http)
         }
     }
 
+    /// <summary>The blob id of a file at a commit, which GitHub wants to change the file.</summary>
+    public async Task<string> GetFileShaAsync(Uri api, string token, string fullName, string path, string commit, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        var (owner, name) = Split(fullName);
+        using var document = await SendAsync(HttpMethod.Get, Address(api, $"repos/{owner}/{name}/contents/{EscapePath(path)}?ref={Uri.EscapeDataString(commit)}"), token, cancellationToken).ConfigureAwait(false);
+        return Text(document.RootElement, "sha");
+    }
+
+    /// <summary>Creates a branch at a commit.</summary>
+    public async Task CreateBranchAsync(Uri api, string token, string fullName, string branch, string commit, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        var (owner, name) = Split(fullName);
+        var body = JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.Ordinal) { ["ref"] = $"refs/heads/{branch}", ["sha"] = commit });
+        using var _ = await SendAsync(HttpMethod.Post, Address(api, $"repos/{owner}/{name}/git/refs"), token, cancellationToken, body).ConfigureAwait(false);
+    }
+
+    /// <summary>Commits a new content of a file on a branch; <paramref name="sha"/> is the blob it replaces.</summary>
+    public async Task UpdateFileAsync(Uri api, string token, string fullName, string path, string branch, string sha, string content, string message, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(content);
+        var (owner, name) = Split(fullName);
+        var body = JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["message"] = message,
+            ["content"] = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content)),
+            ["sha"] = sha,
+            ["branch"] = branch,
+        });
+        using var _ = await SendAsync(HttpMethod.Put, Address(api, $"repos/{owner}/{name}/contents/{EscapePath(path)}"), token, cancellationToken, body).ConfigureAwait(false);
+    }
+
+    /// <summary>Opens a pull request from <paramref name="head"/> into <paramref name="base"/>.</summary>
+    public async Task<GitHubPullRequest> CreatePullRequestAsync(Uri api, string token, string fullName, string head, string @base, string title, string body, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        var (owner, name) = Split(fullName);
+        var request = JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.Ordinal) { ["title"] = title, ["head"] = head, ["base"] = @base, ["body"] = body });
+        using var document = await SendAsync(HttpMethod.Post, Address(api, $"repos/{owner}/{name}/pulls"), token, cancellationToken, request).ConfigureAwait(false);
+        return new GitHubPullRequest(document.RootElement.GetProperty("number").GetInt32(), new Uri(Text(document.RootElement, "html_url")));
+    }
+
     /// <summary>The repositories an installation token reaches, page by page up to <see cref="MaxRepositories"/>.</summary>
     public async Task<IReadOnlyList<GitHubRepository>> ListInstallationRepositoriesAsync(Uri api, string token, CancellationToken cancellationToken)
     {
@@ -207,6 +251,13 @@ public sealed class GitHubClient(HttpClient http)
     }
 
     private static string Cut(string value, int length) => value.Length <= length ? value : value[..(length - 1)] + "…";
+
+    /// <summary>A path in a repository, each part escaped for an address.</summary>
+    private static string EscapePath(string path)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        return string.Join('/', path.Split('/').Select(Uri.EscapeDataString));
+    }
 
     /// <summary>The owner and name of an <c>owner/name</c>, escaped for an address.</summary>
     private static (string Owner, string Name) Split(string fullName)
