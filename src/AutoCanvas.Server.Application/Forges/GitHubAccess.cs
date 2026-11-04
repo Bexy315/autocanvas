@@ -64,5 +64,20 @@ public sealed class GitHubAccess(AutoCanvasDbContext database, GitHubClient clie
     }
 
     /// <inheritdoc />
+    public async Task<string> CheckoutTokenAsync(long installationId, long repositoryId, CancellationToken cancellationToken)
+    {
+        if (tokens.Valid(installationId, time.GetUtcNow(), repositoryId) is { } valid)
+        {
+            return valid;
+        }
+
+        var app = await AppAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new ForgeException("No GitHub App is set up; an admin sets it up under Administration, Forges.");
+        var token = await client.CreateCheckoutTokenAsync(app.ApiAddress, JwtOf(app), installationId, repositoryId, cancellationToken).ConfigureAwait(false);
+        tokens.Store(installationId, token, repositoryId);
+        return token.Token;
+    }
+
+    /// <inheritdoc />
     public IReadOnlyList<string> Issued(long installationId) => tokens.Issued(installationId);
 }

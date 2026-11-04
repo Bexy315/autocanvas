@@ -6,7 +6,8 @@ sidebar_position: 10.5
 
 An automation's `triggers` say what starts its runs. Besides starting them by hand (`manual: true`),
 runs start on a schedule, when another automation finishes, on a webhook call, or — for automations
-from a repository — on a push ([Repositories](repositories.md#pushes)).
+from a repository — on a push ([Repositories](repositories.md#pushes)) or a pull request
+([below](#pull-requests)).
 
 ```yaml
 triggers:
@@ -89,6 +90,34 @@ describe the run that finished.
 
 Schedules and followers are started by the server within about five seconds of their time; with
 several servers on one PostgreSQL database, exactly one of them starts each run.
+
+## Pull requests
+
+`pull_request` starts runs when a pull request into the automation's repository is opened, gets new
+commits or is reopened. It works for repositories connected through the [GitHub App](github.md);
+other forges follow later.
+
+```yaml
+triggers:
+  pull_request:
+    branches: [main, 'release/*']   # the branch it goes into; left out: every branch
+    paths: ['src/**']               # only when a changed file matches; left out: any change
+    types: [opened, synchronize, reopened, ready_for_review]
+```
+
+- **`types`**: `opened`, `synchronize` (new commits), `reopened`, `ready_for_review` (a draft that
+  is ready) and `edited` (title or description). Left out, it is the first three.
+- **Patterns** work as for pushes: `*`, `**` and `?` ([Repositories](repositories.md#pushes)).
+- **Which file runs**: the automation's file at the head of the pull request, at that commit, so a
+  pull request can change its own automation. As for pushes, only automations the folder has (files
+  on the repository's branch) run.
+- **Forks**: a run of a pull request from a fork gets **no secrets** (`secrets.*` read as empty)
+  and checks out no other repositories: its code comes from outside the folder's people. It still
+  checks out the pull request's head, with a token that may only read the repository.
+- **What the run reads**: `trigger.event` is `pull_request`; `trigger.number`, `trigger.title`,
+  `trigger.action`, `trigger.head_branch`, `trigger.base_branch`, `trigger.sha`,
+  `trigger.short_sha`, `trigger.author`, `trigger.fork` (`true` or `false`), `trigger.url` and
+  `trigger.ref` (`refs/pull/12/head`). The run is started by the pull request's author.
 
 ## Webhooks
 

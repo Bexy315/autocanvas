@@ -108,6 +108,9 @@ function triggerLines(triggers: unknown): string[] {
   if (triggers['push'] !== undefined) {
     lines.push('Push');
   }
+  if (triggers['pull_request'] !== undefined) {
+    lines.push('Pull request');
+  }
   return lines;
 }
 

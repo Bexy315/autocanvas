@@ -18,12 +18,13 @@ any text value — scripts, node inputs, environment variables, outputs — and 
 | Context | Values |
 |---|---|
 | `vars.NAME` | Variables of the instance, the automation's folders and its file; see [Variables and secrets](variables-and-secrets.md). Names are not case-sensitive. |
-| `secrets.NAME` | Secrets of the instance, the automation's folders and the automation; see [Variables and secrets](variables-and-secrets.md). Masked in logs. Names are not case-sensitive. |
+| `secrets.NAME` | Secrets of the instance, the automation's folders and the automation; see [Variables and secrets](variables-and-secrets.md). Masked in logs. Names are not case-sensitive. Empty in runs of pull requests from forks. |
 | `steps.ID.outputs.NAME` | Outputs of an earlier step of the same job, by the step's `id`. |
 | `jobs.JOB.outputs.NAME` | Outputs a job published under its `outputs`. |
 | `jobs.JOB.result` | `success`, `failure`, `cancelled` or `skipped`. |
-| `trigger.event` | What started the run: `manual`, `push`, `schedule`, `webhook` or `automation_completed`. |
+| `trigger.event` | What started the run: `manual`, `push`, `pull_request`, `schedule`, `webhook` or `automation_completed`. |
 | `trigger.branch`, `trigger.ref`, `trigger.tag`, `trigger.sha`, `trigger.short_sha`, `trigger.before`, `trigger.pusher`, `trigger.message` | Details of a push ([Repositories](repositories.md#pushes)): `branch` for a branch, `tag` for a tag. |
+| `trigger.number`, `trigger.title`, `trigger.action`, `trigger.head_branch`, `trigger.base_branch`, `trigger.sha`, `trigger.short_sha`, `trigger.author`, `trigger.fork`, `trigger.url`, `trigger.ref` | Details of a pull request ([Triggers](triggers.md#pull-requests)). |
 | `trigger.body`, `trigger.body.FIELD`, `trigger.headers.NAME`, `trigger.query.NAME` | Request of a webhook trigger; a JSON body is read into by property names. |
 | `trigger.schedule`, `trigger.scheduled_at` | The schedule entry that started the run, and when it was due. |
 | `trigger.automation`, `trigger.run_id`, `trigger.run_number`, `trigger.result` | The run whose end started this one (`automation_completed`); `result` is `success`, `failure` or `cancelled`. |

@@ -121,6 +121,10 @@ public sealed class JobOfferBuilder(AutoCanvasDbContext database, ConfigurationS
 
                 checkouts.Add(new OfferedCheckout(url, repository.Ref, repository.Path, depth));
             }
+            else if (run.SecretsWithheld)
+            {
+                return Unsupported<List<OfferedCheckout>>($"'{repository.Repository}' is not checked out: the run is of a pull request from a fork, which gets no secrets and no other repositories.");
+            }
             else if (await repositories.ByNameAsync(run.FolderId, repository.Repository, cancellationToken).ConfigureAwait(false) is { } named)
             {
                 checkouts.Add(await repositories.CheckoutAsync(named, repository.Ref ?? named.ResolvedBranch, repository.Path, depth, cancellationToken).ConfigureAwait(false));

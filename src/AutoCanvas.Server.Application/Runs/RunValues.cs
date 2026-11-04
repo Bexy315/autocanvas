@@ -38,6 +38,8 @@ internal sealed class RunValues(
             ["jobs", var job, "outputs", var name] => Output(jobOutputs ?? None, job, name, out value),
             ["steps", var step, "outputs", var name] => Output(stepOutputs ?? None, step, name, out value),
             ["vars", var name] => configuration.Variables.TryGetValue(name, out value),
+            // A fork's pull request gets no secrets: they read as empty, as on other forges.
+            ["secrets", _] when run.SecretsWithheld => Found(string.Empty, out value),
             ["secrets", var name] => configuration.Secrets.TryGetValue(name, out value),
             ["run", var field] => Run(field, out value),
             ["trigger", "event"] => Found(TriggerEvent(run.Trigger), out value),
@@ -53,6 +55,7 @@ internal sealed class RunValues(
         RunTriggerKind.Schedule => "schedule",
         RunTriggerKind.Webhook => "webhook",
         RunTriggerKind.Push => "push",
+        RunTriggerKind.PullRequest => "pull_request",
         _ => "automation_completed",
     };
 

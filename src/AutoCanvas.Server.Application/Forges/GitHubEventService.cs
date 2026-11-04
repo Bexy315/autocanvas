@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AutoCanvas.Core.Model;
 using AutoCanvas.Forge;
 using AutoCanvas.Persistence;
 using AutoCanvas.Persistence.Forges;
@@ -68,6 +69,7 @@ public sealed class GitHubEventService(AutoCanvasDbContext database, GitHubAcces
                 "ping" => UseCase.Success(new ReceivedHookView(Queued: false, "pong")),
                 "push" => UseCase.Success(await PushAsync(document.RootElement, cancellationToken).ConfigureAwait(false)),
                 "installation" => UseCase.Success(await InstallationAsync(document.RootElement, cancellationToken).ConfigureAwait(false)),
+                "pull_request" => UseCase.Success(await PullRequestAsync(document.RootElement, cancellationToken).ConfigureAwait(false)),
                 _ => UseCase.Success(new ReceivedHookView(Queued: false, $"The event {eventName} starts nothing.")),
             };
         }
@@ -77,7 +79,7 @@ public sealed class GitHubEventService(AutoCanvasDbContext database, GitHubAcces
     private async Task<ReceivedHookView> PushAsync(JsonElement root, CancellationToken cancellationToken)
     {
         if (PushPayload.Read(root) is not { } push
-            || !root.TryGetProperty("repository", out var repository) || !repository.TryGetProperty("id", out var idElement) || !idElement.TryGetInt64(out var externalId))
+            || !JsonFields.Object(root, "repository", out var repository) || !JsonFields.Int64(repository, "id", out var externalId))
         {
             return new ReceivedHookView(Queued: false, "The push could not be read, so nothing happens.");
         }
@@ -112,12 +114,44 @@ public sealed class GitHubEventService(AutoCanvasDbContext database, GitHubAcces
         return new ReceivedHookView(Queued: true, $"The push to {push.Ref} starts its runs shortly, in {connected.Count} folder(s).");
     }
 
+    /// <summary>Stores a pull request event that may start runs, for every connected repository it goes into.</summary>
+    private async Task<ReceivedHookView> PullRequestAsync(JsonElement root, CancellationToken cancellationToken)
+    {
+        if (GitHubPullRequestPayload.Read(root) is not { } pull)
+        {
+            return new ReceivedHookView(Queued: false, "The pull request could not be read, so nothing happens.");
+        }
+
+        if (!PullRequestTrigger.KnownTypes.Contains(pull.Action, StringComparer.Ordinal))
+        {
+            return new ReceivedHookView(Queued: false, $"A pull request that was {pull.Action} starts nothing.");
+        }
+
+        var connected = await database.Repositories.AsNoTracking()
+            .Where(r => r.Kind == RepositoryKind.GitHub && r.ExternalId == pull.RepositoryId)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var id in connected)
+        {
+            database.RepositoryPullRequests.Add(pull.ToRow(Guid.CreateVersion7(time.GetUtcNow()), id, time.GetUtcNow()));
+        }
+
+        await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (connected.Count == 0)
+        {
+            return new ReceivedHookView(Queued: false, "The repository is not connected in any folder.");
+        }
+
+        signal.Notify();
+        return new ReceivedHookView(Queued: true, $"Pull request #{pull.Number} starts its runs shortly, in {connected.Count} folder(s).");
+    }
+
     /// <summary>An installation that went away or was suspended: its repositories say so.</summary>
     private async Task<ReceivedHookView> InstallationAsync(JsonElement root, CancellationToken cancellationToken)
     {
         var action = root.TryGetProperty("action", out var a) && a.ValueKind == JsonValueKind.String ? a.GetString() : null;
         if (action is not ("deleted" or "suspend")
-            || !root.TryGetProperty("installation", out var installation) || !installation.TryGetProperty("id", out var idElement) || !idElement.TryGetInt64(out var id))
+            || !JsonFields.Object(root, "installation", out var installation) || !JsonFields.Int64(installation, "id", out var id))
         {
             return new ReceivedHookView(Queued: false, $"The installation was {action ?? "changed"}; nothing to do.");
         }

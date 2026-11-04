@@ -150,6 +150,15 @@ GitHub through a page of the server (`/api/v1/forges/github/manifest/launch`, po
 which stands in for the `X-AutoCanvas-Request` header) whose own policy allows its one script, by
 hash, and forms to that GitHub only.
 
+### Pull requests from forks
+
+The code of a pull request from a fork comes from outside the folder's people, so its runs get no
+secrets (`secrets.*` read as empty) and check out no other repositories by name. Every checkout of
+a GitHub repository, a fork's included, uses an installation token that may only read that one
+repository (`contents: read`, `repository_ids`), never the server's own token. The automation file of
+such a run is the fork's; it still runs only on runners and in the folder of an automation the
+folder already has.
+
 ## Repository credentials
 
 A token or password of a connected repository ([ADR-0021](../adr/0021-repositories-per-folder.md))

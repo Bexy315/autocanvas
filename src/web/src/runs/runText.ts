@@ -8,6 +8,7 @@ const triggers: Record<RunSummary['trigger'], string> = {
   Webhook: 'by a webhook',
   AutomationCompleted: 'after another automation',
   Push: 'by a push',
+  PullRequest: 'by a pull request',
 };
 
 /** What started a run, in words: `Started by hand by ada`. */

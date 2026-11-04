@@ -39,6 +39,18 @@ public sealed class Run
     /// <summary>The branch or tag that commit came from, such as <c>refs/heads/main</c>.</summary>
     public string? Ref { get; init; }
 
+    /// <summary>The repository a repository automation's run comes from, to report back to; no foreign key, the run outlives it.</summary>
+    public Guid? RepositoryId { get; init; }
+
+    /// <summary>The number of the pull request the run is for, if a pull request started it.</summary>
+    public int? PullRequest { get; init; }
+
+    /// <summary>
+    /// Whether the run gets no secrets: a pull request from a fork, whose code the folder's people
+    /// have not seen. <c>secrets.*</c> read as empty, and other repositories are not checked out.
+    /// </summary>
+    public bool SecretsWithheld { get; init; }
+
     /// <summary>Where the run stands.</summary>
     public RunState State { get; set; } = RunState.Running;
 

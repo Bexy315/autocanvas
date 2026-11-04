@@ -9,6 +9,9 @@ triggers:
   push:
     branches: [main, 'release/*']
     paths: ['src/**', 'tests/**']
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 variables:
   CONFIGURATION: Release

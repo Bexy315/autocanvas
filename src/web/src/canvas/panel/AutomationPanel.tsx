@@ -121,6 +121,7 @@ function Starts({
   const schedule = triggers['schedule'];
   const schedules: readonly Mapping[] = isMappingList(schedule) ? schedule : [];
   const push = triggers['push'];
+  const pullRequest = triggers['pull_request'];
   const completed = triggers['automation_completed'];
   const nothing = Object.keys(triggers).length === 0;
 
@@ -251,6 +252,43 @@ function Starts({
           </div>
         ) : (
           <YamlOnly label="Push" source={file.source(at('push'))} />
+        ))}
+
+      <Toggle
+        label="On pull requests"
+        hint="For automations that live in a repository; pull requests from forks run without secrets."
+        checked={pullRequest !== undefined}
+        onChecked={(checked) =>
+          onSet(at('pull_request'), checked ? { branches: ['main'] } : undefined, 'Changed pull_request')
+        }
+      />
+      {pullRequest !== undefined &&
+        (isMapping(pullRequest) ? (
+          <div className="flex flex-col gap-2 pl-6">
+            {(['branches', 'paths', 'types'] as const).map((key) => {
+              const value = pullRequest[key];
+              return value === undefined || isTextList(value) ? (
+                <TagList
+                  key={key}
+                  label={{ branches: 'Target branches', paths: 'Changed paths', types: 'Types' }[key]}
+                  hint={
+                    {
+                      branches: 'Patterns of the branch it goes into; empty means all.',
+                      paths: 'Only when a changed file matches one.',
+                      types: 'opened, synchronize, reopened, ready_for_review, edited; empty means the first three.',
+                    }[key]
+                  }
+                  values={value ?? []}
+                  problems={problemsAt(diagnostics, at('pull_request', key))}
+                  onValues={(values) => onSet(at('pull_request', key), values, `Changed pull_request ${key}`)}
+                />
+              ) : (
+                <YamlOnly key={key} label={key} source={file.source(at('pull_request', key))} />
+              );
+            })}
+          </div>
+        ) : (
+          <YamlOnly label="Pull request" source={file.source(at('pull_request'))} />
         ))}
 
       <Toggle

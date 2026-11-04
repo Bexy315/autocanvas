@@ -34,6 +34,21 @@ public sealed class RepositoryCredentials(SecretCipher cipher, IInstallationToke
         return repository.CredentialCiphertext is { } ciphertext ? cipher.Decrypt(RepositoryDiscovery.CredentialScope, repository.Id.ToString(), ciphertext) : null;
     }
 
+    /// <summary>
+    /// The credential a job checks the repository out with: for GitHub a token that may only read
+    /// this repository; otherwise its token or password.
+    /// </summary>
+    public async Task<string?> CheckoutSecretAsync(Repository repository, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(repository);
+        if (repository.Kind == RepositoryKind.GitHub && repository.InstallationId is { } installation && repository.ExternalId is { } external)
+        {
+            return await installations.CheckoutTokenAsync(installation, external, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await SecretAsync(repository, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Every credential the repository may have been reached with lately, to mask in logs; nothing is fetched.</summary>
     public IEnumerable<string> Known(Repository repository)
     {

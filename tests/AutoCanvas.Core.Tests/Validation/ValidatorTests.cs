@@ -190,7 +190,7 @@ public sealed class ValidatorTests
     [InlineData("${{ nope }}", DiagnosticCodes.UnknownReference, "nothing an expression can read")]
     [InlineData("${{ vars }}", DiagnosticCodes.UnknownReference, "vars.NAME")]
     [InlineData("${{ secrets.A.B }}", DiagnosticCodes.UnknownReference, "secrets.NAME")]
-    [InlineData("${{ trigger.author }}", DiagnosticCodes.UnknownReference, "trigger.branch")]
+    [InlineData("${{ trigger.nothing }}", DiagnosticCodes.UnknownReference, "trigger.branch")]
     [InlineData("${{ trigger.headers }}", DiagnosticCodes.UnknownReference, "trigger.headers.NAME")]
     [InlineData("${{ run.pipeline_name }}", DiagnosticCodes.UnknownReference, "run.automation_name")]
     [InlineData("${{ jobs.a }}", DiagnosticCodes.UnknownReference, "jobs.JOB.outputs.NAME or jobs.JOB.result")]

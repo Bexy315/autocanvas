@@ -1109,6 +1109,81 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                     b.ToTable("repositories", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryPullRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("author");
+
+                    b.Property<string>("BaseBranch")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("base_branch");
+
+                    b.Property<bool>("Fork")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fork");
+
+                    b.Property<string>("HeadBranch")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("head_branch");
+
+                    b.Property<string>("HeadSha")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("head_sha");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("repository_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_repository_pull_requests");
+
+                    b.HasIndex("ReceivedAt")
+                        .HasDatabaseName("ix_repository_pull_requests_received_at");
+
+                    b.HasIndex("RepositoryId")
+                        .HasDatabaseName("ix_repository_pull_requests_repository_id");
+
+                    b.ToTable("repository_pull_requests", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryPush", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1642,10 +1717,22 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("number");
 
+                    b.Property<int?>("PullRequest")
+                        .HasColumnType("integer")
+                        .HasColumnName("pull_request");
+
                     b.Property<string>("Ref")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("ref");
+
+                    b.Property<Guid?>("RepositoryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("repository_id");
+
+                    b.Property<bool>("SecretsWithheld")
+                        .HasColumnType("boolean")
+                        .HasColumnName("secrets_withheld");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -1680,6 +1767,9 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_runs");
+
+                    b.HasIndex("RepositoryId")
+                        .HasDatabaseName("ix_runs_repository_id");
 
                     b.HasIndex("State")
                         .HasDatabaseName("ix_runs_state");
@@ -2216,6 +2306,16 @@ namespace AutoCanvas.Persistence.Postgres.Migrations
                         .HasConstraintName("fk_repositories_folders_folder_id");
 
                     b.Navigation("Folder");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryPullRequest", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_repository_pull_requests_repositories_repository_id");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryPush", b =>

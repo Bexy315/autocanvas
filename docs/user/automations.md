@@ -84,6 +84,8 @@ triggers:
     branches: [main, 'release/*']
     tags: ['v*']
     paths: ['src/**']             # only when a changed file matches
+  pull_request:                   # repository automations from GitHub only
+    branches: [main]              # the branch it goes into
   schedule:
     - cron: '0 3 * * 1-5'         # five-field cron, UTC unless timezone is set
       timezone: Europe/Berlin

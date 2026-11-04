@@ -59,6 +59,39 @@ public sealed class TriggerTests
     }
 
     [Fact]
+    public void Pull_requests_are_read_with_their_types_or_the_default_ones()
+    {
+        var chosen = Parse("""
+            pull_request:
+              branches: [main]
+              paths: ['src/**']
+              types: [opened, ready_for_review]
+            """).PullRequest.ShouldNotBeNull();
+        chosen.Branches.ShouldBe(["main"]);
+        chosen.Paths.ShouldBe(["src/**"]);
+        chosen.Types.ShouldBe(["opened", "ready_for_review"]);
+
+        var all = Parse("pull_request: {}").PullRequest.ShouldNotBeNull();
+        all.Branches.ShouldBeEmpty();
+        all.Types.ShouldBe(["opened", "synchronize", "reopened"]);
+        Parse("manual: true").PullRequest.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("opened", "main", null, true)]
+    [InlineData("synchronize", "main", "src/a.cs", true)]
+    [InlineData("synchronize", "main", "docs/a.md", false)]
+    [InlineData("closed", "main", null, false)]
+    [InlineData("opened", "develop", null, false)]
+    [InlineData("opened", "release/2", null, true)]
+    public void Pull_request_triggers_match_type_target_branch_and_paths(string action, string baseBranch, string? changed, bool matches)
+    {
+        var trigger = new PullRequestTrigger(["main", "release/*"], ["src/**"], PullRequestTrigger.DefaultTypes);
+
+        trigger.Matches(action, baseBranch, changed is null ? null : [changed]).ShouldBe(matches);
+    }
+
+    [Fact]
     public void Automation_completed_defaults_to_success() =>
         Parse("automation_completed: { automation: build }").AutomationCompleted.ShouldNotBeNull().On.ShouldBe(OutcomeFilter.Success);
 
@@ -86,6 +119,10 @@ public sealed class TriggerTests
     [InlineData("automation_completed: { automation: a, on: sometimes }", DiagnosticCodes.InvalidValue, "triggers.automation_completed.on")]
     [InlineData("automation_completed: build", DiagnosticCodes.WrongType, "triggers.automation_completed")]
     [InlineData("on_push: {}", DiagnosticCodes.UnknownKey, "triggers.on_push")]
+    [InlineData("pull_request: { types: [opened, merged] }", DiagnosticCodes.InvalidValue, "triggers.pull_request.types")]
+    [InlineData("pull_request: { types: [] }", DiagnosticCodes.InvalidValue, "triggers.pull_request.types")]
+    [InlineData("pull_request: { base: main }", DiagnosticCodes.UnknownKey, "triggers.pull_request.base")]
+    [InlineData("pull_request: main", DiagnosticCodes.WrongType, "triggers.pull_request")]
     public void Invalid_triggers_are_reported(string triggers, string code, string path) => Rejects(triggers, code, path);
 
     [Fact]

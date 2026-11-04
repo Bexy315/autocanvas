@@ -14,4 +14,10 @@ internal sealed record RunStart(RunTriggerKind Trigger, Guid? TriggeredById, str
 
     /// <summary>The branch or tag the commit came from; the repository's branch when unset.</summary>
     public string? Ref { get; init; }
+
+    /// <summary>The pull request the run is for, if one started it.</summary>
+    public int? PullRequest { get; init; }
+
+    /// <summary>Whether the run gets no secrets (a pull request from a fork).</summary>
+    public bool SecretsWithheld { get; init; }
 }

@@ -34,7 +34,7 @@ internal static class PushPayload
             return null;
         }
 
-        var commits = root.TryGetProperty("commits", out var list) && list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().ToList() : [];
+        var commits = root.TryGetProperty("commits", out var list) && list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Where(c => c.ValueKind == JsonValueKind.Object).ToList() : [];
         return new PushEvent(gitRef, before, after)
         {
             ChangedFiles = Changes(root, before, commits),
@@ -50,7 +50,7 @@ internal static class PushPayload
     /// </summary>
     private static List<string>? Changes(JsonElement root, string before, List<JsonElement> commits)
     {
-        var total = root.TryGetProperty("total_commits_count", out var count) && count.TryGetInt32(out var value) ? value : commits.Count;
+        var total = Forges.JsonFields.Int32(root, "total_commits_count", out var value) ? value : commits.Count;
         if (PushEvent.IsNone(before) || (root.TryGetProperty("forced", out var forced) && forced.ValueKind == JsonValueKind.True)
             || commits.Count == 0 || commits.Count >= MaxCommits || total > commits.Count)
         {
@@ -83,7 +83,7 @@ internal static class PushPayload
     }
 
     private static string? Text(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text ? text : null;
+        element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text ? text : null;
 
     private static bool IsCommit(string value) => value.Length is 40 or 64 && value.All(c => c is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
 }

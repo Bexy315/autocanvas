@@ -3209,7 +3209,7 @@ export interface components {
      * @description What started a run; readable as `trigger.event`.
      * @enum {unknown}
      */
-    RunTriggerKind: 'Manual' | 'Schedule' | 'Webhook' | 'AutomationCompleted' | 'Push';
+    RunTriggerKind: 'Manual' | 'Schedule' | 'Webhook' | 'AutomationCompleted' | 'Push' | 'PullRequest';
     /** @description A run with its jobs. */
     RunView: {
       /**

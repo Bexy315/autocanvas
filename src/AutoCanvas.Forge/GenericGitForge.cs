@@ -177,7 +177,7 @@ public sealed partial class GenericGitForge(TimeSpan timeout) : IForge
         ArgumentNullException.ThrowIfNull(gitRef);
         if (gitRef.StartsWith("refs/", StringComparison.Ordinal))
         {
-            return IsFullRef(gitRef) ? gitRef : throw new ForgeException($"'{gitRef}' is not a branch or tag.");
+            return IsFullRef(gitRef) || PullHead().IsMatch(gitRef) ? gitRef : throw new ForgeException($"'{gitRef}' is not a branch, tag or pull request.");
         }
 
         CheckBranch(gitRef);
@@ -218,6 +218,10 @@ public sealed partial class GenericGitForge(TimeSpan timeout) : IForge
 
     [GeneratedRegex(@"^(?:[0-9a-f]{40}|[0-9a-f]{64})$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Sha();
+
+    /// <summary>The head of a pull request, as forges keep it in the repository it goes into.</summary>
+    [GeneratedRegex(@"^refs/pull/[0-9]{1,9}/head$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex PullHead();
 
     [GeneratedRegex(@"^(?<sha>[0-9a-f]{40}|[0-9a-f]{64})\tHEAD$", RegexOptions.Multiline | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Head();
