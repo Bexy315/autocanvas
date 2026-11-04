@@ -6,6 +6,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- GitHttpServer runs git http-backend behind Kestrel. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../src/AutoCanvas.Persistence.Postgres/AutoCanvas.Persistence.Postgres.csproj" />
     <ProjectReference Include="../../src/AutoCanvas.Persistence.Sqlite/AutoCanvas.Persistence.Sqlite.csproj" />
   </ItemGroup>

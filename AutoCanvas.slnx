@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AutoCanvas.Core/AutoCanvas.Core.csproj" />
+    <Project Path="src/AutoCanvas.Forge/AutoCanvas.Forge.csproj" />
     <Project Path="src/AutoCanvas.Persistence/AutoCanvas.Persistence.csproj" />
     <Project Path="src/AutoCanvas.Persistence.Postgres/AutoCanvas.Persistence.Postgres.csproj" />
     <Project Path="src/AutoCanvas.Persistence.Sqlite/AutoCanvas.Persistence.Sqlite.csproj" />
@@ -15,6 +16,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AutoCanvas.Core.Tests/AutoCanvas.Core.Tests.csproj" />
+    <Project Path="tests/AutoCanvas.Forge.Tests/AutoCanvas.Forge.Tests.csproj" />
     <Project Path="tests/AutoCanvas.Persistence.Tests/AutoCanvas.Persistence.Tests.csproj" />
     <Project Path="tests/AutoCanvas.Reports.Tests/AutoCanvas.Reports.Tests.csproj" />
     <Project Path="tests/AutoCanvas.Runner.Tests/AutoCanvas.Runner.Tests.csproj" />

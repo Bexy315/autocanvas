@@ -7,6 +7,7 @@ using AutoCanvas.Server.Application.Folders;
 using AutoCanvas.Server.Application.Identity;
 using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Reports;
+using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Runners;
 using AutoCanvas.Server.Application.Runs;
 using AutoCanvas.Server.Application.Setup;
@@ -62,6 +63,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<RunnerRegistrationService>();
         services.AddScoped<InstanceSettingsService>();
         services.AddScoped<SetupService>();
+        services.AddOptions<RepositoryOptions>();
+        services.AddScoped<RepositoryDiscovery>();
+        services.AddScoped<RepositoryService>();
         services.AddScoped<RunnerService>();
         services.AddScoped<RunnerConnectionService>();
         return services;

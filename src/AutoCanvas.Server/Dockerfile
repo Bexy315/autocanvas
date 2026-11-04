@@ -20,6 +20,7 @@ WORKDIR /src
 COPY global.json nuget.config Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY proto/ proto/
 COPY src/AutoCanvas.Core/ src/AutoCanvas.Core/
+COPY src/AutoCanvas.Forge/ src/AutoCanvas.Forge/
 COPY src/AutoCanvas.Reports/ src/AutoCanvas.Reports/
 COPY src/AutoCanvas.Persistence/ src/AutoCanvas.Persistence/
 COPY src/AutoCanvas.Persistence.Postgres/ src/AutoCanvas.Persistence.Postgres/
@@ -32,6 +33,10 @@ RUN dotnet restore src/AutoCanvas.Server/AutoCanvas.Server.csproj --locked-mode
 RUN dotnet publish src/AutoCanvas.Server/AutoCanvas.Server.csproj --configuration Release --no-restore --output /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+# git reads the automation files of connected repositories (ADR-0021).
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 ENV AUTOCANVAS_URLS=http://+:5080 \
     AUTOCANVAS_RUNNER_URLS=http://+:5081 \
     AUTOCANVAS_Server__DataDirectory=/var/lib/autocanvas

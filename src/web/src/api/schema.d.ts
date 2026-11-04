@@ -1470,6 +1470,78 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/folders/{id}/repositories': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List a folder's repositories
+     * @description The repositories connected in the folder, by name, with the state of their last sync. Needs Viewer.
+     */
+    get: operations['ListRepositories'];
+    put?: never;
+    /**
+     * Connect a Git repository
+     * @description Connects a Git repository reachable over http or https in the folder and reads `.autocanvas/automations/*.yml` at its default branch (or `defaultBranch`): each valid file becomes a repository automation of the folder. A repository that cannot be read is refused with git's reason. `secret` (a token or password) is stored encrypted and never shown again. Needs Editor.
+     */
+    post: operations['ConnectRepository'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/repositories/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Read a repository
+     * @description The repository with the state of its last sync and the files that are not automations, and why. Never its credential. Needs Viewer.
+     */
+    get: operations['GetRepository'];
+    put?: never;
+    post?: never;
+    /**
+     * Disconnect a repository
+     * @description Removes the repository from its folder and deletes its automations; their runs stay. Nothing in the repository changes. Needs Editor.
+     */
+    delete: operations['DisconnectRepository'];
+    options?: never;
+    head?: never;
+    /**
+     * Change a repository
+     * @description Renames it, chooses another branch (empty for the repository's default) or credential (an empty `secret` removes it), then reads it again. Fields left out stay as they are. Needs Editor.
+     */
+    patch: operations['UpdateRepository'];
+    trace?: never;
+  };
+  '/api/v1/repositories/{id}/sync': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Read a repository again
+     * @description Reads the automation files at the repository's branch now: new files become automations, changed ones new versions at the commit, removed ones are deleted. When the repository cannot be read, nothing changes and `lastError` says why. Needs Operator.
+     */
+    post: operations['SyncRepository'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1545,6 +1617,7 @@ export interface components {
        * @description When anything about it last changed.
        */
       updatedAt: string;
+      repository?: null | components['schemas']['RepositorySource'];
     };
     /** @description What starts runs of an automation, as its current version says. */
     AutomationTriggersView: {
@@ -1648,6 +1721,7 @@ export interface components {
        * @description When anything about it last changed.
        */
       updatedAt: string;
+      repository?: null | components['schemas']['RepositorySource'];
     };
     /** @description A new password for the signed-in user. */
     ChangePasswordRequest: {
@@ -2253,6 +2327,19 @@ export interface components {
        */
       parentId: null | string;
     };
+    /** @description A Generic Git repository to connect in a folder. */
+    NewRepository: {
+      /** @description Its clone address, `http` or `https`. */
+      address: string;
+      /** @description Its name in the folder; the last part of the address when unset. */
+      name?: null | string;
+      /** @description The branch to read automations from; the repository's default when unset. */
+      defaultBranch?: null | string;
+      /** @description The user name sent with the credential; `x-access-token` when only a token is given. */
+      userName?: null | string;
+      /** @description A token or password for a private repository; stored encrypted, never shown again. */
+      secret?: null | string;
+    };
     /**
      * @description What a node input takes. Any input may instead be an expression, checked when it runs.
      * @enum {unknown}
@@ -2460,6 +2547,96 @@ export interface components {
       warnings: string[];
       /** @description Details were cut at the limits; the totals count everything. */
       truncated: boolean;
+    };
+    /** @description Changes to a repository; what is left out (or `null`) stays as it is. */
+    RepositoryChange: {
+      /** @description A new name in the folder. */
+      name?: null | string;
+      /** @description Another branch to read automations from; empty for the repository's own default. */
+      defaultBranch?: null | string;
+      /** @description Another user name; empty for none. */
+      userName?: null | string;
+      /** @description Another token or password; empty to remove it. */
+      secret?: null | string;
+    };
+    /** @description Why a file of a repository is not an automation of the folder (yet). */
+    RepositoryProblemView: {
+      /** @description The file, from the repository's root. */
+      path: string;
+      /** @description What is wrong, in words for people. */
+      message: string;
+      /**
+       * Format: int32
+       * @description The line in the file, when the problem can be pinned to one.
+       */
+      line: null | number | string;
+    };
+    /** @description Where a repository automation comes from (ADR-0021). */
+    RepositorySource: {
+      /**
+       * Format: uuid
+       * @description The repository.
+       */
+      repositoryId: string;
+      /** @description Its name in the folder. */
+      repositoryName: string;
+      /** @description The file, from the repository's root. */
+      path: string;
+      /** @description The commit the current version was read at. */
+      commit: null | string;
+    };
+    /** @description A repository connected in a folder; its credential never comes back. */
+    RepositoryView: {
+      /**
+       * Format: uuid
+       * @description The repository's id.
+       */
+      id: string;
+      /**
+       * Format: uuid
+       * @description The folder it is connected in.
+       */
+      folderId: string;
+      /** @description Its name in the folder. */
+      name: string;
+      /** @description Which forge it lives on: `GenericGit` or `GitHub`. */
+      kind: string;
+      /**
+       * Format: uri
+       * @description Its clone address.
+       */
+      url: string;
+      /** @description The branch configured to read automations from; `null` for the repository's own default. */
+      defaultBranch: null | string;
+      /** @description The branch read at the last sync. */
+      branch: null | string;
+      /** @description The user name sent with the credential. */
+      userName: null | string;
+      /** @description Whether a token or password is stored. */
+      hasCredential: boolean;
+      /**
+       * Format: date-time
+       * @description When it was last read.
+       */
+      lastSyncedAt: null | string;
+      /** @description The commit its automations were last read at. */
+      lastCommit: null | string;
+      /** @description Why the last sync failed; `null` when it worked. */
+      lastError: null | string;
+      /** @description Files that are not automations of the folder, and why. */
+      problems: components['schemas']['RepositoryProblemView'][];
+      /**
+       * Format: int32
+       * @description How many automations come from it.
+       */
+      automations: number | string;
+      /**
+       * Format: date-time
+       * @description When it was connected.
+       */
+      createdAt: string;
+      /** @description Who connected it. */
+      createdByName: string;
     };
     /** @description A password chosen for a user by an admin; the user must change it at the next sign-in. */
     ResetPasswordRequest: {
@@ -7085,6 +7262,270 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ListRepositories: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RepositoryView'][];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  ConnectRepository: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewRepository'];
+      };
+    };
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RepositoryView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  GetRepository: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RepositoryView'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  DisconnectRepository: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  UpdateRepository: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RepositoryChange'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RepositoryView'];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['HttpValidationProblemDetails'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  SyncRepository: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RepositoryView'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
         headers: {
           [name: string]: unknown;
         };

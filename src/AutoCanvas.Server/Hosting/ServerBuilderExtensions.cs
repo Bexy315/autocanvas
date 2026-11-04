@@ -12,6 +12,8 @@ using AutoCanvas.Server.Runners;
 using AutoCanvas.Server.Setup;
 using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Setup;
+using AutoCanvas.Server.Application.Repositories;
+using AutoCanvas.Forge;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration.CommandLine;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -80,8 +82,19 @@ internal static class ServerBuilderExtensions
         services.AddSingleton<IValidateOptions<BootstrapOptions>, BootstrapOptionsValidator>();
         services.AddHostedService<BootstrapAdminService>();
         AddSetup(services);
+        AddRepositories(services);
 
         return builder;
+    }
+
+    /// <summary>Repositories in folders and the forges they live on (ADR-0021).</summary>
+    private static void AddRepositories(IServiceCollection services)
+    {
+        services.AddOptions<RepositoryOptions>().BindConfiguration(RepositoryOptions.SectionName).ValidateOnStart();
+        services.AddSingleton<RepositoryOptionsSetup>();
+        services.AddSingleton<IPostConfigureOptions<RepositoryOptions>>(provider => provider.GetRequiredService<RepositoryOptionsSetup>());
+        services.AddSingleton<IValidateOptions<RepositoryOptions>>(provider => provider.GetRequiredService<RepositoryOptionsSetup>());
+        services.AddSingleton<IForge>(provider => new GenericGitForge(provider.GetRequiredService<IOptions<RepositoryOptions>>().Value.GitTimeout));
     }
 
     /// <summary>The setup of a fresh installation and the instance settings (ADR-0020).</summary>

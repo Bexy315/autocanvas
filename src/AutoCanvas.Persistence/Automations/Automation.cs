@@ -3,8 +3,9 @@ using AutoCanvas.Persistence.Folders;
 namespace AutoCanvas.Persistence.Automations;
 
 /// <summary>
-/// A managed automation (ADR-0003): it lives in a folder, and the database holds its versions. Its
-/// content is the YAML of <see cref="CurrentVersion"/>; earlier versions stay readable.
+/// An automation (ADR-0003): it lives in a folder, and the database holds its versions. Its content
+/// is the YAML of <see cref="CurrentVersion"/>; earlier versions stay readable. A managed one is
+/// changed in AutoCanvas; one from a repository follows its file there (ADR-0021).
 /// </summary>
 public sealed class Automation
 {
@@ -43,6 +44,15 @@ public sealed class Automation
 
     /// <summary>When anything about it last changed.</summary>
     public required DateTimeOffset UpdatedAt { get; set; }
+
+    /// <summary>
+    /// The repository it comes from (ADR-0021); <see langword="null"/> for a managed automation. A
+    /// repository automation is read-only: its file in the repository is the truth.
+    /// </summary>
+    public Guid? RepositoryId { get; set; }
+
+    /// <summary>The file it comes from, such as <c>.autocanvas/automations/build.yml</c>; only for repository automations.</summary>
+    public string? SourcePath { get; set; }
 
     /// <summary>Navigation to the folder.</summary>
     public Folder? Folder { get; init; }

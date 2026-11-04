@@ -131,6 +131,16 @@ of variables and secrets from the folders above it. `SecretRedactor` in Core rep
 values in text before it is stored (used for run logs in S2). The key is rotated offline with
 `admin rotate-master-key` ([Operations](operations.md#master-key)).
 
+## Repository credentials
+
+A token or password of a connected repository ([ADR-0021](../adr/0021-repositories-per-folder.md))
+is encrypted like a secret under the master key, rotates with it, and is never returned by the API.
+The server passes it to git as an HTTP header in git's environment, never as an argument (which other
+processes could read) and never into a config file of the repository copy. Error messages from git
+are stripped of the credential before they are stored or shown. Repository addresses must be `http`
+or `https`, so connecting one cannot make the server read local files, and only editors of a folder
+may connect repositories there.
+
 ## Audit
 
 Every change writes an audit event in the same transaction as the change: who, what, which object,
