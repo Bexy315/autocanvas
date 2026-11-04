@@ -15,6 +15,7 @@ namespace AutoCanvas.Server.Application.Repositories;
 /// <param name="LastError">Why the last sync failed; <see langword="null"/> when it worked.</param>
 /// <param name="PollMinutes">How often the server asks it for new commits, in minutes; 0 when it does not.</param>
 /// <param name="NextPollAt">When it is asked next; <see langword="null"/> when polling is off or it is due.</param>
+/// <param name="Webhook">Its webhook address, without the token; <see langword="null"/> when it has none.</param>
 /// <param name="Problems">Files that are not automations of the folder, and why.</param>
 /// <param name="Automations">How many automations come from it.</param>
 /// <param name="CreatedAt">When it was connected.</param>
@@ -34,6 +35,7 @@ public sealed record RepositoryView(
     string? LastError,
     int PollMinutes,
     DateTimeOffset? NextPollAt,
+    RepositoryWebhookView? Webhook,
     IReadOnlyList<RepositoryProblemView> Problems,
     int Automations,
     DateTimeOffset CreatedAt,

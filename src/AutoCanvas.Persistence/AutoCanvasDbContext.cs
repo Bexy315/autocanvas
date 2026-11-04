@@ -118,6 +118,12 @@ public abstract class AutoCanvasDbContext : DbContext
     /// <summary>The commits the branches and tags of connected repositories were last seen at.</summary>
     public DbSet<RepositoryRef> RepositoryRefs => Set<RepositoryRef>();
 
+    /// <summary>Webhook addresses of connected repositories.</summary>
+    public DbSet<RepositoryWebhook> RepositoryWebhooks => Set<RepositoryWebhook>();
+
+    /// <summary>Pushes reported by webhooks, waiting to be handled.</summary>
+    public DbSet<RepositoryPush> RepositoryPushes => Set<RepositoryPush>();
+
     /// <summary>
     /// Runs provider-specific maintenance after migrations have been applied, such as switching
     /// SQLite to write-ahead logging.
@@ -165,5 +171,7 @@ public abstract class AutoCanvasDbContext : DbContext
         modelBuilder.ApplyConfiguration(new InstanceSettingsConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryConfiguration());
         modelBuilder.ApplyConfiguration(new RepositoryRefConfiguration());
+        modelBuilder.ApplyConfiguration(new RepositoryWebhookConfiguration());
+        modelBuilder.ApplyConfiguration(new RepositoryPushConfiguration());
     }
 }

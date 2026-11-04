@@ -115,7 +115,7 @@ export interface paths {
     put?: never;
     /**
      * Start a run through a webhook address
-     * @description Needs no sign-in: the token in the path is the credential. The body (at most 1 MiB), the headers and the query become `trigger.body`, `trigger.headers` and `trigger.query`; a JSON body can be read into, as `trigger.body.NAME`. A signed address needs `X-AutoCanvas-Signature: sha256=<hex HMAC-SHA256 of the body>`.
+     * @description Needs no sign-in: the token in the path is the credential. The body (at most 1 MiB), the headers and the query become `trigger.body`, `trigger.headers` and `trigger.query`; a JSON body can be read into, as `trigger.body.NAME`. A signed address needs `X-AutoCanvas-Signature: sha256=<hex HMAC-SHA256 of the body>`. A repository's address (`acg_…`) takes push events of GitHub, Gitea or GitLab, signed with `X-Hub-Signature-256` or `X-Gitea-Signature` or carrying `X-Gitlab-Token`, and answers 200: a push starts its runs shortly, other events do nothing.
      */
     post: operations['CallWebhook'];
     delete?: never;
@@ -1542,6 +1542,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/repositories/{id}/webhook': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create a repository's webhook address
+     * @description Replaces any earlier address. The forge (GitHub, Gitea, GitLab, ...) calls it on pushes with the secret: the token and the secret are shown only in this response. Needs Editor.
+     */
+    post: operations['CreateRepositoryWebhook'];
+    /**
+     * Delete a repository's webhook address
+     * @description Calls of it fail from then on; polling goes on as set. Needs Editor.
+     */
+    delete: operations['DeleteRepositoryWebhook'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1863,6 +1887,23 @@ export interface components {
       token: string;
       /** @description The token as it will be listed. */
       details: components['schemas']['RegistrationTokenView'];
+    };
+    /** @description A new webhook address of a repository; the token and the secret are shown only now. */
+    CreatedRepositoryWebhookView: {
+      /** @description The path the forge calls with POST, such as `/api/v1/hooks/acg_…`. */
+      path: string;
+      /** @description The token in the path. */
+      token: string;
+      /** @description The secret the forge signs with (GitHub, Gitea) or sends (GitLab). */
+      secret: string;
+      /** @description The token's start and end, as shown later. */
+      hint: string;
+      /**
+       * Format: uri
+       * @description The whole address, from the installation's public address; `null` while none
+       *     is set, so clients put the path after the address they reach the server at.
+       */
+      url?: null | string;
     };
     /** @description A new API token. string CreatedToken.Token is shown this once and cannot be retrieved again. */
     CreatedToken: {
@@ -2459,6 +2500,13 @@ export interface components {
       detail?: null | string;
       instance?: null | string;
     };
+    /** @description What became of a call of a repository's webhook address. */
+    ReceivedHookView: {
+      /** @description Whether it was a push, which starts its runs shortly. */
+      queued: boolean;
+      /** @description What happened, in words for the forge's delivery log. */
+      message: string;
+    };
     /** @description A runner registration token as listed: everything except the secret. */
     RegistrationTokenView: {
       /**
@@ -2643,6 +2691,7 @@ export interface components {
        * @description When it is asked next; `null` when polling is off or it is due.
        */
       nextPollAt: null | string;
+      webhook: null | components['schemas']['RepositoryWebhookView'];
       /** @description Files that are not automations of the folder, and why. */
       problems: components['schemas']['RepositoryProblemView'][];
       /**
@@ -2656,6 +2705,18 @@ export interface components {
        */
       createdAt: string;
       /** @description Who connected it. */
+      createdByName: string;
+    };
+    /** @description A repository's webhook address, without its token and secret. */
+    RepositoryWebhookView: {
+      /** @description The token's start and end, to recognize it by. */
+      hint: string;
+      /**
+       * Format: date-time
+       * @description When it was created.
+       */
+      createdAt: string;
+      /** @description Who created it. */
       createdByName: string;
     };
     /** @description A password chosen for a user by an admin; the user must change it at the next sign-in. */
@@ -3575,6 +3636,15 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReceivedHookView'];
+        };
+      };
       /** @description Accepted */
       202: {
         headers: {
@@ -7538,6 +7608,84 @@ export interface operations {
         content: {
           'application/json': components['schemas']['RepositoryView'];
         };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  CreateRepositoryWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CreatedRepositoryWebhookView'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ProblemDetails'];
+        };
+      };
+    };
+  };
+  DeleteRepositoryWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Forbidden */
       403: {

@@ -989,6 +989,64 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.ToTable("repositories", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryPush", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("After")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("after");
+
+                    b.Property<string>("Before")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("before");
+
+                    b.Property<string>("ChangedFiles")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("changed_files");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Pusher")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("pusher");
+
+                    b.Property<long>("ReceivedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Ref")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ref");
+
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_repository_pushes");
+
+                    b.HasIndex("ReceivedAt")
+                        .HasDatabaseName("ix_repository_pushes_received_at");
+
+                    b.HasIndex("RepositoryId")
+                        .HasDatabaseName("ix_repository_pushes_repository_id");
+
+                    b.ToTable("repository_pushes", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryRef", b =>
                 {
                     b.Property<Guid>("RepositoryId")
@@ -1010,6 +1068,50 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasName("pk_repository_refs");
 
                     b.ToTable("repository_refs", (string)null);
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryWebhook", b =>
+                {
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository_id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_by_name");
+
+                    b.Property<string>("Hint")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("hint");
+
+                    b.Property<string>("SecretCiphertext")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("secret_ciphertext");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("RepositoryId")
+                        .HasName("pk_repository_webhooks");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_repository_webhooks_token_hash");
+
+                    b.ToTable("repository_webhooks", (string)null);
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.Runner", b =>
@@ -1996,6 +2098,16 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.Navigation("Folder");
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryPush", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_repository_pushes_repositories_repository_id");
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryRef", b =>
                 {
                     b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
@@ -2004,6 +2116,16 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_repository_refs_repositories_repository_id");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.RepositoryWebhook", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_repository_webhooks_repositories_repository_id");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Runners.RunnerRegistrationToken", b =>

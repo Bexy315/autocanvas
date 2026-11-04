@@ -161,4 +161,10 @@ public static class AuditActions
 
     /// <summary>A repository was read; details: <c>name</c>, <c>commit</c>, <c>error</c> (why it could not be read).</summary>
     public const string RepositorySynced = "repository.synced";
+
+    /// <summary>A repository got a new webhook address (replacing any earlier one); details: <c>name</c>, <c>hint</c>, <c>replaced</c>.</summary>
+    public const string RepositoryWebhookCreated = "repository.webhook_created";
+
+    /// <summary>A repository's webhook address was deleted; details: <c>name</c>, <c>hint</c>.</summary>
+    public const string RepositoryWebhookDeleted = "repository.webhook_deleted";
 }

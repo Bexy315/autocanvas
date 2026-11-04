@@ -63,13 +63,21 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<RunnerRegistrationService>();
         services.AddScoped<InstanceSettingsService>();
         services.AddScoped<SetupService>();
+        AddRepositories(services);
+        services.AddScoped<RunnerService>();
+        services.AddScoped<RunnerConnectionService>();
+        return services;
+    }
+
+    /// <summary>Repositories in folders, their pushes and webhooks (ADR-0021).</summary>
+    private static void AddRepositories(IServiceCollection services)
+    {
         services.AddOptions<RepositoryOptions>();
         services.AddScoped<RepositoryDiscovery>();
         services.AddScoped<RepositoryService>();
         services.AddScoped<RepositoryPolling>();
-        services.AddScoped<RunnerService>();
-        services.AddScoped<RunnerConnectionService>();
-        return services;
+        services.AddScoped<RepositoryWebhookService>();
+        services.AddSingleton<RepositoryPushSignal>();
     }
 
     /// <summary>Runs, the job queue, logs and reports.</summary>

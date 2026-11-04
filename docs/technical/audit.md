@@ -95,7 +95,7 @@ feature that records them is built.
 | `variable.deleted` | an editor, or an admin for the instance | variable | `scope`, `name` |
 | `secret.set` | an editor, or an admin for the instance | secret | `scope`, `name` — never the value |
 | `secret.deleted` | an editor, or an admin for the instance | secret | `scope`, `name` |
-| `secrets.master_key_rotated` | the command line | — | `fromKeyId`, `toKeyId`, `secrets` |
+| `secrets.master_key_rotated` | the command line | — | `fromKeyId`, `toKeyId`, `secrets`, `repositories`, `webhooks` (how many of each were re-encrypted) |
 
 Every folder action carries the folder in the *folder* field, so a folder's owners can read its
 part of the log.
@@ -106,7 +106,7 @@ part of the log.
 | `group.member_removed` | admin | group | `userId`, `userName` |
 | `audit.pruned` | System | — | `before` (cut-off time), `deleted` (number of entries) |
 | `run.pruned` | System | — | `before` (cut-off time), `deleted` (number of runs, each with its jobs, logs and reports) |
-| `run.started` | an operator; System for schedules and followed automations; Anonymous for webhook calls | run | `automation`, `number`, `trigger` (`manual`, `schedule`, `webhook`, `automation_completed`) |
+| `run.started` | an operator; System for schedules and followed automations; Anonymous for webhook calls | run | `automation`, `number`, `trigger` (`manual`, `schedule`, `webhook`, `automation_completed`, `push`) |
 | `automation.webhook_created` | an operator | automation | `hint`, `signed`, `replaced` |
 | `automation.webhook_deleted` | an operator | automation | `hint` |
 | `run.cancelled` | an operator | run | `automation`, `number` |
@@ -119,5 +119,7 @@ part of the log.
 | `repository.connected` | editor | repository | `name`, `address`, `credential` (whether one was given) |
 | `repository.updated` | editor | repository | `name`, `changed` (field names) |
 | `repository.disconnected` | editor | repository | `name`, `automations` (deleted with it) |
-| `repository.synced` | the user who synced | repository | `name`, `commit`, `error` (why it could not be read) |
+| `repository.synced` | the user who synced; System after a push or poll | repository | `name`, `commit`, `error` (why it could not be read) |
+| `repository.webhook_created` | editor | repository | `name`, `hint`, `replaced` |
+| `repository.webhook_deleted` | editor | repository | `name`, `hint` |
 | `instance.updated` | admin | instance | `changed` (field names), `publicAddress`, `runnerAddress` |

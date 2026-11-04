@@ -344,7 +344,7 @@
           "Triggers"
         ],
         "summary": "Start a run through a webhook address",
-        "description": "Needs no sign-in: the token in the path is the credential. The body (at most 1 MiB), the headers and the query become `trigger.body`, `trigger.headers` and `trigger.query`; a JSON body can be read into, as `trigger.body.NAME`. A signed address needs `X-AutoCanvas-Signature: sha256=<hex HMAC-SHA256 of the body>`.",
+        "description": "Needs no sign-in: the token in the path is the credential. The body (at most 1 MiB), the headers and the query become `trigger.body`, `trigger.headers` and `trigger.query`; a JSON body can be read into, as `trigger.body.NAME`. A signed address needs `X-AutoCanvas-Signature: sha256=<hex HMAC-SHA256 of the body>`. A repository's address (`acg_…`) takes push events of GitHub, Gitea or GitLab, signed with `X-Hub-Signature-256` or `X-Gitea-Signature` or carrying `X-Gitlab-Token`, and answers 200: a push starts its runs shortly, other events do nothing.",
         "operationId": "CallWebhook",
         "parameters": [
           {
@@ -363,6 +363,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebhookRunView"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivedHookView"
                 }
               }
             }
@@ -5780,6 +5790,103 @@
           }
         }
       }
+    },
+    "/api/v1/repositories/{id}/webhook": {
+      "post": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Create a repository's webhook address",
+        "description": "Replaces any earlier address. The forge (GitHub, Gitea, GitLab, ...) calls it on pushes with the secret: the token and the secret are shown only in this response. Needs Editor.",
+        "operationId": "CreateRepositoryWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedRepositoryWebhookView"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Delete a repository's webhook address",
+        "description": "Calls of it fail from then on; polling goes on as set. Needs Editor.",
+        "operationId": "DeleteRepositoryWebhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6541,6 +6648,42 @@
           }
         },
         "description": "A new runner registration token. string CreatedRegistrationToken.Token is shown this once."
+      },
+      "CreatedRepositoryWebhookView": {
+        "required": [
+          "path",
+          "token",
+          "secret",
+          "hint"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "The path the forge calls with POST, such as `/api/v1/hooks/acg_…`."
+          },
+          "token": {
+            "type": "string",
+            "description": "The token in the path."
+          },
+          "secret": {
+            "type": "string",
+            "description": "The secret the forge signs with (GitHub, Gitea) or sends (GitLab)."
+          },
+          "hint": {
+            "type": "string",
+            "description": "The token's start and end, as shown later."
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The whole address, from the installation's public address; `null` while none\nis set, so clients put the path after the address they reach the server at.",
+            "format": "uri"
+          }
+        },
+        "description": "A new webhook address of a repository; the token and the secret are shown only now."
       },
       "CreatedToken": {
         "required": [
@@ -8029,6 +8172,24 @@
           }
         }
       },
+      "ReceivedHookView": {
+        "required": [
+          "queued",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean",
+            "description": "Whether it was a push, which starts its runs shortly."
+          },
+          "message": {
+            "type": "string",
+            "description": "What happened, in words for the forge's delivery log."
+          }
+        },
+        "description": "What became of a call of a repository's webhook address."
+      },
       "RegistrationTokenView": {
         "required": [
           "id",
@@ -8364,6 +8525,7 @@
           "lastError",
           "pollMinutes",
           "nextPollAt",
+          "webhook",
           "problems",
           "automations",
           "createdAt",
@@ -8458,6 +8620,17 @@
             "description": "When it is asked next; `null` when polling is off or it is due.",
             "format": "date-time"
           },
+          "webhook": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Its webhook address, without the token; `null` when it has none.",
+                "$ref": "#/components/schemas/RepositoryWebhookView"
+              }
+            ]
+          },
           "problems": {
             "type": "array",
             "items": {
@@ -8485,6 +8658,30 @@
           }
         },
         "description": "A repository connected in a folder; its credential never comes back."
+      },
+      "RepositoryWebhookView": {
+        "required": [
+          "hint",
+          "createdAt",
+          "createdByName"
+        ],
+        "type": "object",
+        "properties": {
+          "hint": {
+            "type": "string",
+            "description": "The token's start and end, to recognize it by."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was created.",
+            "format": "date-time"
+          },
+          "createdByName": {
+            "type": "string",
+            "description": "Who created it."
+          }
+        },
+        "description": "A repository's webhook address, without its token and secret."
       },
       "ResetPasswordRequest": {
         "required": [

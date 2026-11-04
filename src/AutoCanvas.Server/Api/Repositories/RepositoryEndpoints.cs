@@ -1,3 +1,5 @@
+using AutoCanvas.Server.Application.Common;
+using AutoCanvas.Server.Application.Instance;
 using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Authentication;
 
@@ -64,7 +66,48 @@ internal static class RepositoryEndpoints
             .WithDescription("Reads the automation files at the repository's branch now: new files become automations, changed ones new versions at the commit, removed ones are deleted. When the repository cannot be read, nothing changes and `lastError` says why. Needs Operator.")
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
+
+        MapWebhook(repositories);
     }
+
+    /// <summary>A repository's webhook address, which its forge calls on pushes.</summary>
+    private static void MapWebhook(RouteGroupBuilder repositories)
+    {
+        repositories.MapPost("/webhook", CreateWebhookAsync)
+            .WithName("CreateRepositoryWebhook")
+            .Produces<CreatedRepositoryWebhookView>(StatusCodes.Status201Created)
+            .WithSummary("Create a repository's webhook address")
+            .WithDescription("Replaces any earlier address. The forge (GitHub, Gitea, GitLab, ...) calls it on pushes with the secret: the token and the secret are shown only in this response. Needs Editor.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        repositories.MapDelete("/webhook", DeleteWebhookAsync)
+            .WithName("DeleteRepositoryWebhook")
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("Delete a repository's webhook address")
+            .WithDescription("Calls of it fail from then on; polling goes on as set. Needs Editor.")
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+    }
+
+    private static async Task<IResult> CreateWebhookAsync(
+        Guid id,
+        HttpContext context,
+        RepositoryWebhookService webhooks,
+        InstanceSettingsService instance,
+        CancellationToken cancellationToken)
+    {
+        var created = await webhooks.CreateAsync(context.User.ToActor(), id, cancellationToken).ConfigureAwait(false);
+        if (created.Value is { } view && (await instance.GetAsync(cancellationToken).ConfigureAwait(false)).PublicAddress.Value is { } address)
+        {
+            created = UseCase.Success(view with { Url = new Uri(address, view.Path) });
+        }
+
+        return ApiResults.Created(created, _ => $"/api/v1/repositories/{id}");
+    }
+
+    private static async Task<IResult> DeleteWebhookAsync(Guid id, HttpContext context, RepositoryWebhookService webhooks, CancellationToken cancellationToken) =>
+        ApiResults.NoContent(await webhooks.DeleteAsync(context.User.ToActor(), id, cancellationToken).ConfigureAwait(false));
 
     private static async Task<IResult> ListAsync(Guid id, HttpContext context, RepositoryService repositories, CancellationToken cancellationToken) =>
         ApiResults.Ok(await repositories.ListAsync(context.User.ToActor(), id, cancellationToken).ConfigureAwait(false));
