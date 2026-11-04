@@ -4,8 +4,8 @@ Self-hosted automation and CI/CD engine for developers and technicians: pipeline
 repository or built visually on a canvas, executed by lightweight runners, with test reports as a
 first-class feature.
 
-> **Status: pre-alpha.** No release yet. The last milestone was
-> [S4 — Setup and packaging](docs/plans/s4.md); forge integrations (S5) come next.
+> **Status: pre-alpha.** No release yet. The current milestone is
+> [S5 — Repositories and forges](docs/plans/s5.md).
 
 ## Quick start
 

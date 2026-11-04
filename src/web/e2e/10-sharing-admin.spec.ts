@@ -18,21 +18,27 @@ test('an admin adds a person, shares a folder with them, and they see it; runner
   browser,
 }) => {
   await signIn(page);
-  const folder = await page.request.post('/api/v1/folders', { data: { name: 'Shared' }, headers: csrf });
+  // Names of their own, so a retry on the same server does not meet the first attempt's.
+  const suffix = Math.random().toString(36).slice(2, 7);
+  const folderName = `Shared ${suffix}`;
+  const userName = `vic${suffix}`;
+  const groupName = `readers${suffix}`;
+  const folder = await page.request.post('/api/v1/folders', { data: { name: folderName }, headers: csrf });
   const folderId = ((await folder.json()) as { id: string }).id;
-  await page.request.post(`/api/v1/folders/${folderId}/automations`, {
+  const automation = await page.request.post(`/api/v1/folders/${folderId}/automations`, {
     data: { name: 'report', yaml: file },
     headers: csrf,
   });
+  const automationId = ((await automation.json()) as { id: string }).id;
 
   // A new user, with a first password made up by the browser and shown once.
   await page.goto('/admin/users');
   await page.getByRole('button', { name: 'New user' }).click();
   const create = page.getByRole('dialog', { name: 'New user' });
-  await create.getByLabel('User name').fill('vic');
+  await create.getByLabel('User name').fill(userName);
   await create.getByLabel('Display name').fill('Vic Viewer');
   await create.getByRole('button', { name: 'Create user' }).click();
-  const shown = page.getByRole('dialog', { name: 'Password of vic' });
+  const shown = page.getByRole('dialog', { name: `Password of ${userName}` });
   const password = (await shown.getByLabel('Password', { exact: true }).textContent()) ?? '';
   expect(password).toHaveLength(20);
   await snapshot(page, 'admin-1-new-user');
@@ -43,30 +49,30 @@ test('an admin adds a person, shares a folder with them, and they see it; runner
   // A group, with vic in it.
   await page.goto('/admin/groups');
   await page.getByRole('button', { name: 'New group' }).click();
-  await page.getByRole('dialog', { name: 'New group' }).getByLabel('Name').fill('readers');
+  await page.getByRole('dialog', { name: 'New group' }).getByLabel('Name').fill(groupName);
   await page.getByRole('button', { name: 'Create group' }).click();
-  await page.getByRole('list', { name: 'Groups' }).getByRole('button', { name: 'readers', exact: true }).click();
-  const members = page.getByRole('dialog', { name: 'Members of readers' });
-  await members.getByLabel('Add a person').fill('vic');
-  await members.getByRole('button', { name: /^vic/ }).click();
-  await expect(members.getByRole('list', { name: 'Members' })).toContainText('vic');
+  await page.getByRole('list', { name: 'Groups' }).getByRole('button', { name: groupName, exact: true }).click();
+  const members = page.getByRole('dialog', { name: `Members of ${groupName}` });
+  await members.getByLabel('Add a person').fill(userName);
+  await members.getByRole('button', { name: new RegExp(`^${userName}`) }).click();
+  await expect(members.getByRole('list', { name: 'Members' })).toContainText(userName);
   await members.getByRole('button', { name: 'Close' }).first().click();
 
   // The folder shared with the group, as Viewer.
   await page.goto(`/folders/${folderId}/sharing`);
   await page.getByRole('button', { name: 'Share', exact: true }).click();
-  const share = page.getByRole('dialog', { name: 'Share Shared' });
-  await share.getByLabel('Person or group').fill('read');
-  await share.getByRole('button', { name: /^readers/ }).click();
+  const share = page.getByRole('dialog', { name: `Share ${folderName}` });
+  await share.getByLabel('Person or group').fill(groupName);
+  await share.getByRole('button', { name: new RegExp(`^${groupName}`) }).click();
   await share.getByRole('button', { name: 'Share', exact: true }).click();
-  await expect(page.getByRole('list', { name: 'Roles given here' })).toContainText('readers');
+  await expect(page.getByRole('list', { name: 'Roles given here' })).toContainText(groupName);
   await snapshot(page, 'sharing-1-folder');
 
   // Vic signs in elsewhere, chooses a password, and sees the folder, but cannot start runs.
   const elsewhere = await browser.newContext();
   const vic = await elsewhere.newPage();
   await vic.goto('/sign-in');
-  await vic.getByLabel('User name').fill('vic');
+  await vic.getByLabel('User name').fill(userName);
   await vic.getByLabel('Password').fill(password);
   await vic.getByRole('button', { name: 'Sign in' }).click();
   await expect(vic.getByRole('heading', { name: 'Choose your own password' })).toBeVisible();
@@ -76,12 +82,11 @@ test('an admin adds a person, shares a folder with them, and they see it; runner
   await vic.getByRole('button', { name: 'Change password and continue' }).click();
   await expect(vic.getByRole('heading', { name: 'Automations', level: 1 })).toBeVisible();
   await vic.goto(`/folders/${folderId}`);
-  await expect(vic.getByRole('heading', { name: 'Shared', level: 1 })).toBeVisible();
-  await vic
-    .getByRole('link', { name: /report/ })
-    .first()
-    .click();
-  await vic.getByRole('link', { name: 'Runs' }).click();
+  await expect(vic.getByRole('heading', { name: folderName, level: 1 })).toBeVisible();
+  await expect(vic.getByRole('link', { name: /report/ }).first()).toBeVisible();
+  // Straight to the runs: the sidebar and the automation's tabs both have a link called Runs.
+  await vic.goto(`/automations/${automationId}/runs`);
+  await expect(vic.getByRole('heading', { name: 'report', level: 1 })).toBeVisible();
   await expect(vic.getByRole('button', { name: 'Run', exact: true })).toHaveCount(0);
   await elsewhere.close();
 
