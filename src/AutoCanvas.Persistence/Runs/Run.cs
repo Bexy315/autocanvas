@@ -51,6 +51,12 @@ public sealed class Run
     /// </summary>
     public bool SecretsWithheld { get; init; }
 
+    /// <summary>
+    /// The state last reported to the forge (a commit status), so that each change is reported once;
+    /// <see langword="null"/> while none was.
+    /// </summary>
+    public RunState? ReportedState { get; set; }
+
     /// <summary>Where the run stands.</summary>
     public RunState State { get; set; } = RunState.Running;
 

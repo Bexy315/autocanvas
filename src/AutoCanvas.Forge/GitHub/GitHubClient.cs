@@ -14,6 +14,12 @@ public sealed class GitHubClient(HttpClient http)
     /// <summary>The API version requested.</summary>
     public const string ApiVersion = "2022-11-28";
 
+    /// <summary>The longest description of a commit status GitHub takes.</summary>
+    public const int MaxStatusDescription = 140;
+
+    /// <summary>The longest context of a commit status GitHub takes.</summary>
+    public const int MaxStatusContext = 255;
+
     /// <summary>The most files GitHub lists for a pull request.</summary>
     public const int MaxPullRequestFiles = 3000;
 
@@ -127,6 +133,51 @@ public sealed class GitHubClient(HttpClient http)
         }
     }
 
+    /// <summary>Sets a commit status.</summary>
+    public async Task CreateStatusAsync(Uri api, string token, string fullName, string commit, GitHubStatus status, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        ArgumentNullException.ThrowIfNull(status);
+        var (owner, name) = Split(fullName);
+        var body = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["state"] = status.State,
+            ["description"] = Cut(status.Description, MaxStatusDescription),
+            ["context"] = Cut(status.Context, MaxStatusContext),
+        };
+        if (status.TargetUrl is { } target)
+        {
+            body["target_url"] = target.ToString();
+        }
+
+        using var _ = await SendAsync(HttpMethod.Post, Address(api, $"repos/{owner}/{name}/statuses/{Uri.EscapeDataString(commit)}"), token, cancellationToken, JsonSerializer.Serialize(body)).ConfigureAwait(false);
+    }
+
+    /// <summary>Comments on an issue or pull request; the comment's id.</summary>
+    public async Task<long> CreateIssueCommentAsync(Uri api, string token, string fullName, int number, string body, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        var (owner, name) = Split(fullName);
+        using var document = await SendAsync(HttpMethod.Post, Address(api, $"repos/{owner}/{name}/issues/{number.ToString(CultureInfo.InvariantCulture)}/comments"), token, cancellationToken, JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.Ordinal) { ["body"] = body })).ConfigureAwait(false);
+        return document.RootElement.GetProperty("id").GetInt64();
+    }
+
+    /// <summary>Replaces the text of a comment; <see langword="false"/> when the comment is gone.</summary>
+    public async Task<bool> UpdateIssueCommentAsync(Uri api, string token, string fullName, long commentId, string body, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        var (owner, name) = Split(fullName);
+        try
+        {
+            using var _ = await SendAsync(HttpMethod.Patch, Address(api, $"repos/{owner}/{name}/issues/comments/{commentId.ToString(CultureInfo.InvariantCulture)}"), token, cancellationToken, JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.Ordinal) { ["body"] = body })).ConfigureAwait(false);
+            return true;
+        }
+        catch (ForgeException exception) when (exception.Message.StartsWith("GitHub answered 404", StringComparison.Ordinal))
+        {
+            return false;
+        }
+    }
+
     /// <summary>The repositories an installation token reaches, page by page up to <see cref="MaxRepositories"/>.</summary>
     public async Task<IReadOnlyList<GitHubRepository>> ListInstallationRepositoriesAsync(Uri api, string token, CancellationToken cancellationToken)
     {
@@ -154,6 +205,8 @@ public sealed class GitHubClient(HttpClient http)
         using var document = await SendAsync(HttpMethod.Get, Address(api, $"repos/{owner}/{name}"), token, cancellationToken).ConfigureAwait(false);
         return Repository(document.RootElement);
     }
+
+    private static string Cut(string value, int length) => value.Length <= length ? value : value[..(length - 1)] + "…";
 
     /// <summary>The owner and name of an <c>owner/name</c>, escaped for an address.</summary>
     private static (string Owner, string Name) Split(string fullName)

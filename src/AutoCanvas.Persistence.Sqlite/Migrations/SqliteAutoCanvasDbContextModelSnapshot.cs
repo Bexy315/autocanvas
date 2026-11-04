@@ -985,6 +985,30 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                     b.ToTable("report_test_cases", (string)null);
                 });
 
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.PullRequestComment", b =>
+                {
+                    b.Property<Guid>("RepositoryId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository_id");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("number");
+
+                    b.Property<long>("CommentId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("comment_id");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("RepositoryId", "Number")
+                        .HasName("pk_pull_request_comments");
+
+                    b.ToTable("pull_request_comments", (string)null);
+                });
+
             modelBuilder.Entity("AutoCanvas.Persistence.Repositories.Repository", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1721,6 +1745,11 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("ref");
 
+                    b.Property<string>("ReportedState")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("reported_state");
+
                     b.Property<Guid?>("RepositoryId")
                         .HasColumnType("TEXT")
                         .HasColumnName("repository_id");
@@ -2289,6 +2318,16 @@ namespace AutoCanvas.Persistence.Sqlite.Migrations
                         .HasConstraintName("fk_report_test_cases_reports_report_id");
 
                     b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("AutoCanvas.Persistence.Repositories.PullRequestComment", b =>
+                {
+                    b.HasOne("AutoCanvas.Persistence.Repositories.Repository", null)
+                        .WithMany()
+                        .HasForeignKey("RepositoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_pull_request_comments_repositories_repository_id");
                 });
 
             modelBuilder.Entity("AutoCanvas.Persistence.Repositories.Repository", b =>

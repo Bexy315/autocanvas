@@ -20,6 +20,12 @@ public sealed class RunReportService(AutoCanvasDbContext database)
             return UseCase.Failure<RunReportsView>(denied);
         }
 
+        return UseCase.Success(await ReportsAsync(runId, cancellationToken).ConfigureAwait(false));
+    }
+
+    /// <summary>The reports of a run with their totals, for whoever may see the run (checked by the caller).</summary>
+    internal async Task<RunReportsView> ReportsAsync(Guid runId, CancellationToken cancellationToken)
+    {
         var reports = await database.Reports.AsNoTracking().Where(r => r.RunId == runId).ToListAsync(cancellationToken).ConfigureAwait(false);
         var attemptIds = reports.Select(r => r.AttemptId).Distinct().ToList();
         var numbers = await database.JobAttempts.AsNoTracking()
@@ -33,10 +39,10 @@ public sealed class RunReportService(AutoCanvasDbContext database)
 
         var tests = latest.Select(r => r.Tests).OfType<TestTotalsView>().ToList();
         var coverage = latest.Where(r => r.Kind == ReportKind.Coverage).Select(r => r.Coverage).OfType<CoverageTotalsView>().ToList();
-        return UseCase.Success(new RunReportsView(
+        return new RunReportsView(
             tests.Count == 0 ? null : tests.Aggregate((sum, next) => sum.Add(next)),
             coverage.Count == 0 ? null : coverage.Aggregate((sum, next) => sum.Add(next)),
-            [.. ordered.Select(ReportSummaryView.Of)]));
+            [.. ordered.Select(ReportSummaryView.Of)]);
     }
 
     /// <summary>A report of the run with its totals and, for coverage, its packages.</summary>

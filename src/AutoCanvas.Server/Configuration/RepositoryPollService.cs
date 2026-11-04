@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AutoCanvas.Persistence;
+using AutoCanvas.Server.Application.Forges;
 using AutoCanvas.Server.Application.Repositories;
 using AutoCanvas.Server.Application.Triggers;
 
@@ -80,6 +81,9 @@ internal sealed partial class RepositoryPollService(
             {
                 Report(await polling.PollDueAsync(cancellationToken).ConfigureAwait(false));
             }
+
+            // What changed in the runs goes back to the forges: commit statuses, pull request comments.
+            Report(await scope.ServiceProvider.GetRequiredService<ForgeReporter>().ReportAsync(cancellationToken).ConfigureAwait(false));
         }
     }
 
