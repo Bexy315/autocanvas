@@ -1,0 +1,31 @@
+# The dev instance (deploy/dev/README.md), added to compose.yaml and compose.postgres.yaml through
+# COMPOSE_FILE in .env. Caddy ends TLS with Cloudflare's origin certificate. Nothing is published
+# beyond the host itself: Docker's published ports bypass ufw, while Caddy in the host's network
+# stays behind it.
+
+services:
+  server:
+    # Only Caddy reaches the server, on this host. The bundled runner talks to it inside the compose
+    # network (server:5081), so the runner port is not published at all.
+    ports: !override
+      - "127.0.0.1:5080:5080"
+    environment:
+      # Set here, the public address wins over the web UI's (operations: Instance settings).
+      AUTOCANVAS_Server__PublicUrl: https://${DEV_DOMAIN:?set DEV_DOMAIN in .env}
+
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - server
+    environment:
+      DEV_DOMAIN: ${DEV_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Written by bootstrap.sh, readable by root only.
+      - /etc/autocanvas-dev/origin:/certs:ro
+      - caddy:/data
+
+volumes:
+  caddy:
