@@ -82,8 +82,13 @@ is connected; on GitHub, it stays until it is deleted there.
 ## Connecting a repository
 
 Editors of a folder choose one under **Repositories** → **Connect a repository** → **GitHub**, which
-lists what the app's installations reach ([Repositories](repositories.md#in-the-web-ui)). Through the
-API, `GET /api/v1/folders/<folder>/github/repositories` lists them and this connects one:
+lists what the app's installations reach ([Repositories](repositories.md#in-the-web-ui)).
+
+![Connecting a repository from the GitHub App](img/github-connect-light.png#gh-light-mode-only)
+![Connecting a repository from the GitHub App](img/github-connect-dark.png#gh-dark-mode-only)
+
+Through the API, `GET /api/v1/folders/<folder>/github/repositories` lists them and this connects
+one:
 
 ```sh
 curl -b cookies.txt -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: application/json' \
@@ -122,6 +127,9 @@ repository, an editor's change becomes a **pull request** instead: in the editor
 dialog for an optional title and commit message, and **Open pull request** links to it afterwards
 (`POST /api/v1/automations/<id>/pull-request` with the new `yaml`, and optionally `title` and
 `message`):
+
+![Proposing a change as a pull request](img/github-propose-light.png#gh-light-mode-only)
+![Proposing a change as a pull request](img/github-propose-dark.png#gh-dark-mode-only)
 
 1. A branch `autocanvas/<automation>-<time>` is made from the commit of the automation's current
    version.

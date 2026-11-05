@@ -1,6 +1,6 @@
 # 0021. Connect repositories per folder, behind a forge abstraction
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-04
 
 ## Context

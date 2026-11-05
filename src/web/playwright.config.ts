@@ -14,7 +14,11 @@ const port = 5090;
 const dataDirectory = mkdtempSync(join(tmpdir(), 'autocanvas-e2e-'));
 
 const serverArguments = [
-  `--urls=http://127.0.0.1:${port}`,
+  // In CI on Linux the server also listens on the Docker bridge, where containers (Gitea calling its
+  // webhook, e2e/15) reach it; elsewhere Docker Desktop's host.docker.internal reaches 127.0.0.1.
+  process.env['CI'] && process.platform === 'linux'
+    ? `"--urls=http://127.0.0.1:${port};http://172.17.0.1:${port}"`
+    : `--urls=http://127.0.0.1:${port}`,
   '--Runners:Urls=http://127.0.0.1:5091',
   `--Server:DataDirectory=${dataDirectory}`,
   `--Bootstrap:AdminUserName=${adminUserName}`,

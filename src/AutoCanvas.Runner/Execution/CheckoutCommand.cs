@@ -47,16 +47,33 @@ internal static partial class CheckoutCommand
         return [[.. clone]];
     }
 
-    /// <summary>The environment of the git calls: no prompts, and the credential as a header.</summary>
-    public static Dictionary<string, string> Environment(Checkout checkout)
+    /// <summary>
+    /// The environment of the git calls: no prompts, the target trusted, and the credential as a
+    /// header.
+    /// </summary>
+    /// <param name="checkout">The checkout.</param>
+    /// <param name="target">Where the clone goes, inside the container.</param>
+    /// <remarks>
+    /// The workspace is bind-mounted and owned by the runner's user, while git runs as the git image's
+    /// user; on Linux, where owners are not mapped, git refuses such a directory ("dubious
+    /// ownership"). The target is the job's own fresh workspace, so it is trusted with
+    /// <c>safe.directory</c>, which git reads from these variables but never from a repository.
+    /// </remarks>
+    public static Dictionary<string, string> Environment(Checkout checkout, string target)
     {
         ArgumentNullException.ThrowIfNull(checkout);
-        var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["GIT_TERMINAL_PROMPT"] = "0" };
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["GIT_TERMINAL_PROMPT"] = "0",
+            ["GIT_CONFIG_COUNT"] = "1",
+            ["GIT_CONFIG_KEY_0"] = "safe.directory",
+            ["GIT_CONFIG_VALUE_0"] = target,
+        };
         if (checkout.Password.Length > 0)
         {
-            environment["GIT_CONFIG_COUNT"] = "1";
-            environment["GIT_CONFIG_KEY_0"] = "http.extraHeader";
-            environment["GIT_CONFIG_VALUE_0"] = $"Authorization: Basic {Basic(checkout)}";
+            environment["GIT_CONFIG_COUNT"] = "2";
+            environment["GIT_CONFIG_KEY_1"] = "http.extraHeader";
+            environment["GIT_CONFIG_VALUE_1"] = $"Authorization: Basic {Basic(checkout)}";
         }
 
         return environment;

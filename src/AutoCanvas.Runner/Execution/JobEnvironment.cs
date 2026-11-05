@@ -202,7 +202,7 @@ internal sealed class JobEnvironment(Job job, JobServices services, JobPaths pat
         Write($"Checking out {checkout.Url}{(checkout.Ref.Length > 0 ? $" at {checkout.Ref}" : string.Empty)} into {target}.");
         foreach (var command in CheckoutCommand.Commands(checkout, target))
         {
-            var exec = new ExecSpec(command, JobPaths.ContainerWorkspace, CheckoutCommand.Environment(checkout));
+            var exec = new ExecSpec(command, JobPaths.ContainerWorkspace, CheckoutCommand.Environment(checkout, target));
             var exitCode = await services.Runtime.ExecAsync(git, exec, line =>
             {
                 log.Write(null, line.IsError ? LogStream.Stderr : LogStream.Stdout, line.Text, redactor);

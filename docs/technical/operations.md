@@ -41,7 +41,7 @@ setting and what is expected, instead of failing later on first use.
 | `Runners:PublicUrl` | none | Absolute `http`/`https` URL runners reach the runner endpoint at, shown in the commands to register one; wins over the web UI's |
 | `Setup:Enabled` | `true` | Whether a server without accounts opens the setup; `false` leaves the first admin to `admin create` and the bootstrap settings |
 | `Setup:RunnerTokenFile` | none | A file the setup writes a registration token to, for a runner that reads it from a shared volume |
-| `Repositories:CacheDirectory` | `repositories` in the data directory | Where the server keeps a shallow copy of each connected repository (see [Repositories](#repositories)) |
+| `Repositories:CacheDirectory` | `repositories` in the data directory | Where the server keeps a shallow copy of each connected repository (see [Repositories and forges](#repositories-and-forges)) |
 | `Repositories:GitTimeout` | `00:01:00` | How long one git call of the server may take, 5 seconds to 10 minutes |
 | `Server:TrustedProxies` | none | Reverse proxies whose `X-Forwarded-For` and `X-Forwarded-Proto` are believed: addresses or networks (`10.0.0.0/8`), separated by commas (see [Reverse proxies and HTTPS](#reverse-proxies-and-https)) |
 | `Server:DataDirectory` | `data` | Where the server keeps its files, such as the default SQLite database; relative to the server's directory |
@@ -212,39 +212,77 @@ shows how to start one next to the server with `docker run`. When the server
 stops, connected runners are told to reconnect after five seconds; jobs they hold continue if they
 are back within `Queue:LeaseDuration`.
 
-## Repositories
+## Repositories and forges
 
-The server reads the automation files of connected repositories
-([Repositories](../user/repositories.md), [ADR-0021](../adr/0021-repositories-per-folder.md)) with the
-`git` command line, which the container image includes; a server run from a build needs `git` on its
-`PATH`. For each repository it keeps a shallow bare copy in `Repositories:CacheDirectory`, removed
-when the repository is disconnected and refetched when missing, so the directory needs no backup.
+Connected repositories ([Repositories](../user/repositories.md),
+[ADR-0021](../adr/0021-repositories-per-folder.md)) and the GitHub App
+([GitHub](../user/github.md), [ADR-0022](../adr/0022-github-app.md)) need a few connections, a few
+background rounds and a few secrets.
 
-The server must reach the repositories' addresses. git runs without prompts, with only `http` and
-`https` allowed (also after redirects), and gets credentials as an HTTP header through its
-environment, never on its command line or in a file.
+### Who reaches whom
 
-Every 30 seconds the server polls the repositories that are due (each its `pollMinutes`, 5 by
-default) with `git ls-remote`, and handles moved branches and tags as pushes: at most 20
-repositories per round and 50 refs per repository, the rest in later rounds. With several servers on
-one database each repository is polled by one of them. A failed poll is logged as a warning and
-shown on the repository (`lastError`). The commit each branch and tag was last seen at is kept in
-the database (`repository_refs`), so a restarted server does not start runs for pushes it handled.
+| From | To | For |
+|---|---|---|
+| Server | each repository's address (http or https) | reading automation files, polling (`git ls-remote`, shallow fetches) |
+| Server | GitHub's API (`https://api.github.com`, or `<webAddress>/api/v3` of a GitHub Enterprise Server) | the app's tokens, repositories, statuses, comments, pull requests |
+| Runner's checkout container | each repository's address | checking out a run's commit |
+| Forges (GitHub, Gitea, GitLab, …) | the server's **public address** (`/api/v1/hooks/acg_…`, `/api/v1/forges/github/events`) | webhooks; without them, polling brings the pushes |
+| The admin's browser | GitHub | creating the app (`/api/v1/forges/github/manifest/launch` posts the manifest there) |
 
-**GitHub** ([GitHub](../user/github.md)): the server talks to GitHub's API (`https://api.github.com`,
-or `<webAddress>/api/v3` of a GitHub Enterprise Server, which works the same but is not tested) and
-clones from GitHub over https; GitHub sends the app's events to
-`<public address>/api/v1/forges/github/events`, at most 600 a minute. Installation tokens are kept in
-memory only, per server.
+A repository's address must work from the server and from the runners' containers alike; an address
+that only resolves on one of them (such as `localhost`) breaks checkouts.
 
-Pushes that arrive by a repository's webhook (`POST /api/v1/hooks/acg_…`) are answered at once and
-stored (`repository_pushes`); the server that took the call handles them right away, the others
-look for stored pushes every 5 seconds. The forges must reach the server's public address.
+### Reading repositories
 
-Every 5 seconds the server also reports runs of GitHub repository automations whose state changed:
-a commit status and, for pull requests, the comment ([GitHub](../user/github.md#results-on-github)).
-Each change is taken by one server (`runs.reported_state`) and reported once; a report that fails is
-logged as a warning and not tried again.
+The server reads with the `git` command line, which the container image includes; a server run from
+a build needs `git` on its `PATH`. For each repository it keeps a shallow bare copy in
+`Repositories:CacheDirectory`, removed when the repository is disconnected and refetched when
+missing, so the directory needs no backup. git runs without prompts, with only `http` and `https`
+allowed (also after redirects), and gets credentials as an HTTP header through its environment,
+never on its command line or in a file. `Repositories:GitTimeout` limits each call.
+
+### Background rounds
+
+| Every | What | Notes |
+|---|---|---|
+| 30 s | **Polling** of due repositories (each its `pollMinutes`, 5 by default; `0` = off) with `git ls-remote` | at most 20 repositories a round, 50 moved refs each; a failed poll sets `lastError`, the next good one syncs |
+| at once, else 5 s | **Stored pushes and pull requests** from webhooks (`repository_pushes`, `repository_pull_requests`) | webhook calls are answered at once; the server that took one is woken, others look every 5 s |
+| 5 s | **Reporting** runs of GitHub repository automations (commit statuses, the pull request comment) | each change of a run's state once (`runs.reported_state`); a failed report is logged, not retried |
+
+With several servers on one database each repository, stored event and run change is taken by one
+of them, with a conditional update. The commit each branch and tag was last seen at is kept in the
+database (`repository_refs`), so a restart starts no runs twice; GitHub deliveries are taken once
+by their id (`github_deliveries`, three days). Installation tokens live in memory only, per server.
+The app's events are limited to 600 a minute, a repository webhook address to `Webhooks:PerMinute`.
+
+### Secrets
+
+Repository credentials, repository webhook secrets and the GitHub App's private key, webhook secret
+and client secret are encrypted under the master key, like secrets, and rotate with it
+(`admin rotate-master-key`). None of them comes back through the API. Jobs get a GitHub token that
+may only read the one repository, and pull requests from forks get no secrets
+([Security](security.md#github-app)).
+
+### Backups
+
+Everything about repositories and the app is in the database; a database backup with the master key
+restores it, and the cache directory is not needed. After restoring an older backup, polls see the
+repositories' current state as new pushes since the backup and start their runs once.
+
+### When something does not work
+
+- **A repository's card** (folder → Repositories) shows the last read's error (`lastError`), such as
+  a wrong credential or an address the server cannot reach, and the files that are not automations,
+  with why. **Sync** reads again at once.
+- **Pushes that start nothing**: is the repository polled, or has it a webhook (the card says how
+  pushes arrive)? Does the file's `triggers.push` match the branch, and is the automation on the
+  repository's branch? The server logs why a push started nothing, as a warning starting with
+  *Repositories:*.
+- **Webhook calls**: the forge's delivery log shows the answer: `401` for a wrong secret, `404` for
+  an address that no longer exists, `200` with what happened.
+- **GitHub**: **Administration → Forges** shows whether GitHub answers (installations) and the events
+  address GitHub must reach; uninstalled or suspended installations mark their repositories. Reports
+  GitHub refuses are logged as *Repositories:* warnings with GitHub's message.
 
 ## Reverse proxies and HTTPS
 

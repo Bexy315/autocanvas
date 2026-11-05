@@ -39,8 +39,8 @@ export class GitServer {
     git(this.root, 'init', '--bare', '--quiet', '--initial-branch=main', join(this.root, `${repository}.git`));
   }
 
-  /** Commits files to `main` (a null content deletes one) and returns the commit. */
-  commit(repository: string, files: Record<string, string | null>, message: string): string {
+  /** Commits files to a branch, `main` by default and new ones from `main` (a null content deletes one); the commit. */
+  commit(repository: string, files: Record<string, string | null>, message: string, branch = 'main'): string {
     const work = mkdtempSync(join(tmpdir(), 'autocanvas-e2e-work-'));
     try {
       const bare = join(this.root, `${repository}.git`);
@@ -71,11 +71,16 @@ export class GitServer {
         '-m',
         message,
       );
-      git(work, 'push', '--quiet', bare, 'HEAD:refs/heads/main');
+      git(work, 'push', '--quiet', bare, `HEAD:refs/heads/${branch}`);
       return git(work, 'rev-parse', 'HEAD').trim();
     } finally {
       rmSync(work, { recursive: true, force: true });
     }
+  }
+
+  /** Points a ref at a commit, such as `refs/pull/1/head` as GitHub keeps pull requests. */
+  setRef(repository: string, ref: string, commit: string): void {
+    git(this.root, '--git-dir', join(this.root, `${repository}.git`), 'update-ref', ref, commit);
   }
 
   private async serve(request: IncomingMessage, response: ServerResponse): Promise<void> {
