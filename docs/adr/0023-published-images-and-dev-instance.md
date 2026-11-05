@@ -1,6 +1,6 @@
 # 0023. Publish images to GHCR and deploy a dev instance from GitHub Actions over SSH
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-05
 
 ## Context

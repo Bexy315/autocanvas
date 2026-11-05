@@ -27,4 +27,4 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0020](0020-first-start-setup.md) | Set up a fresh instance in the browser, with a token from the log | Accepted |
 | [0021](0021-repositories-per-folder.md) | Connect repositories per folder, behind a forge abstraction | Accepted |
 | [0022](0022-github-app.md) | Integrate GitHub through one GitHub App per instance | Accepted |
-| [0023](0023-published-images-and-dev-instance.md) | Publish images to GHCR and deploy a dev instance from GitHub Actions over SSH | Proposed |
+| [0023](0023-published-images-and-dev-instance.md) | Publish images to GHCR and deploy a dev instance from GitHub Actions over SSH | Accepted |
