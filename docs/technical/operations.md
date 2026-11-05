@@ -325,7 +325,20 @@ with `404` and works otherwise as usual.
 `src/AutoCanvas.Server/Dockerfile` builds the server with its web UI (from the repository root:
 `docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server .`). It listens on 5080 (web
 UI and API) and 5081 (runners), keeps its data in the volume `/var/lib/autocanvas` and runs as a
-non-root user. CI builds it on every change; it is published with the first release.
+non-root user.
+
+The build argument `SOURCE_REVISION` (a commit) goes into the server's version, which
+`GET /api/v1/info` and the web UI's footer show. The build context has no `.git` to read it from.
+The runner's Dockerfile takes the same argument.
+
+CI builds both images on every change and checks that the server names its commit
+(`deploy/test/image-version.sh`). The *Images* workflow (`.github/workflows/images.yml`) publishes
+every commit on `main` to the GitHub Container Registry:
+- `ghcr.io/bexy315/autocanvas-server` and `-runner`;
+- tagged `sha-<commit>` and `dev`, for `linux/amd64`;
+- private while the repository is ([ADR-0023](../adr/0023-published-images-and-dev-instance.md)).
+
+Releases come with 0.1.
 
 ```sh
 docker run -d --name autocanvas -p 5080:5080 -p 5081:5081 -v autocanvas-data:/var/lib/autocanvas \
@@ -382,9 +395,11 @@ volume needs no backup: a runner can be registered again.
 ### Updating the package
 
 Run the install script again with the same directory. It builds the images from the current checkout
-and `docker compose up -d` recreates the containers whose image changed; schema migrations run when
-the server starts (`Database:MigrateOnStart`). Running jobs end when the runner restarts and are
-retried by their run's rules.
+and `docker compose up -d` recreates the containers whose image changed. With the published images,
+change their tags in `.env`, then run `docker compose pull` and `docker compose up -d`
+([Installation](../user/installation.md#using-the-published-images)). Either way, schema migrations
+run when the server starts (`Database:MigrateOnStart`). Running jobs end when the runner restarts
+and are retried by their run's rules.
 
 ### A proxy in front
 

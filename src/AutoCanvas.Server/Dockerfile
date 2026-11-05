@@ -1,5 +1,7 @@
 # The AutoCanvas server with its web UI. Build from the repository root:
-#   docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server .
+#   docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server #     --build-arg SOURCE_REVISION=$(git rev-parse HEAD) .
+# SOURCE_REVISION puts the commit into the server's version (GET /api/v1/info, the web UI's footer);
+# the build context has no .git to read it from.
 # Serves the UI and the HTTP API on 5080 and runners on 5081; keeps its data (the SQLite database by
 # default) in /var/lib/autocanvas. See docs/technical/operations.md for the settings.
 
@@ -30,9 +32,12 @@ COPY src/AutoCanvas.Server.Application/ src/AutoCanvas.Server.Application/
 COPY src/AutoCanvas.Server/ src/AutoCanvas.Server/
 COPY --from=web /src/src/AutoCanvas.Server/wwwroot/ src/AutoCanvas.Server/wwwroot/
 RUN dotnet restore src/AutoCanvas.Server/AutoCanvas.Server.csproj --locked-mode
-RUN dotnet publish src/AutoCanvas.Server/AutoCanvas.Server.csproj --configuration Release --no-restore --output /app
+ARG SOURCE_REVISION=
+RUN dotnet publish src/AutoCanvas.Server/AutoCanvas.Server.csproj --configuration Release --no-restore --output /app     -p:SourceRevisionId="$SOURCE_REVISION"
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
+ARG SOURCE_REVISION=
+LABEL org.opencontainers.image.source=https://github.com/Bexy315/autocanvas       org.opencontainers.image.licenses=MIT       org.opencontainers.image.revision=$SOURCE_REVISION
 # git reads the automation files of connected repositories (ADR-0021).
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends git \

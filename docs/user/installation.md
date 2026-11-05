@@ -10,8 +10,10 @@ happens in the browser.
 
 :::note Before the first release
 
-Until 0.1 there are no published images: the install script builds them from a checkout of the
-repository, which takes a few minutes the first time.
+Until 0.1 the install script builds the images from a checkout of the repository, which takes a few
+minutes the first time. Images of every commit on `main` are published too
+([Using the published images](#using-the-published-images)), but they are private while the
+repository is.
 
 :::
 
@@ -122,8 +124,10 @@ PostgreSQL. [Operations](../technical/operations.md#backups) has the details.
 Everything the script does can be done by hand, for example to adapt the package:
 
 1. Build the images from the checkout:
-   `docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server:local .` and the same with
-   `src/AutoCanvas.Runner/Dockerfile` and `autocanvas-runner:local`.
+   `docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server:local --build-arg SOURCE_REVISION=$(git rev-parse HEAD) .`
+   and the same with `src/AutoCanvas.Runner/Dockerfile` and `autocanvas-runner:local`. The
+   revision is optional; with it, the web UI shows which commit runs. Or use the published images
+   (below).
 2. Copy `deploy/compose/compose.yaml` (and `compose.postgres.yaml` for PostgreSQL) and
    `.env.example` into a directory, and rename `.env.example` to `.env`.
 3. Fill in `.env`: its comments say how to find the Docker socket's group and, after
@@ -132,3 +136,24 @@ Everything the script does can be done by hand, for example to adapt the package
 
 Behind a reverse proxy, set `AUTOCANVAS_TRUSTED_PROXIES` in `.env` to the proxy's address
 ([Operations](../technical/operations.md#reverse-proxies-and-https)).
+
+## Using the published images
+
+Every commit on `main` is published to the GitHub Container Registry:
+- `ghcr.io/bexy315/autocanvas-server`
+- `ghcr.io/bexy315/autocanvas-runner`
+
+Each has the tags `sha-<commit>` (the full commit) and `dev` (the newest on `main`). They are not
+releases: `dev` changes with every merge, so pin a `sha-` tag for anything you want to keep.
+
+To run them, follow [Without the script](#without-the-script) and skip the build. In `.env`, name
+the images instead of the local ones:
+
+```sh
+AUTOCANVAS_SERVER_IMAGE=ghcr.io/bexy315/autocanvas-server:sha-<commit>
+AUTOCANVAS_RUNNER_IMAGE=ghcr.io/bexy315/autocanvas-runner:sha-<commit>
+```
+
+To update, change the tags (or keep `dev`) and run `docker compose pull` and `docker compose up -d`.
+While the repository is private, so are the images: sign in first with
+`docker login ghcr.io`, using a GitHub token with the `read:packages` scope.
