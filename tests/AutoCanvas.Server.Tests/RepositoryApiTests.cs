@@ -229,6 +229,56 @@ public abstract class RepositoryApiTests(DatabaseProvider provider) : DatabaseTe
         (await stranger.GetAsync(new Uri($"/api/v1/repositories/{id}", UriKind.Relative), Cancel)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
+    private static string Following(string automation) => $$"""
+        version: 1
+        triggers:
+          automation_completed:
+            automation: {{automation}}
+        jobs:
+          after:
+            steps:
+              - run: echo after {{automation}}
+        """;
+
+    [Fact]
+    public async Task Repository_automations_may_follow_each_other_whatever_the_order_of_their_files()
+    {
+        // a-deploy follows z-ci, whose file comes later; nightly follows a-deploy, whose file comes earlier.
+        await git.CommitAsync("shop", Files(
+            (".autocanvas/automations/a-deploy.yml", Following("z-ci")),
+            (".autocanvas/automations/nightly.yml", Following("a-deploy")),
+            (".autocanvas/automations/z-ci.yml", Build),
+            (".autocanvas/automations/lonely.yml", Following("nowhere"))), "Chain them");
+        await using var factory = Factory();
+        var root = await factory.SignedInAsync("root", isAdmin: true);
+        var folder = await FolderAsync(root);
+
+        var repository = await (await root.PostAsJsonAsync($"/api/v1/folders/{folder}/repositories", new { address = git.Url("shop").ToString() }, Cancel)).JsonAsync();
+
+        repository.GetProperty("automations").GetInt32().ShouldBe(3);
+        var problem = repository.GetProperty("problems").EnumerateArray().Single();
+        problem.GetProperty("path").GetString().ShouldBe(".autocanvas/automations/lonely.yml");
+        problem.GetProperty("message").GetString()!.ShouldContain("There is no automation 'nowhere'");
+        (await AutomationsAsync(root, folder)).EnumerateArray().Select(a => a.GetProperty("name").GetString()).Order(StringComparer.Ordinal)
+            .ShouldBe(["a-deploy", "nightly", "z-ci"]);
+    }
+
+    [Fact]
+    public async Task Two_files_of_one_name_make_one_automation_and_a_problem()
+    {
+        await git.CommitAsync("shop", Files((".autocanvas/automations/build.yml", Build), (".autocanvas/automations/build.yaml", Build)), "Twice");
+        await using var factory = Factory();
+        var root = await factory.SignedInAsync("root", isAdmin: true);
+        var folder = await FolderAsync(root);
+
+        var connected = await root.PostAsJsonAsync($"/api/v1/folders/{folder}/repositories", new { address = git.Url("shop").ToString() }, Cancel);
+
+        connected.StatusCode.ShouldBe(HttpStatusCode.Created, await connected.Content.ReadAsStringAsync(Cancel));
+        var repository = await connected.JsonAsync();
+        repository.GetProperty("automations").GetInt32().ShouldBe(1);
+        repository.GetProperty("problems")[0].GetProperty("message").GetString()!.ShouldContain("another automation named 'build'");
+    }
+
     [Fact]
     public async Task Names_must_not_clash_and_disconnecting_removes_the_automations()
     {
