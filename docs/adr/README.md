@@ -25,5 +25,6 @@ written once; a changed decision gets a new ADR that supersedes the old one.
 | [0018](0018-web-ui.md) | Web UI: a React SPA served by the server, with YAML as the editor's source of truth | Accepted |
 | [0019](0019-npm-licenses.md) | Check npm licenses against the shared list, with named build-time exceptions | Accepted |
 | [0020](0020-first-start-setup.md) | Set up a fresh instance in the browser, with a token from the log | Accepted |
-| [0021](0021-repositories-per-folder.md) | Connect repositories per folder, behind a forge abstraction | Proposed |
-| [0022](0022-github-app.md) | Integrate GitHub through one GitHub App per instance | Proposed |
+| [0021](0021-repositories-per-folder.md) | Connect repositories per folder, behind a forge abstraction | Accepted |
+| [0022](0022-github-app.md) | Integrate GitHub through one GitHub App per instance | Accepted |
+| [0023](0023-published-images-and-dev-instance.md) | Publish images to GHCR and deploy a dev instance from GitHub Actions over SSH | Proposed |
