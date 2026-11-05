@@ -1,0 +1,19 @@
+# The dev instance's TLS end (deploy/dev/README.md). Cloudflare proxies the domain; only its
+# addresses reach port 443 (ufw), and it connects with HTTPS to this origin certificate.
+{
+	# Cloudflare redirects to HTTPS already; port 80 stays closed.
+	auto_https disable_redirects
+	admin off
+}
+
+{$DEV_DOMAIN}:443 {
+	tls /certs/cert.pem /certs/key.pem
+
+	reverse_proxy 127.0.0.1:5080 {
+		# The server trusts the Docker networks (AUTOCANVAS_TRUSTED_PROXIES), so it believes this:
+		# the visitor's address as Cloudflare saw it, not Cloudflare's own.
+		header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
+		# Live logs are server-sent events; pass them on at once.
+		flush_interval -1
+	}
+}

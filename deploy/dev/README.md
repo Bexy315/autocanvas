@@ -6,7 +6,15 @@ The files here run an AutoCanvas instance for manual tests:
 - it is the [compose package](../compose/) with PostgreSQL, from the images CI publishes.
 
 The plan is [D1](../../docs/plans/d1.md); [ADR-0023](../../docs/adr/0023-published-images-and-dev-instance.md)
-says why it is built this way. The host and the deploy follow in D1's later steps.
+says why it is built this way. The workflow that deploys and resets it follows in D1's step 5.
+
+| File | What it is |
+|---|---|
+| `seed.sh` | Fills a fresh instance with test users, folders and runs ([The seed](#the-seed)) |
+| `bootstrap.sh` | Turns a fresh Ubuntu 24.04 host into the instance's host ([The host](#the-host)) |
+| `remote.sh` | The one command the deploy key may run: `deploy`, `reset`, `status` ([Deploying](#deploying)) |
+| `compose.dev.yaml` | Added to the compose package: Caddy in front, the server's port only on the host |
+| `Caddyfile` | TLS with Cloudflare's origin certificate, the visitor's address passed on |
 
 ## The seed
 
@@ -40,3 +48,69 @@ So, for example:
 - `admin` sees everything.
 
 CI runs the seed against the compose package with PostgreSQL (`deploy/test/compose-smoke.sh --seed`). It checks what each user sees, and that a second seed changes nothing.
+
+## The host
+
+Run `bootstrap.sh` once as root on a fresh Ubuntu 24.04 host, from a copy of the repository's
+`deploy` directory:
+
+```sh
+deploy/dev/bootstrap.sh --domain dev.example.org --deploy-key deploy.pub \
+  --cert origin-cert.pem --key origin-key.pem [--images ghcr.io/<owner>]
+```
+
+- **Domain**: proxied by Cloudflare, with SSL/TLS set to *Full (strict)*.
+- **Certificate**: an origin certificate from Cloudflare (SSL/TLS → Origin Server) and its key.
+- **Deploy key**: the public key of a new SSH key pair for deploying; its private key goes to GitHub
+  (step 5).
+
+Running it again is harmless and refreshes the scripts, the compose files and Cloudflare's address
+ranges. It starts nothing; the first deploy does.
+
+What it sets up:
+- **Updates**: security updates every day (unattended-upgrades, no automatic reboots), and
+  fail2ban for SSH.
+- **Docker CE** from Docker's repository, with logs that rotate themselves.
+- **SSH with keys only**: no passwords; root only with a key; only `root` and `deploy` may sign in.
+- **The user `deploy`** (in the `docker` group, no password). Its `authorized_keys` is owned by root
+  and allows its key exactly one thing: `restrict,command="/opt/autocanvas-dev/remote.sh"`.
+- **The instance** in `/opt/autocanvas-dev/instance`:
+  - the compose package with PostgreSQL and `compose.dev.yaml`;
+  - its `.env`, written once (domain, image repository, a random database password);
+  - the origin certificate in `/etc/autocanvas-dev/origin`, readable by root only.
+  - `remote.sh` lies beside it, owned by root, so the deploy key cannot change what it runs.
+- **Firewall** (ufw): SSH (22) from anywhere, because GitHub's runners have no fixed addresses;
+  HTTPS (443) from Cloudflare's addresses only; nothing else.
+  - Docker's published ports would bypass ufw, so the instance publishes the server only on
+    `127.0.0.1`.
+  - Caddy runs in the host's network, where ufw applies.
+  - The runner port is not published: the bundled runner reaches the server inside the compose
+    network.
+
+## Deploying
+
+The deploy key runs `remote.sh` and nothing else; what to do is the SSH command:
+
+| Command | What it does |
+|---|---|
+| `deploy <commit>` | Pulls `sha-<commit>` of both images and starts them; migrations run as the server starts. Then it checks that the server names the commit, seeds the instance if it is fresh, and keeps the newest three commits' images. |
+| `reset` | `docker compose down --volumes` (data, master key, runner workspaces), a fresh start and the seed. |
+| `status` | The containers and the running version. |
+
+Credentials come on standard input as header lines, never as arguments, so they show in no process
+list or log:
+- `REGISTRY_TOKEN=` for pulling, used for this run only;
+- `SEED_PASSWORD=`.
+
+An empty line ends the headers. A `tar.gz` of the commit's `deploy/compose` and `deploy/dev` may
+follow; the instance then takes that commit's compose files, Caddyfile and seed.
+
+By hand, for example:
+
+```sh
+{ printf 'REGISTRY_TOKEN=%s\nSEED_PASSWORD=%s\n\n' "$token" "$password"; tar -czf - -C deploy compose dev; } |
+  ssh -i deploy-key deploy@<host> deploy "$(git rev-parse HEAD)"
+```
+
+Deploys and resets wait for each other. Changes to `remote.sh` or `bootstrap.sh` reach the host only
+by running `bootstrap.sh` again.
