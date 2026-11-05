@@ -7,18 +7,25 @@ const csrf = { 'X-AutoCanvas-Request': '1' };
 
 /** A run's jobs, their attempts' errors and logs, for the message of a failed assertion. */
 async function runReport(page: Page, runId: string): Promise<string> {
-  const run = (await (await page.request.get(`/api/v1/runs/${runId}`)).json()) as {
-    jobs: { key: string; status: string; attempts: { id: string; status: string; error: string | null }[] }[];
-  };
-  const attempts = run.jobs.flatMap((job) => job.attempts.map((attempt) => ({ job: job.key, ...attempt })));
+  const run = (await (await page.request.get(`/api/v1/runs/${runId}`)).json()) as { jobs: { key: string }[] };
+  const jobs = await Promise.all(
+    run.jobs.map(
+      async (job) =>
+        (await (await page.request.get(`/api/v1/runs/${runId}/jobs/${job.key}`)).json()) as {
+          key: string;
+          attempts: { id: string; status: string; error: string | null }[];
+        },
+    ),
+  );
+  const attempts = jobs.flatMap((job) => job.attempts.map((attempt) => ({ job: job.key, ...attempt })));
   const logs = await Promise.all(
     attempts.map(async (attempt) => {
       const log = (await (
         await page.request.get(`/api/v1/runs/${runId}/attempts/${attempt.id}/log?limit=1000`)
       ).json()) as {
-        chunks: { lines: string[] }[];
+        chunks: { lines: { text: string }[] }[];
       };
-      const lines = log.chunks.flatMap((chunk) => chunk.lines).join('\n');
+      const lines = log.chunks.flatMap((chunk) => chunk.lines.map((line) => line.text)).join('\n');
       return `${attempt.job} (${attempt.status}): ${attempt.error ?? ''}\n${lines}`;
     }),
   );
