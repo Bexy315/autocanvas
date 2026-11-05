@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Diagnostic } from '../../api/problem';
+import { noReferences, type References } from './references';
 import { addListItem, moveListItem, removeListItem, setField, type Change } from '../operations';
 import { problemsAt } from '../panelModel';
 import type { Path } from '../yamlEdit';
@@ -8,9 +9,11 @@ import type { Path } from '../yamlEdit';
 export interface PanelSettings {
   readOnly: boolean;
   diagnostics: readonly Diagnostic[];
+  /** The variables and secrets that reach the automation, for inserting them into values. */
+  references: References;
 }
 
-export const PanelContext = createContext<PanelSettings>({ readOnly: true, diagnostics: [] });
+export const PanelContext = createContext<PanelSettings>({ readOnly: true, diagnostics: [], references: noReferences });
 
 export function usePanel(): PanelSettings {
   return useContext(PanelContext);

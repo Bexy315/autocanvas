@@ -391,6 +391,43 @@ describe('the editor', () => {
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
   });
 
+  it('offers the variables and secrets that reach the automation in the panel', async () => {
+    server({
+      'GET /api/v1/automations/a1/configuration': () =>
+        json({
+          variables: [
+            {
+              name: 'REGION',
+              definitions: [],
+              winner: { kind: 'Folder', folderId: 'team', folderName: 'Team', value: 'eu' },
+            },
+          ],
+          secrets: [
+            {
+              name: 'DEPLOY_TOKEN',
+              definitions: [],
+              winner: { kind: 'Folder', folderId: 'team', folderName: 'Team', value: null },
+            },
+          ],
+        }),
+    });
+    const { user } = renderApp('/automations/a1/edit');
+    await editorView(label);
+    const canvas = screen.getByRole('region', { name: 'Canvas' });
+    const card = canvas.querySelector<HTMLElement>('.react-flow__node[data-id="build"]');
+    if (!card) {
+      throw new Error('No card.');
+    }
+    fireEvent.keyDown(card, { key: 'Enter' });
+    const panel = await screen.findByRole('complementary', { name: 'Settings of build' });
+    await user.click(within(panel).getByRole('button', { name: /^Environment/ }));
+    await user.click(within(panel).getByRole('button', { name: 'Add name' }));
+    await user.type(within(panel).getByLabelText('New name'), 'TOKEN{Enter}');
+    await user.click(within(panel).getByRole('button', { name: 'Insert a variable or secret into Value of TOKEN' }));
+    expect(await within(panel).findByRole('button', { name: 'secrets.DEPLOY_TOKEN' })).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'vars.REGION' })).toBeInTheDocument();
+  });
+
   it('offers no palette to viewers', async () => {
     server({ 'GET /api/v1/automations/a1': () => json(automationView('a1', 'team', { role: 'Viewer' })) });
     renderApp('/automations/a1/edit');

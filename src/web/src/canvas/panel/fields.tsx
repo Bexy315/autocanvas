@@ -6,6 +6,7 @@
 import { clsx } from 'clsx';
 import { ChevronRight, Plus, X } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
+import { ExpressionInput } from './expressions';
 import { usePanel } from './panelContext';
 
 /** How a field looks, without its width: fields side by side set their own. */
@@ -79,6 +80,7 @@ export function TextInput({
   onCommit,
   placeholder,
   mono = false,
+  expressions = false,
   ...frame
 }: FieldFrame & {
   value: string;
@@ -87,28 +89,44 @@ export function TextInput({
   onCommit?: () => void;
   placeholder?: string;
   mono?: boolean;
+  /** A value that may name variables and secrets: shown as a chip, with a menu to insert them. */
+  expressions?: boolean;
 }) {
   const { readOnly } = usePanel();
   return (
     <Frame {...frame}>
-      {({ id, describedBy, invalid }) => (
-        <input
-          id={id}
-          value={value}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          onChange={(event) => onValue(event.target.value)}
-          onBlur={onCommit}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              onCommit?.();
-            }
-          }}
-          className={clsx(control, 'h-8', border(invalid), mono && 'font-mono text-xs')}
-        />
-      )}
+      {({ id, describedBy, invalid }) =>
+        expressions ? (
+          <ExpressionInput
+            label={frame.label}
+            value={value}
+            onValue={onValue}
+            input={{
+              id,
+              'aria-invalid': invalid || undefined,
+              'aria-describedby': describedBy,
+              className: clsx(control, 'h-8', border(invalid), mono && 'font-mono text-xs'),
+            }}
+          />
+        ) : (
+          <input
+            id={id}
+            value={value}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
+            onChange={(event) => onValue(event.target.value)}
+            onBlur={onCommit}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                onCommit?.();
+              }
+            }}
+            className={clsx(control, 'h-8', border(invalid), mono && 'font-mono text-xs')}
+          />
+        )
+      }
     </Frame>
   );
 }
@@ -348,14 +366,16 @@ export function KeyValueList({
             defaultValue={key}
             readOnly={readOnly}
             onBlur={(event) => rename(key, event.target.value)}
-            className={clsx(controlLook, 'h-8 w-2/5 shrink-0 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 w-1/3 shrink-0 border-line-strong font-mono text-xs')}
           />
-          <input
-            aria-label={`${valueLabel} of ${key}`}
+          <ExpressionInput
+            label={`${valueLabel} of ${key}`}
             value={String(value)}
-            readOnly={readOnly}
-            onChange={(event) => onEntries({ ...entries, [key]: event.target.value })}
-            className={clsx(controlLook, 'h-8 min-w-0 flex-1 border-line-strong font-mono text-xs')}
+            onValue={(next) => onEntries({ ...entries, [key]: next })}
+            input={{
+              'aria-label': `${valueLabel} of ${key}`,
+              className: clsx(controlLook, 'h-8 w-full border-line-strong font-mono text-xs'),
+            }}
           />
           {!readOnly && (
             <RemoveButton
@@ -388,7 +408,7 @@ export function KeyValueList({
                 setAdding(false);
               }
             }}
-            className={clsx(controlLook, 'h-8 w-2/5 shrink-0 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 w-1/3 shrink-0 border-line-strong font-mono text-xs')}
           />
         ) : (
           <AddButton label={`Add ${keyLabel.toLowerCase()}`} onAdd={() => setAdding(true)} />

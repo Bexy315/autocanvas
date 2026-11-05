@@ -31,6 +31,7 @@ import { useNodeTypes, useSaveAutomation, type NodeTypeView } from '../../api/au
 import { useProposeChange, type ProposedChange } from '../../api/repositories';
 import { api, unwrapWithTag } from '../../api/client';
 import { ApiError, type Diagnostic } from '../../api/problem';
+import { useConfiguration } from '../../api/configuration';
 import { ConfirmDialog } from '../../dialogs/ConfirmDialog';
 import { ConflictDialog, type Theirs } from '../../dialogs/ConflictDialog';
 import { automationSchema } from '../../editor/automationSchema';
@@ -111,6 +112,15 @@ export function EditorTab() {
   const nodeTypeList = nodeTypes.data ?? noNodeTypes;
   const completions = useMemo(() => automationCompletions(automationSchema, () => nodeTypeList), [nodeTypeList]);
   const save = useSaveAutomation(automation.id);
+  // The variables and secrets that reach this automation, offered in the panel's value fields.
+  const configuration = useConfiguration({ kind: 'automation', id: automation.id });
+  const references = useMemo(
+    () => ({
+      variables: (configuration.data?.variables ?? []).map((entry) => entry.name),
+      secrets: (configuration.data?.secrets ?? []).map((entry) => entry.name),
+    }),
+    [configuration.data],
+  );
   const propose = useProposeChange(automation.id);
 
   const diagnostics = saveProblems ?? validation.result?.diagnostics ?? [];
@@ -436,6 +446,7 @@ export function EditorTab() {
                 text: canvas.text,
                 nodeTypes: nodeTypeList,
                 diagnostics,
+                references,
                 ...(canEdit && !canvas.stale ? { edits: panelEdits } : {}),
               }}
               {...(canEdit

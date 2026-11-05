@@ -34,6 +34,7 @@ test('a job, its steps and the triggers are set up in the side panel, keeping th
   await signIn(page);
   const folder = await page.request.post('/api/v1/folders', { data: { name: 'Panel' }, headers: csrf });
   const folderId = ((await folder.json()) as { id: string }).id;
+  await page.request.put(`/api/v1/folders/${folderId}/secrets/DEPLOY_TOKEN`, { data: { value: 'e2e' }, headers: csrf });
   const created = await page.request.post(`/api/v1/folders/${folderId}/automations`, {
     data: { name: 'site', yaml: start },
     headers: csrf,
@@ -61,7 +62,7 @@ test('a job, its steps and the triggers are set up in the side panel, keeping th
   await build.getByRole('button', { name: 'All steps' }).click();
   await build.getByRole('button', { name: 'Add step' }).click();
   await build.getByRole('button', { name: 'http_request', exact: true }).click();
-  await build.getByLabel('url (required)').fill('https://example.com/hook');
+  await build.getByRole('textbox', { name: 'url (required)', exact: true }).fill('https://example.com/hook');
   await expect(file(page)).toContainText('url: https://example.com/hook');
   await snapshot(page, 'panel-1-step');
 
@@ -77,6 +78,19 @@ test('a job, its steps and the triggers are set up in the side panel, keeping th
   const compile = panel(page, 'compile');
   await expect(compile).toBeVisible();
   await snapshot(page, 'panel-2-job');
+
+  // A secret of the folder goes into the environment from the menu, and shows as a chip.
+  await compile.getByRole('button', { name: /^Environment/ }).click();
+  await compile.getByRole('button', { name: 'Add name' }).click();
+  await compile.getByLabel('New name').fill('TOKEN');
+  await compile.getByLabel('New name').press('Enter');
+  await compile.getByRole('button', { name: 'Insert a variable or secret into Value of TOKEN' }).click();
+  await compile.getByRole('button', { name: 'secrets.DEPLOY_TOKEN' }).click();
+  await expect(file(page)).toContainText('TOKEN: ${{ secrets.DEPLOY_TOKEN }}');
+  await expect(compile.getByRole('button', { name: /^Value of TOKEN: secret DEPLOY_TOKEN/ })).toBeVisible();
+  await compile.getByRole('button', { name: 'Insert a variable or secret into Value of TOKEN' }).click();
+  await snapshot(page, 'panel-2-expressions');
+  await page.keyboard.press('Escape');
 
   // A job from the palette waits for another, chosen with the keyboard in its panel.
   await page.getByRole('button', { name: /^Add Job:/ }).click();

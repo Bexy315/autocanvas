@@ -56,6 +56,10 @@ wrote it, with its comments and order. **Canvas**, **Split** and **YAML** choose
     neighbours.
   - **Empty fields**: below a field it says what applies while it is empty, and an example where
     one helps.
+  - **Variables and secrets**: a value that names one as a whole, such as
+    `${{ secrets.DEPLOY_TOKEN }}`, shows as a chip; choose it to edit the expression. The `{}`
+    button beside values inserts what reaches the automation: its folders' variables and secrets,
+    the variables in its file, and details of the run.
 
   The trigger card holds the automation's own settings, such as its schedules and whether a
   webhook may start it.
