@@ -47,23 +47,29 @@ test('a job, its steps and the triggers are set up in the side panel, keeping th
   await card(page, 'build').click();
   const build = panel(page, 'build');
   await expect(build).toBeVisible();
+  // The job's tab: sections fold away and say what they hold.
+  await build.getByRole('button', { name: /^Runs on/ }).click();
   await build.getByLabel('Image').fill('node:24');
   await expect(file(page)).toContainText('image: node:24');
 
-  // A script step, written as a block, and a node type's step with its inputs.
+  // The steps' tab: a script step, written as a block, and a node type's step with its inputs.
+  await build.getByRole('tab', { name: /^Steps/ }).click();
   await build.getByRole('button', { name: 'Add step' }).click();
-  await build.getByRole('button', { name: 'Script' }).click();
+  await build.getByRole('button', { name: 'Script', exact: true }).click();
   await build.getByLabel('Script').fill('npm ci\nnpm test');
   await expect(file(page)).toContainText('- run: |-');
+  await build.getByRole('button', { name: 'All steps' }).click();
   await build.getByRole('button', { name: 'Add step' }).click();
-  await build.getByRole('button', { name: 'http_request' }).click();
+  await build.getByRole('button', { name: 'http_request', exact: true }).click();
   await build.getByLabel('url (required)').fill('https://example.com/hook');
   await expect(file(page)).toContainText('url: https://example.com/hook');
   await snapshot(page, 'panel-1-step');
 
   // The second step goes first; then the job gets another id, and what names it follows.
+  await build.getByRole('button', { name: 'All steps' }).click();
   await build.getByRole('button', { name: 'Move step 2 up' }).click();
-  await build.getByRole('button', { name: 'Job settings' }).click();
+  await snapshot(page, 'panel-1-steps');
+  await build.getByRole('tab', { name: 'Job' }).click();
   await build.getByLabel('Id', { exact: true }).fill('compile');
   await build.getByLabel('Id', { exact: true }).press('Enter');
   await expect(file(page)).toContainText('needs: [compile]');

@@ -79,7 +79,7 @@ export function AutomationPanel({ file, edits }: { file: PanelFile; edits: Panel
         <TextInput
           label="Changed something when"
           value={text(file.get(['changed_when']))}
-          placeholder="${{ jobs.check.outputs.changed }}"
+          example="${{ jobs.check.outputs.changed }}"
           mono
           hint="Successful runs for which this is false are folded together in the history."
           problems={problemsAt(diagnostics, ['changed_when'])}
@@ -201,7 +201,7 @@ function Starts({
                     <TextInput
                       label="Time zone"
                       value={text(entry['timezone'])}
-                      placeholder="UTC"
+                      empty="UTC"
                       problems={problemsAt(diagnostics, at('schedule', index, 'timezone'))}
                       onValue={(value) => onSet(at('schedule', index, 'timezone'), value, 'Changed a schedule')}
                     />

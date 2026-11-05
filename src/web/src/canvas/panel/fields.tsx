@@ -17,6 +17,10 @@ interface FieldFrame {
   label: string;
   hint?: string | undefined;
   problems?: readonly string[] | undefined;
+  /** What applies while the field is empty, said below it: a grey placeholder would look like a value. */
+  empty?: string | undefined;
+  /** A value to write, shown below the field as code, for the same reason. */
+  example?: string | undefined;
 }
 
 /** A label above a control, with the hint and the problems below it. */
@@ -26,11 +30,16 @@ function Frame({
   label,
   hint,
   problems = noProblems,
+  empty,
+  example,
   children,
 }: FieldFrame & { children: (props: { id: string; describedBy?: string; invalid: boolean }) => ReactNode }) {
   const id = useId();
   const invalid = problems.length > 0;
-  const describedBy = [hint ? `${id}-hint` : null, invalid ? `${id}-problem` : null].filter(Boolean).join(' ');
+  const fallback = empty !== undefined || example !== undefined;
+  const describedBy = [hint ? `${id}-hint` : null, fallback ? `${id}-fallback` : null, invalid ? `${id}-problem` : null]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-xs font-medium text-ink">
@@ -40,6 +49,17 @@ function Frame({
       {hint && (
         <p id={`${id}-hint`} className="text-xs text-muted">
           {hint}
+        </p>
+      )}
+      {fallback && (
+        <p id={`${id}-fallback`} className="text-xs text-muted">
+          {empty !== undefined && <>When empty: {empty}</>}
+          {empty !== undefined && example !== undefined && ' · '}
+          {example !== undefined && (
+            <>
+              For example: <code className="font-mono text-ink">{example}</code>
+            </>
+          )}
         </p>
       )}
       {invalid && (

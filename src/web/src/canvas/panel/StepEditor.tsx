@@ -1,3 +1,6 @@
+import { SquareTerminal } from 'lucide-react';
+import { createElement } from 'react';
+import { nodeTypeIcon } from '../paletteEntries';
 import type { NodeTypeView } from '../operations';
 import { isMapping, isPlainMap, problemsAt, problemsUnder, type PanelFile } from '../panelModel';
 import type { Path } from '../yamlEdit';
@@ -44,14 +47,19 @@ export function StepEditor({
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-3 border-b border-line px-4 pt-3 pb-4">
-        <p className="text-xs text-muted">
-          Step {index + 1} · {type === null ? 'Script' : type}
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
+          {type === null ? (
+            <SquareTerminal aria-hidden="true" size={13} />
+          ) : (
+            createElement(nodeTypeIcon(type), { 'aria-hidden': true, size: 13 })
+          )}
+          Step {index + 1} · <span className="font-mono">{type === null ? 'script' : type}</span>
         </p>
         {nodeType && <p className="text-sm text-ink">{nodeType.description}</p>}
         <TextInput
           label="Name"
           value={text('name')}
-          placeholder={type ?? 'Shown in the run'}
+          empty={type === null ? 'the first line of the script' : `the node type, ${type}`}
           problems={nameProblems}
           onValue={(value) => onSet(at('name'), value, `Named step ${index + 1}`)}
         />
@@ -81,7 +89,7 @@ export function StepEditor({
         )}
       </div>
       <Section
-        title="More"
+        title="Options"
         summary={moreSummary(step)}
         problems={problemsUnder(diagnostics, path) - runProblems.length}
       >
@@ -96,7 +104,8 @@ export function StepEditor({
         <TextInput
           label="Run only if"
           value={text('if')}
-          placeholder="${{ trigger.branch == 'main' }}"
+          empty="always, when the steps before it succeeded"
+          example="${{ trigger.branch == 'main' }}"
           problems={problems(at('if'))}
           mono
           onValue={(value) => onSet(at('if'), value, `Changed the condition of step ${index + 1}`)}
@@ -162,5 +171,5 @@ function moreSummary(step: Readonly<Record<string, unknown>>): string {
     step['continue_on_error'] === true ? 'continues on error' : null,
     step['timeout_minutes'] === undefined ? null : `${String(step['timeout_minutes'])} min`,
   ];
-  return parts.filter(Boolean).join(' · ');
+  return parts.filter(Boolean).join(' · ') || 'id, condition, environment, time limit';
 }

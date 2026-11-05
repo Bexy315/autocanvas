@@ -380,6 +380,7 @@ describe('the editor', () => {
     const panel = await screen.findByRole('complementary', { name: 'Settings of build' });
     expect(within(panel).getByRole('heading', { name: 'build' })).toHaveFocus();
 
+    await user.click(within(panel).getByRole('button', { name: /^Runs on/ }));
     await user.type(within(panel).getByLabelText('Image'), 'node:24');
     expect(view.state.doc.toString()).toContain('  build:\n    image: node:24\n    steps:\n');
     // The value typed shows in the file at once, and one undo takes all of it back.

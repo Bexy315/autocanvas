@@ -53,7 +53,7 @@ export function GeneralSection({ id, file, edits, onSet }: Omit<SettingsProps, '
     edits.apply(renameJob(edits.current(), id, draft), { step: true, announce: true });
   };
   return (
-    <Section title="General" open problems={problemsUnder(diagnostics, [...base, 'name'])}>
+    <Section title="General" open summary={id} problems={problemsUnder(diagnostics, [...base, 'name'])}>
       <TextInput
         label="Id"
         value={draft}
@@ -66,14 +66,15 @@ export function GeneralSection({ id, file, edits, onSet }: Omit<SettingsProps, '
       <TextInput
         label="Name"
         value={text(file.get([...base, 'name']))}
-        placeholder={id}
+        empty={`the id, ${id}`}
         problems={problemsAt(diagnostics, [...base, 'name'])}
         onValue={(value) => onSet([...base, 'name'], value, `Named ${id}`)}
       />
       <TextInput
         label="Run only if"
         value={text(file.get([...base, 'if']))}
-        placeholder="${{ trigger.branch == 'main' }}"
+        empty="always"
+        example="${{ trigger.branch == 'main' }}"
         mono
         problems={problemsAt(diagnostics, [...base, 'if'])}
         onValue={(value) => onSet([...base, 'if'], value, `Changed the condition of ${id}`)}
@@ -148,8 +149,7 @@ export function NeedsSection({ id, file, graph, edits }: Omit<SettingsProps, 'on
   return (
     <Section
       title="Needs"
-      open={needs.length > 0}
-      summary={needs.length === 0 ? 'starts with the run' : `${needs.length} jobs`}
+      summary={needs.length === 0 ? 'starts with the run' : needs.map((need) => need?.job ?? '…').join(', ')}
       problems={problemsUnder(diagnostics, path)}
     >
       {needs.length === 0 && <p className="text-xs text-muted">The job starts when the run starts.</p>}
@@ -220,8 +220,7 @@ export function StepJobSections(props: SettingsProps) {
     <>
       <Section
         title="Runs on"
-        open
-        summary={[labels?.join(', '), text(file.get(at('image')))].filter(Boolean).join(' · ')}
+        summary={[labels?.join(', ') || 'any runner', text(file.get(at('image')))].filter(Boolean).join(' · ')}
         problems={problemsUnder(diagnostics, at('runs_on')) + problemsUnder(diagnostics, at('image'))}
       >
         {labels === null ? (
@@ -240,7 +239,8 @@ export function StepJobSections(props: SettingsProps) {
         <TextInput
           label="Image"
           value={text(file.get(at('image')))}
-          placeholder="alpine:3.22"
+          empty="the runner's default image"
+          example="alpine:3.22"
           mono
           hint="The container the steps run in."
           problems={problemsAt(diagnostics, at('image'))}
@@ -249,7 +249,7 @@ export function StepJobSections(props: SettingsProps) {
       </Section>
       <Section
         title="Environment"
-        summary={isPlainMap(env) ? `${Object.keys(env).length} variables` : ''}
+        summary={env === undefined ? 'none' : isPlainMap(env) ? countOf(env, 'variable') : 'in the YAML'}
         problems={problemsUnder(diagnostics, at('env'))}
       >
         {isPlainMap(env) || env === undefined ? (
@@ -315,20 +315,23 @@ export function StepJobSections(props: SettingsProps) {
   );
 }
 
+/** "none", "1 report", "3 reports": every folded section says what it holds. */
 function countOf(value: unknown, noun: string): string {
   const count = isMapping(value) ? Object.keys(value).length : Array.isArray(value) ? value.length : 0;
-  return count === 0 ? '' : `${count} ${noun}${count === 1 ? '' : 's'}`;
+  return count === 0 ? 'none' : `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 function limitsSummary(file: PanelFile, base: Path): string {
   const timeout = file.get([...base, 'timeout_minutes']);
   const attempts = file.get([...base, 'retry', 'max_attempts']);
-  return [
-    timeout === undefined ? null : `${String(timeout)} min`,
-    attempts === undefined ? null : `${String(attempts)} attempts`,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  return (
+    [
+      timeout === undefined ? null : `${String(timeout)} min`,
+      attempts === undefined ? null : `${String(attempts)} attempts`,
+    ]
+      .filter(Boolean)
+      .join(' · ') || '60 min'
+  );
 }
 
 const presets = ['postgres', 'mysql', 'redis'].map((preset) => ({ value: preset, label: preset }));
@@ -349,7 +352,7 @@ function ServicesSection({ id, file, onSet }: SettingsProps) {
   return (
     <Section
       title="Services"
-      summary={entries.map(([name]) => name).join(', ')}
+      summary={entries.map(([name]) => name).join(', ') || 'none'}
       problems={problemsUnder(diagnostics, path)}
     >
       <p className="text-xs text-muted">Containers next to the job, reachable under their name as host name.</p>
@@ -395,7 +398,8 @@ function ServicesSection({ id, file, onSet }: SettingsProps) {
                 <TextInput
                   label="Version"
                   value={service['version'] === undefined ? '' : String(service['version'])}
-                  placeholder="17"
+                  empty="the preset's default"
+                  example="17"
                   onValue={(value) => onSet(at('version'), value, `Changed the service ${name}`)}
                 />
               </>
@@ -420,7 +424,7 @@ function ServicesSection({ id, file, onSet }: SettingsProps) {
             <TextInput
               label="Ready when this succeeds"
               value={text(service['ready'])}
-              placeholder={preset ? "The preset's own check" : 'pg_isready'}
+              {...(preset ? { empty: "the preset's own check" } : { example: 'pg_isready' })}
               mono
               onValue={(value) => onSet(at('ready'), value, `Changed the service ${name}`)}
             />
@@ -477,7 +481,7 @@ function CheckoutSection({ id, file, edits, onSet }: SettingsProps) {
   return (
     <Section
       title="Checkout"
-      summary={mode === 'none' ? 'nothing' : mode === 'list' ? countOf(repositories, 'repository') : ''}
+      summary={mode === 'none' ? 'nothing' : mode === 'list' ? countOf(repositories, 'repository') : 'its own commit'}
       problems={problemsUnder(diagnostics, path)}
     >
       <Choice
@@ -522,21 +526,22 @@ function CheckoutSection({ id, file, edits, onSet }: SettingsProps) {
             <TextInput
               label="Ref"
               value={text(repository['ref'])}
-              placeholder="The triggering commit, or the default branch"
+              empty="the triggering commit, or the default branch"
               mono
               onValue={(value) => onSet(at('ref'), value, `Changed the checkout of ${id}`)}
             />
             <TextInput
               label="Path"
               value={text(repository['path'])}
-              placeholder="The workspace"
+              empty="the workspace"
               mono
               onValue={(value) => onSet(at('path'), value, `Changed the checkout of ${id}`)}
             />
             <NumberInput
               label="History depth"
               value={repository['depth']}
-              placeholder="1; 0 for all"
+              empty="1 commit"
+              hint="0 fetches the whole history."
               onValue={(value) => onSet(at('depth'), value, `Changed the checkout of ${id}`)}
             />
           </fieldset>
@@ -608,7 +613,7 @@ function ReportsSection({ id, file, edits, onSet }: SettingsProps) {
             <TextInput
               label="Label"
               value={text(report['name'])}
-              placeholder={text(report['format'])}
+              empty={`the format, ${text(report['format'])}`}
               onValue={(value) => onSet(at('name'), value, `Changed a report of ${id}`)}
             />
           </fieldset>
@@ -640,7 +645,7 @@ export function SwitchSections({ id, file, edits, onSet }: SettingsProps) {
         <TextInput
           label="Expression"
           value={text(file.get([...base, 'expression']))}
-          placeholder="${{ trigger.event }}"
+          example="${{ trigger.event }}"
           mono
           hint="The first case whose value it equals is taken."
           problems={problemsAt(diagnostics, [...base, 'expression'])}

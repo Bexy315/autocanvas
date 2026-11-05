@@ -134,6 +134,11 @@ describe('the job panel', () => {
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
+    // Only General is open at first; the others say what they hold.
+    expect(within(panel).getByRole('button', { name: /^Runs on/ })).toHaveTextContent('linux · alpine:3.22');
+    expect(within(panel).getByRole('button', { name: /^Services/ })).toHaveTextContent('none');
+    expect(within(panel).getByRole('button', { name: /^Limits/ })).toHaveTextContent('60 min');
+    await user.click(within(panel).getByRole('button', { name: /^Runs on/ }));
     const image = within(panel).getByLabelText('Image');
     await user.clear(image);
     await user.type(image, 'node:24');
@@ -156,12 +161,18 @@ describe('the job panel', () => {
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
+    await user.click(within(panel).getByRole('tab', { name: /^Steps/ }));
     await user.click(within(panel).getByRole('button', { name: 'Add step' }));
     await user.click(within(panel).getByRole('button', { name: 'Script' }));
+    // The new step opens in the tab, with the way back and to its neighbours.
+    expect(within(panel).getByText('Step 2 of 2')).toBeInTheDocument();
     const script = within(panel).getByLabelText('Script');
     await user.clear(script);
     await user.type(script, 'npm ci{Enter}npm test');
     expect(text()).toContain('    - run: |-\n        npm ci\n        npm test\n');
+    await user.click(within(panel).getByRole('button', { name: 'Previous step' }));
+    expect(within(panel).getByText('Step 1 of 2')).toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: 'All steps' }));
 
     await user.click(within(panel).getByRole('button', { name: 'Move step 2 up' }));
     expect(text()).toMatch(/steps:\n {4}- run: \|-\n {8}npm ci\n {8}npm test\n {4}- run: make\n/);
@@ -177,7 +188,7 @@ describe('the job panel', () => {
     );
     expect(within(panel).getByText('status')).toBeInTheDocument();
 
-    await user.click(within(panel).getByRole('button', { name: /^More/ }));
+    await user.click(within(panel).getByRole('button', { name: /^Options/ }));
     await user.type(within(panel).getByLabelText('Id'), 'hook');
     await user.click(within(panel).getByLabelText('Continue when this step fails'));
     expect(text()).toContain('        method: POST\n      id: hook\n      continue_on_error: true\n');
@@ -187,6 +198,7 @@ describe('the job panel', () => {
     const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
+    await user.click(within(panel).getByRole('tab', { name: /^Steps/ }));
     await user.click(within(panel).getByRole('button', { name: 'Add step' }));
     await user.click(within(panel).getByRole('button', { name: 'kinds' }));
 
@@ -209,6 +221,38 @@ describe('the job panel', () => {
     expect(text()).toContain('count: ${{ vars.N }}');
   });
 
+  it('splits the job and its steps into tabs the arrow keys move between, and says what empty fields mean', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<Harness subject={{ id: 'build' }} />);
+    const panel = screen.getByRole('complementary', { name: 'Settings of build' });
+    const jobTab = within(panel).getByRole('tab', { name: 'Job' });
+    expect(jobTab).toHaveAttribute('aria-selected', 'true');
+    expect(within(panel).getByRole('tab', { name: /^Steps \(1\)/ })).toHaveAttribute('aria-selected', 'false');
+
+    // Empty fields say what applies instead of a grey placeholder that looks like a value.
+    expect(within(panel).getByLabelText('Name')).not.toHaveAttribute('placeholder');
+    expect(within(panel).getByLabelText('Name')).toHaveAccessibleDescription('When empty: the id, build');
+    expect(within(panel).getByLabelText('Run only if')).toHaveAccessibleDescription(
+      "When empty: always · For example: ${{ trigger.branch == 'main' }}",
+    );
+
+    jobTab.focus();
+    await user.keyboard('{ArrowRight}');
+    const stepsTab = within(panel).getByRole('tab', { name: /^Steps/ });
+    expect(stepsTab).toHaveFocus();
+    expect(stepsTab).toHaveAttribute('aria-selected', 'true');
+    const steps = within(panel).getByRole('list', { name: 'Steps of build' });
+    expect(within(steps).getByRole('button', { name: /make/ })).toHaveTextContent('script');
+    await user.click(within(steps).getByRole('button', { name: /make/ }));
+    expect(within(panel).getByRole('button', { name: /^Options/ })).toHaveTextContent(
+      'id, condition, environment, time limit',
+    );
+    await user.keyboard('{ArrowLeft}');
+    stepsTab.focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(within(panel).getByRole('tab', { name: 'Job' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('renames the job, with what names it, and refuses ids that cannot be', async () => {
     const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
@@ -228,6 +272,8 @@ describe('the job panel', () => {
     const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'deploy' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of deploy' });
+    expect(within(panel).getByRole('button', { name: /^Needs/ })).toHaveTextContent('build');
+    await user.click(within(panel).getByRole('button', { name: /^Needs/ }));
     await user.selectOptions(within(panel).getByLabelText('Starts'), 'always');
     expect(text()).toContain('needs: [{job: build, on: always}]');
     await user.click(within(panel).getByRole('button', { name: 'Add a job to wait for' }));
@@ -330,7 +376,7 @@ describe('the job panel', () => {
     await user.click(within(panel).getByRole('button', { name: 'Add name' }));
     await user.keyboard('{Escape}');
     expect(onClose).not.toHaveBeenCalled();
-    await user.click(within(panel).getByLabelText('Image'));
+    await user.click(within(panel).getByLabelText('Name'));
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
     await user.click(within(panel).getByRole('button', { name: 'Widen the panel' }));
