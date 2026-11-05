@@ -8,8 +8,10 @@ import { ChevronRight, Plus, X } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
 import { usePanel } from './panelContext';
 
-const control =
-  'w-full rounded-control border bg-surface px-2 text-sm text-ink placeholder:text-muted read-only:bg-sunken disabled:opacity-60';
+/** How a field looks, without its width: fields side by side set their own. */
+const controlLook =
+  'rounded-control border bg-surface px-2 text-sm text-ink placeholder:text-muted read-only:bg-sunken disabled:opacity-60';
+const control = `w-full ${controlLook}`;
 
 interface FieldFrame {
   label: string;
@@ -326,14 +328,14 @@ export function KeyValueList({
             defaultValue={key}
             readOnly={readOnly}
             onBlur={(event) => rename(key, event.target.value)}
-            className={clsx(control, 'h-8 w-2/5 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 w-2/5 shrink-0 border-line-strong font-mono text-xs')}
           />
           <input
             aria-label={`${valueLabel} of ${key}`}
             value={String(value)}
             readOnly={readOnly}
             onChange={(event) => onEntries({ ...entries, [key]: event.target.value })}
-            className={clsx(control, 'h-8 flex-1 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 min-w-0 flex-1 border-line-strong font-mono text-xs')}
           />
           {!readOnly && (
             <RemoveButton
@@ -366,7 +368,7 @@ export function KeyValueList({
                 setAdding(false);
               }
             }}
-            className={clsx(control, 'h-8 w-2/5 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 w-2/5 shrink-0 border-line-strong font-mono text-xs')}
           />
         ) : (
           <AddButton label={`Add ${keyLabel.toLowerCase()}`} onAdd={() => setAdding(true)} />

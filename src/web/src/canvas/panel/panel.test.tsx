@@ -196,6 +196,9 @@ describe('the job panel', () => {
     await user.click(within(panel).getByRole('button', { name: 'Add name' }));
     await user.type(within(panel).getByLabelText('New name'), 'Accept{Enter}');
     await user.type(within(panel).getByLabelText('Value of Accept'), 'json');
+    // Name and value share the row: neither takes the whole width (the value was squeezed to nothing).
+    expect(within(panel).getByLabelText('Name of Accept')).not.toHaveClass('w-full');
+    expect(within(panel).getByLabelText('Value of Accept')).toHaveClass('flex-1', 'min-w-0');
     expect(text()).toContain(
       '      with:\n        count: 4\n        flag: true\n        tags: [a]\n        headers:\n          Accept: json\n',
     );
