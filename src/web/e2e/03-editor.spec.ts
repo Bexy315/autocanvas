@@ -60,6 +60,18 @@ test('a file is edited with checks while typing, completed, saved, and saved aga
   await expect(page.locator('.cm-tooltip-autocomplete')).toContainText('http_request');
   await snapshot(page, 'editor-2-completion');
   await page.keyboard.press('Escape');
+  // Ctrl+I opens it too, where Ctrl+Space belongs to the system or the browser.
+  await page.keyboard.press('ControlOrMeta+i');
+  await expect(page.locator('.cm-tooltip-autocomplete')).toContainText('http_request');
+  await page.keyboard.press('Escape');
+
+  // Ctrl+F searches the file also while the focus is outside it, in the bar above.
+  await page.getByRole('button', { name: 'Tidy up' }).focus();
+  await page.keyboard.press('ControlOrMeta+f');
+  await expect(page.getByRole('textbox', { name: 'Find' })).toBeFocused();
+  await page.keyboard.insertText('type');
+  await snapshot(page, 'editor-2-search');
+  await page.keyboard.press('Escape');
 
   // A valid file is saved with a message as version 2: Ctrl+S asks for it, Enter saves.
   await replaceAll(page, fixed);

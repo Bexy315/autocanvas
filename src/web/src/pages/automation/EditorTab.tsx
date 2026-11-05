@@ -308,6 +308,31 @@ export function EditorTab() {
     return () => globalThis.removeEventListener('keydown', onKey);
   }, [canEdit, dirty, save]);
 
+  // Ctrl+F searches the file whenever it is shown, also while the canvas or a bar has the focus;
+  // inside the file, its own Ctrl+F has handled the key already. Fields keep the browser's search.
+  useEffect(() => {
+    if (mode === 'canvas') {
+      return undefined;
+    }
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const inField = target?.closest('input, textarea, select, [contenteditable="true"]') !== null;
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === 'f' &&
+        !event.defaultPrevented &&
+        !inField
+      ) {
+        event.preventDefault();
+        editor.current?.search();
+      }
+    };
+    globalThis.addEventListener('keydown', onKey);
+    return () => globalThis.removeEventListener('keydown', onKey);
+  }, [mode]);
+
   const openConflict = () => {
     setConflict({ theirs: null, error: null });
     unwrapWithTag(api.GET('/api/v1/automations/{id}', { params: { path: { id: automation.id } } })).then(
@@ -460,8 +485,8 @@ export function EditorTab() {
               {diagnostics.length > 0 && <span className="font-normal text-muted">({diagnostics.length})</span>}
             </button>
             <p className="ml-auto hidden truncate text-xs text-muted md:block">
-              Ctrl+Space suggests keys and values, Ctrl+F searches, Ctrl+S saves. Tab indents; press Esc, then Tab, to
-              leave the editor.
+              Ctrl+Space or Ctrl+I suggests keys and values, Ctrl+F searches the file, Ctrl+S saves. Tab indents; press
+              Esc, then Tab, to leave the editor.
             </p>
           </div>
           {problemsOpen && (

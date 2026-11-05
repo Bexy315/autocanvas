@@ -246,6 +246,25 @@ describe('the editor', () => {
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
   });
 
+  it('searches the file on Ctrl+F also while the focus is outside it, but not in the canvas view', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+
+    screen.getByRole('button', { name: 'Tidy up' }).focus();
+    await user.keyboard('{Control>}f{/Control}');
+    expect(view.dom.querySelector('.cm-search')).not.toBeNull();
+    // CodeMirror focuses the field itself; e2e/03 checks that in a browser.
+    expect(screen.getByRole('textbox', { name: 'Find' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: 'Canvas' }));
+    screen.getByRole('button', { name: 'Tidy up' }).focus();
+    const event = new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true, cancelable: true });
+    document.activeElement?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('only shows the file to viewers', async () => {
     server({ 'GET /api/v1/automations/a1': () => json(automationView('a1', 'team', { role: 'Viewer' })) });
     renderApp('/automations/a1/edit');
@@ -376,7 +395,7 @@ describe('the editor', () => {
     renderApp('/automations/a1/edit');
     await editorView(label);
 
-    expect(screen.queryByRole('toolbar', { name: 'Add to the canvas' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Add to the canvas' })).not.toBeInTheDocument();
     expect(screen.getByText('You can read the canvas; changing it needs the Editor role.')).toBeInTheDocument();
   });
 });

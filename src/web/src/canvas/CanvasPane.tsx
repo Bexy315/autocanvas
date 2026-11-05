@@ -155,7 +155,7 @@ export function CanvasPane({
               onSelectJob={onSelectJob}
               fitKey={fitKey}
               {...(panel ? { onPick: pick } : {})}
-              {...(edits ? { edits, paletteNodeTypes } : {})}
+              {...(edits ? { edits, paletteNodeTypes, paletteCompact: Boolean(panel && panelOpen && subject) } : {})}
             />
           )}
         </div>

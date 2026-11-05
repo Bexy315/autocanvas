@@ -1,9 +1,9 @@
-import { autocompletion, completionKeymap, type CompletionSource } from '@codemirror/autocomplete';
+import { autocompletion, completionKeymap, startCompletion, type CompletionSource } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo, undo } from '@codemirror/commands';
 import { yaml } from '@codemirror/lang-yaml';
 import { bracketMatching, foldGutter, foldKeymap, indentOnInput, syntaxHighlighting } from '@codemirror/language';
 import { lintGutter, lintKeymap, setDiagnostics } from '@codemirror/lint';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { highlightSelectionMatches, openSearchPanel, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
   drawSelection,
@@ -34,6 +34,8 @@ export interface YamlEditorHandle {
   redo: () => void;
   /** The text as it is now, also before React has seen the latest change. */
   text: () => string;
+  /** Opens the search bar (Ctrl+F inside the editor does the same) and focuses it. */
+  search: () => void;
 }
 
 export interface YamlEditorProps {
@@ -115,6 +117,9 @@ export function YamlEditor({
                 return true;
               },
             },
+            // Ctrl+Space is taken by the system or the browser in places (input method switching), so
+            // Ctrl+I suggests too, as in VS Code.
+            { key: 'Mod-i', preventDefault: true, run: startCompletion },
             ...completionKeymap,
             ...defaultKeymap,
             ...historyKeymap,
@@ -201,6 +206,11 @@ export function YamlEditor({
     redo: () => {
       if (view.current) {
         redo(view.current);
+      }
+    },
+    search: () => {
+      if (view.current) {
+        openSearchPanel(view.current);
       }
     },
   }));

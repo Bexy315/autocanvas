@@ -1,4 +1,4 @@
-import { GitBranch, Merge, Play, SquareTerminal, type LucideIcon } from 'lucide-react';
+import { Container, GitBranch, Globe, Merge, Play, Plug, SquareTerminal, type LucideIcon } from 'lucide-react';
 import type { DragEvent } from 'react';
 import type { NewJobKind, NodeTypeView } from './operations';
 
@@ -19,6 +19,13 @@ export const flowEntries: Entry[] = [
   { key: 'join', label: 'Join', description: 'Waits for several, then goes on', Icon: Merge, kind: 'join' },
   { key: 'finally', label: 'Finally', description: 'Runs last, whatever happened', Icon: Play, kind: 'finally' },
 ];
+
+const nodeTypeIcons: Readonly<Record<string, LucideIcon>> = { docker_build: Container, http_request: Globe };
+
+/** A node type's icon: its own for the built-in ones, a plug for the others (plugins). */
+export function nodeTypeIcon(name: string): LucideIcon {
+  return nodeTypeIcons[name] ?? Plug;
+}
 
 /** Reads the kind a palette drag carries; null for anything else. */
 export function kindOfDrop(event: DragEvent, nodeTypes: readonly NodeTypeView[]): NewJobKind | null {

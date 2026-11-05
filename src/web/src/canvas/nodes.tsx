@@ -5,7 +5,7 @@
  */
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { clsx } from 'clsx';
-import type { ReactNode } from 'react';
+import { createElement, type ReactNode } from 'react';
 import {
   Ban,
   CircleAlert,
@@ -17,11 +17,11 @@ import {
   LoaderCircle,
   Merge,
   Play,
-  Plug,
   SquareTerminal,
   Zap,
 } from 'lucide-react';
 import type { JobNodeData, RunMark, TriggerNodeData } from './flow';
+import { nodeTypeIcon } from './paletteEntries';
 
 /** The three ways a job can be waited for; colors match the lines they start. */
 const outputs = [
@@ -132,7 +132,7 @@ export function JobNode({ data, selected }: NodeProps) {
           // oxlint-disable-next-line react/no-array-index-key
           <li key={index} className="flex items-center gap-1.5 px-3 py-1">
             {step.nodeType ? (
-              <Plug aria-hidden="true" size={12} className="shrink-0 text-accent" />
+              <NodeTypeIcon name={step.nodeType} />
             ) : (
               <span aria-hidden="true" className="w-3 shrink-0 text-center font-mono text-muted">
                 $
@@ -240,4 +240,9 @@ export function JoinNode({ data, selected }: NodeProps) {
       />
     </div>
   );
+}
+
+/** A node step's icon: the node type's own, as in the palette. */
+function NodeTypeIcon({ name }: { name: string }) {
+  return createElement(nodeTypeIcon(name), { 'aria-hidden': true, size: 12, className: 'shrink-0 text-accent' });
 }

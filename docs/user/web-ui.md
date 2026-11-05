@@ -40,8 +40,12 @@ wrote it, with its comments and order. **Canvas**, **Split** and **YAML** choose
 ![The editor: canvas and file side by side](img/tour-editor-light.png#gh-light-mode-only)
 ![The editor: canvas and file side by side](img/tour-editor-dark.png#gh-dark-mode-only)
 
-- **Adding**: the palette above the canvas adds a job, a switch, a join, a `finally` job or a node
-  type; choose one or drag it onto the canvas.
+- **Adding**: the panel at the canvas's left edge adds a job, a switch, a join, a `finally` job or a
+  node type; choose one or drag it onto the canvas.
+  - **Filter**: a filter narrows the list.
+  - **When space is short**: next to a card's settings or on a narrow canvas, the panel shrinks to
+    icons, whose tooltips name them.
+  - **Hiding**: it can be hidden, and the browser remembers that.
 - **Wiring**: drag from a card's outputs (green on success, red on failure, grey either way) to the
   next card, which then waits for it.
 - **Settings**: choosing a card opens its settings on the right: the job's image and runner labels,

@@ -75,7 +75,7 @@ test('the canvas draws the automation next to its file and follows it while typi
   const id = ((await created.json()) as { id: string }).id;
 
   await page.goto(`/automations/${id}/edit`);
-  const canvas = page.getByRole('region', { name: 'Canvas' });
+  const canvas = page.getByRole('region', { name: 'Canvas', exact: true });
   await expect(canvas.getByText('Cron 0 3 * * 1-5 (Europe/Berlin)')).toBeVisible();
   await Promise.all(
     ['build', 'check', 'route', 'deploy', 'alert', 'report'].map((job) =>

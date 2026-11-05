@@ -53,7 +53,7 @@ test('jobs are added, wired, moved, deleted and saved on the canvas, keeping the
   });
   const id = ((await created.json()) as { id: string }).id;
   await page.goto(`/automations/${id}/edit`);
-  const canvas = page.getByRole('region', { name: 'Canvas' });
+  const canvas = page.getByRole('region', { name: 'Canvas', exact: true });
   await expect(card(page, 'build')).toBeVisible();
   // More room for the canvas: the separator moved with the keyboard.
   await page.getByRole('separator', { name: 'Resize canvas and file' }).press('End');
