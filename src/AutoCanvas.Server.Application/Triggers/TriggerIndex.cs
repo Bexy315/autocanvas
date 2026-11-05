@@ -175,10 +175,16 @@ internal sealed class TriggerIndex(AutoCanvasDbContext database, FolderAccess ac
             folder = parent!.Value;
         }
 
-        var target = await database.Automations.AsNoTracking()
-            .Where(a => a.FolderId == folder && a.NormalizedName == name)
+        // Also an automation made in this unit of work and not saved yet: a repository's sync makes
+        // all its new automations before it saves them.
+        var target = database.Automations.Local
+            .Where(a => a.FolderId == folder && string.Equals(a.NormalizedName, name, StringComparison.Ordinal))
             .Select(a => (Guid?)a.Id)
-            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+            .FirstOrDefault()
+            ?? await database.Automations.AsNoTracking()
+                .Where(a => a.FolderId == folder && a.NormalizedName == name)
+                .Select(a => (Guid?)a.Id)
+                .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
         var visible = target is not null && (await access.RequireAsync(actor, folder, FolderRole.Viewer, track: false, cancellationToken).ConfigureAwait(false)).Error is null;
         if (!visible)
         {

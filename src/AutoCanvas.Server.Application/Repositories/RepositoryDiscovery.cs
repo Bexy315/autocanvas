@@ -79,18 +79,8 @@ public sealed class RepositoryDiscovery(
             return;
         }
 
-        var problems = new List<RepositoryProblemView>();
-        var triggers = new TriggerIndex(database, new FolderAccess(database), time);
         var existing = await database.Automations.Where(a => a.RepositoryId == repository.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
-        var seen = new HashSet<Guid>();
-        foreach (var file in snapshot.Files)
-        {
-            var applied = await ApplyAsync(actor, repository, snapshot, file, existing, triggers, problems, now, cancellationToken).ConfigureAwait(false);
-            if (applied is { } id)
-            {
-                seen.Add(id);
-            }
-        }
+        var (seen, problems) = await ApplyAllAsync(actor, repository, snapshot, existing, now, cancellationToken).ConfigureAwait(false);
 
         foreach (var gone in existing.Where(a => !seen.Contains(a.Id) && !problems.Any(p => string.Equals(p.Path, a.SourcePath, StringComparison.Ordinal))))
         {
@@ -108,6 +98,52 @@ public sealed class RepositoryDiscovery(
     /// <summary>The problems stored with a repository.</summary>
     internal static IReadOnlyList<RepositoryProblemView> ProblemsOf(Repository repository) =>
         repository.Problems is { } json ? JsonSerializer.Deserialize<List<RepositoryProblemView>>(json, Json) ?? [] : [];
+
+    /// <summary>
+    /// Applies every file. A file may follow another automation of the same repository
+    /// (<c>automation_completed</c>) whose file comes later, so files with problems are applied
+    /// again as long as a round makes more of them automations.
+    /// </summary>
+    private async Task<(HashSet<Guid> Seen, List<RepositoryProblemView> Problems)> ApplyAllAsync(
+        Actor actor,
+        Repository repository,
+        RepositorySnapshot snapshot,
+        List<Automation> existing,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var triggers = new TriggerIndex(database, new FolderAccess(database), time);
+        var seen = new HashSet<Guid>();
+        IReadOnlyList<RepositoryFile> pending = snapshot.Files;
+        List<(RepositoryFile File, List<RepositoryProblemView> Problems)> failed;
+        while (true)
+        {
+            failed = [];
+            foreach (var file in pending)
+            {
+                var problems = new List<RepositoryProblemView>();
+                if (await ApplyAsync(actor, repository, snapshot, file, existing, triggers, problems, now, cancellationToken).ConfigureAwait(false) is { } id)
+                {
+                    seen.Add(id);
+                }
+
+                if (problems.Count > 0)
+                {
+                    failed.Add((file, problems));
+                }
+            }
+
+            // Each further round has fewer files, so this ends.
+            if (failed.Count == 0 || failed.Count == pending.Count)
+            {
+                break;
+            }
+
+            pending = [.. failed.Select(f => f.File)];
+        }
+
+        return (seen, [.. failed.SelectMany(f => f.Problems)]);
+    }
 
     /// <summary>Applies one file; the automation it is, or <see langword="null"/> when it is a problem.</summary>
     private async Task<Guid?> ApplyAsync(
@@ -171,7 +207,9 @@ public sealed class RepositoryDiscovery(
     private async Task<Automation?> NewAutomationAsync(Repository repository, RepositoryFile file, RepositorySnapshot snapshot, List<RepositoryProblemView> problems, DateTimeOffset now, CancellationToken cancellationToken)
     {
         var normalized = IdentityNames.Normalize(file.Name);
-        if (await database.Automations.AnyAsync(a => a.FolderId == repository.FolderId && a.NormalizedName == normalized, cancellationToken).ConfigureAwait(false))
+        // Also those this sync made already and has not saved yet, such as build.yml for build.yaml.
+        if (database.Automations.Local.Any(a => a.FolderId == repository.FolderId && string.Equals(a.NormalizedName, normalized, StringComparison.Ordinal))
+            || await database.Automations.AnyAsync(a => a.FolderId == repository.FolderId && a.NormalizedName == normalized, cancellationToken).ConfigureAwait(false))
         {
             problems.Add(new RepositoryProblemView(file.Path, $"The folder has another automation named '{file.Name}'; rename one of them.", null));
             return null;
