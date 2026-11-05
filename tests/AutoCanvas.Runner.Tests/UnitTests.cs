@@ -173,15 +173,25 @@ public sealed class UnitTests
     {
         var checkout = new Checkout { Url = "https://example.org/app.git", Password = "s3cret-token" };
 
-        var environment = CheckoutCommand.Environment(checkout);
+        var environment = CheckoutCommand.Environment(checkout, "/workspace");
         var header = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("x-access-token:s3cret-token"));
 
-        environment["GIT_CONFIG_KEY_0"].ShouldBe("http.extraHeader");
-        environment["GIT_CONFIG_VALUE_0"].ShouldBe($"Authorization: Basic {header}");
+        environment["GIT_CONFIG_COUNT"].ShouldBe("2");
+        environment["GIT_CONFIG_KEY_1"].ShouldBe("http.extraHeader");
+        environment["GIT_CONFIG_VALUE_1"].ShouldBe($"Authorization: Basic {header}");
         CheckoutCommand.Secrets(checkout).ShouldBe(["s3cret-token", header]);
         CheckoutCommand.Commands(checkout, "/workspace").ShouldHaveSingleItem().ShouldNotContain(a => a.Contains("s3cret", StringComparison.Ordinal));
-        CheckoutCommand.Environment(new Checkout { Url = "https://example.org/public.git" }).Keys.ShouldBe(["GIT_TERMINAL_PROMPT"]);
+        CheckoutCommand.Environment(new Checkout { Url = "https://example.org/public.git" }, "/workspace")["GIT_CONFIG_COUNT"].ShouldBe("1");
         CheckoutCommand.Secrets(new Checkout()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_checkout_trusts_its_target_although_the_runner_owns_it()
+    {
+        var environment = CheckoutCommand.Environment(new Checkout { Url = "https://example.org/public.git" }, "/workspace/lib");
+
+        environment["GIT_CONFIG_KEY_0"].ShouldBe("safe.directory");
+        environment["GIT_CONFIG_VALUE_0"].ShouldBe("/workspace/lib");
     }
 
     private static List<LogChunk> Drain(Outbox outbox)
