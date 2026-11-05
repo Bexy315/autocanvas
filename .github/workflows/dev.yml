@@ -1,0 +1,122 @@
+name: Dev instance
+
+# Deploys main to the dev instance after its images are published, resets the instance every night,
+# and does either on demand (deploy/dev/README.md, ADR-0023). The host runs deploy/dev/remote.sh,
+# the only command its deploy key may run; credentials go to it on standard input.
+
+on:
+  workflow_run:
+    workflows: [Images]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Deploy the newest main with published images, or reset to the seed
+        type: choice
+        options: [deploy, reset]
+        default: deploy
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+# One at a time and never cancelled: a reset waits for a deploy and the other way round.
+concurrency:
+  group: dev-instance
+  cancel-in-progress: false
+
+jobs:
+  dev:
+    name: ${{ github.event_name == 'schedule' && 'Nightly reset' || 'Dev instance' }}
+    runs-on: ubuntu-latest
+    # After Images only when they were published. A repository without the variable DEV_URL has no
+    # dev instance, so forks run nothing.
+    if: >-
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+      && vars.DEV_URL != ''
+    steps:
+      - name: Decide what to do
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          INPUT_ACTION: ${{ inputs.action }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          case "$EVENT" in
+            workflow_run) action=deploy; commit=$RUN_SHA ;;
+            schedule) action=reset; commit= ;;
+            *) action=$INPUT_ACTION; commit= ;;
+          esac
+          if [ "$action" = deploy ] && [ -z "$commit" ]; then
+            # The newest commit on main whose images were published.
+            commit=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow images.yml --branch main --status success \
+              --limit 1 --json headSha --jq '.[0].headSha')
+            [ -n "$commit" ] || { echo "No commit on main has published images yet." >&2; exit 1; }
+          fi
+          echo "action=$action" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      # A deploy takes the compose files and the seed of the commit it deploys.
+      - uses: actions/checkout@v7
+        if: steps.plan.outputs.action == 'deploy'
+        with:
+          ref: ${{ steps.plan.outputs.commit }}
+
+      - name: Prepare SSH
+        env:
+          KEY: ${{ secrets.DEV_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEV_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/dev
+          chmod 0600 ~/.ssh/dev
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: ${{ steps.plan.outputs.action == 'deploy' && 'Deploy' || 'Reset' }}
+        env:
+          HOST: ${{ secrets.DEV_SSH_HOST }}
+          SEED_PASSWORD: ${{ secrets.DEV_SEED_PASSWORD }}
+          REGISTRY_TOKEN: ${{ github.token }}
+          ACTION: ${{ steps.plan.outputs.action }}
+          COMMIT: ${{ steps.plan.outputs.commit }}
+        run: |
+          ssh=(ssh -i ~/.ssh/dev -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes "deploy@$HOST")
+          if [ "$ACTION" = deploy ]; then
+            { printf 'REGISTRY_TOKEN=%s\nSEED_PASSWORD=%s\n\n' "$REGISTRY_TOKEN" "$SEED_PASSWORD"; tar -czf - -C deploy compose dev; } |
+              "${ssh[@]}" deploy "$COMMIT"
+          else
+            # A reset keeps the images and files of the last deploy.
+            printf 'SEED_PASSWORD=%s\n\n' "$SEED_PASSWORD" | "${ssh[@]}" reset
+          fi
+
+      - name: Summary
+        if: always() && steps.plan.outputs.action != ''
+        env:
+          HOST: ${{ secrets.DEV_SSH_HOST }}
+          URL: ${{ vars.DEV_URL }}
+          ACTION: ${{ steps.plan.outputs.action }}
+          COMMIT: ${{ steps.plan.outputs.commit }}
+        run: |
+          status=$(ssh -i ~/.ssh/dev -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes "deploy@$HOST" status </dev/null || true)
+          {
+            if [ "$ACTION" = deploy ]; then
+              echo "### Deployed [\`${COMMIT:0:7}\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$COMMIT)"
+            else
+              echo "### Reset to the seed"
+            fi
+            echo
+            echo "$URL"
+            echo
+            echo '```'
+            echo "$status"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the key
+        if: always()
+        run: rm -f ~/.ssh/dev

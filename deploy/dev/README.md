@@ -6,7 +6,7 @@ The files here run an AutoCanvas instance for manual tests:
 - it is the [compose package](../compose/) with PostgreSQL, from the images CI publishes.
 
 The plan is [D1](../../docs/plans/d1.md); [ADR-0023](../../docs/adr/0023-published-images-and-dev-instance.md)
-says why it is built this way. The workflow that deploys and resets it follows in D1's step 5.
+says why it is built this way. GitHub Actions deploys and resets it ([GitHub Actions](#github-actions)).
 
 | File | What it is |
 |---|---|
@@ -62,7 +62,7 @@ deploy/dev/bootstrap.sh --domain dev.example.org --deploy-key deploy.pub \
 - **Domain**: proxied by Cloudflare, with SSL/TLS set to *Full (strict)*.
 - **Certificate**: an origin certificate from Cloudflare (SSL/TLS → Origin Server) and its key.
 - **Deploy key**: the public key of a new SSH key pair for deploying; its private key goes to GitHub
-  (step 5).
+  ([GitHub Actions](#github-actions)).
 
 Running it again is harmless and refreshes the scripts, the compose files and Cloudflare's address
 ranges. It starts nothing; the first deploy does.
@@ -114,3 +114,27 @@ By hand, for example:
 
 Deploys and resets wait for each other. Changes to `remote.sh` or `bootstrap.sh` reach the host only
 by running `bootstrap.sh` again.
+
+## GitHub Actions
+
+`.github/workflows/dev.yml` does it from GitHub:
+
+| When | What |
+|---|---|
+| After the *Images* workflow published `main`'s images | `deploy <that commit>`, with that commit's compose files and seed |
+| Every night at 02:00 UTC | `reset` |
+| By hand (Actions → *Dev instance* → *Run workflow*) | `deploy` the newest commit on `main` with published images, or `reset` |
+
+One run at a time; none is cancelled. The pull uses the workflow's own short-lived token. Each
+run's summary names the commit and shows `status`; a failed run fails the workflow, and GitHub
+mails about it.
+
+It needs these repository settings:
+
+| Name | Kind | Value |
+|---|---|---|
+| `DEV_URL` | variable | The instance's address, such as `https://dev.example.org`. Without it the workflow does nothing, so forks without a dev instance are left alone. |
+| `DEV_SSH_HOST` | secret | The host's address |
+| `DEV_SSH_KEY` | secret | The deploy key's private key |
+| `DEV_SSH_KNOWN_HOSTS` | secret | The host's keys (`ssh-keyscan <host>`); compare their fingerprints with `ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub` on the host first |
+| `DEV_SEED_PASSWORD` | secret | The seeded users' password, at least 12 characters |
