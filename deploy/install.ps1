@@ -39,12 +39,17 @@ if ($LASTEXITCODE -ne 0) { Fail 'Docker is not running, or this user may not use
 $here = $PSScriptRoot
 $repo = Split-Path $here -Parent
 if (-not (Test-Path (Join-Path $repo 'src/AutoCanvas.Server/Dockerfile'))) {
-    Fail 'Run this script from a checkout of AutoCanvas: published images come with the first release.'
+    Fail 'Run this script from a checkout of AutoCanvas, or use the published images (docs/user/installation.md).'
 }
 
 Write-Host 'Building the images (this takes a few minutes the first time)...'
-Invoke-Docker build --quiet -f (Join-Path $repo 'src/AutoCanvas.Server/Dockerfile') -t autocanvas-server:local $repo | Out-Null
-Invoke-Docker build --quiet -f (Join-Path $repo 'src/AutoCanvas.Runner/Dockerfile') -t autocanvas-runner:local $repo | Out-Null
+# The commit goes into the version the web UI shows; empty outside a git checkout.
+$revision = ''
+if (Get-Command git -ErrorAction SilentlyContinue) {
+    $revision = (git -C $repo rev-parse HEAD 2>$null) -join ''
+}
+Invoke-Docker build --quiet -f (Join-Path $repo 'src/AutoCanvas.Server/Dockerfile') -t autocanvas-server:local --build-arg "SOURCE_REVISION=$revision" $repo | Out-Null
+Invoke-Docker build --quiet -f (Join-Path $repo 'src/AutoCanvas.Runner/Dockerfile') -t autocanvas-runner:local --build-arg "SOURCE_REVISION=$revision" $repo | Out-Null
 
 New-Item -ItemType Directory -Force $Dir | Out-Null
 $Dir = (Resolve-Path $Dir).Path

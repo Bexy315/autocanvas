@@ -67,9 +67,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Built to prove the Dockerfile works; it is published with the first release.
+      # Built to prove the Dockerfile works; images.yml publishes it from main.
       - name: Build
-        run: docker build --file src/AutoCanvas.Runner/Dockerfile --tag autocanvas-runner:ci .
+        run: docker build --file src/AutoCanvas.Runner/Dockerfile --tag autocanvas-runner:ci --build-arg "SOURCE_REVISION=$GITHUB_SHA" .
 
   server-image:
     name: Server image (build)
@@ -77,9 +77,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Built to prove the Dockerfile works, web UI included; it is published with the first release.
+      # Built to prove the Dockerfile works, web UI included; images.yml publishes it from main.
       - name: Build
-        run: docker build --file src/AutoCanvas.Server/Dockerfile --tag autocanvas-server:ci .
+        run: docker build --file src/AutoCanvas.Server/Dockerfile --tag autocanvas-server:ci --build-arg "SOURCE_REVISION=$GITHUB_SHA" .
+
+      # The web UI shows this version, so testers see which commit an instance runs.
+      - name: Check that it names its commit
+        run: deploy/test/image-version.sh autocanvas-server:ci "$GITHUB_SHA"
 
   compose:
     name: Compose package (${{ matrix.database }})

@@ -1,0 +1,77 @@
+name: Images
+
+# Publishes the server and runner images to the GitHub Container Registry (ADR-0023): every push to
+# main as sha-<commit> and dev, which the dev instance runs. Private while the repository is.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.ref }}
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: server
+            dockerfile: src/AutoCanvas.Server/Dockerfile
+          - image: runner
+            dockerfile: src/AutoCanvas.Runner/Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Registry names are lowercase; the owner's name need not be.
+      - name: Name the image
+        id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/autocanvas-${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+
+      - name: Sign in to the registry
+        run: echo "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          build-args: SOURCE_REVISION=${{ github.sha }}
+          tags: |
+            ${{ steps.name.outputs.image }}:sha-${{ github.sha }}
+            ${{ steps.name.outputs.image }}:dev
+          push: true
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+      # What was pushed must name its commit: the dev instance checks it after a deploy.
+      - name: Check that it names its commit
+        if: matrix.image == 'server'
+        run: deploy/test/image-version.sh "${{ steps.name.outputs.image }}:sha-$GITHUB_SHA" "$GITHUB_SHA"
+
+      - name: Summary
+        run: |
+          {
+            echo "### ${{ matrix.image }}"
+            echo
+            echo "- \`${{ steps.name.outputs.image }}:sha-$GITHUB_SHA\`"
+            echo "- \`${{ steps.name.outputs.image }}:dev\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sign out
+        if: always()
+        run: docker logout ghcr.io

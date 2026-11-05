@@ -34,11 +34,13 @@ docker info >/dev/null 2>&1 || fail "Docker is not running, or this user may not
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
 [ -f "$repo/src/AutoCanvas.Server/Dockerfile" ] ||
-  fail "Run this script from a checkout of AutoCanvas: published images come with the first release."
+  fail "Run this script from a checkout of AutoCanvas, or use the published images (docs/user/installation.md)."
 
 say "Building the images (this takes a few minutes the first time)…"
-docker build --quiet -f "$repo/src/AutoCanvas.Server/Dockerfile" -t autocanvas-server:local "$repo" >/dev/null
-docker build --quiet -f "$repo/src/AutoCanvas.Runner/Dockerfile" -t autocanvas-runner:local "$repo" >/dev/null
+# The commit goes into the version the web UI shows; empty outside a git checkout.
+revision=$(git -C "$repo" rev-parse HEAD 2>/dev/null || true)
+docker build --quiet -f "$repo/src/AutoCanvas.Server/Dockerfile" -t autocanvas-server:local   --build-arg "SOURCE_REVISION=$revision" "$repo" >/dev/null
+docker build --quiet -f "$repo/src/AutoCanvas.Runner/Dockerfile" -t autocanvas-runner:local   --build-arg "SOURCE_REVISION=$revision" "$repo" >/dev/null
 
 mkdir -p "$dir"
 dir=$(cd "$dir" && pwd)
