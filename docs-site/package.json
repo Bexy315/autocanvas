@@ -20,7 +20,7 @@
     "@docusaurus/core": "3.10.2",
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "3.1.1",
-    "@scalar/api-reference": "1.75.0",
+    "@scalar/api-reference": "1.75.1",
     "@scalar/docusaurus": "0.8.51",
     "clsx": "2.1.1",
     "prism-react-renderer": "2.4.1",
