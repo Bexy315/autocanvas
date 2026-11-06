@@ -89,15 +89,42 @@ const config: Config = {
         src: 'img/favicon.svg',
       },
       items: [
-        { type: 'docSidebar', sidebarId: 'user', position: 'left', label: 'User guide' },
-        { type: 'docSidebar', sidebarId: 'technical', position: 'left', label: 'Technical' },
-        { type: 'docSidebar', sidebarId: 'protocol', position: 'left', label: 'Protocol' },
-        { type: 'docSidebar', sidebarId: 'adr', position: 'left', label: 'Decisions' },
+        { type: 'docSidebar', sidebarId: 'guide', position: 'left', label: 'Guide' },
+        { type: 'docSidebar', sidebarId: 'administration', position: 'left', label: 'Administration' },
+        { type: 'docSidebar', sidebarId: 'development', position: 'left', label: 'Development' },
+        {
+          href: 'https://github.com/Bexy315/autocanvas',
+          position: 'right',
+          className: 'header-github-link',
+          'aria-label': 'AutoCanvas on GitHub',
+        },
       ],
     },
     footer: {
       style: 'dark',
-      copyright: `AutoCanvas · MIT License`,
+      links: [
+        {
+          title: 'Documentation',
+          items: [
+            { label: 'Introduction', to: '/user/introduction' },
+            { label: 'Your first automation', to: '/user/web-ui' },
+            { label: 'Administration', to: '/user/installation' },
+            { label: 'Development', to: '/technical/architecture' },
+            { label: 'API reference', to: '/api' },
+          ],
+        },
+        {
+          title: 'Project',
+          items: [
+            { label: 'GitHub', href: 'https://github.com/Bexy315/autocanvas' },
+            { label: 'Issues', href: 'https://github.com/Bexy315/autocanvas/issues' },
+            { label: 'Decisions', to: '/adr' },
+            { label: 'License (MIT)', href: 'https://github.com/Bexy315/autocanvas/blob/main/LICENSE' },
+          ],
+        },
+      ],
+      copyright:
+        'AutoCanvas · MIT License · Pre-alpha, written almost entirely by AI coding agents: test it before you rely on it.',
     },
     prism: {
       theme: prismThemes.github,

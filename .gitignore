@@ -14,6 +14,7 @@ docs-site/build/
 docs-site/static/schema/
 docs-site/static/openapi/
 docs-site/static/scalar/
+docs-site/static/img/ui/
 .docusaurus/
 
 # Web UI: built into the server's web root (ADR-0018), test output

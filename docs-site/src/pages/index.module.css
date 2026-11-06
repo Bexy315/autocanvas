@@ -1,0 +1,92 @@
+.hero {
+  padding: 4rem 0 2rem;
+  text-align: center;
+  background: linear-gradient(180deg, var(--ifm-color-emphasis-100), transparent);
+}
+
+.title {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.tagline {
+  max-width: 40rem;
+  margin: 0 auto 1.5rem;
+  font-size: 1.2rem;
+  color: var(--ifm-color-emphasis-800);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.note {
+  max-width: 40rem;
+  margin: 1.25rem auto 0;
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.heroPicture {
+  max-width: 60rem;
+  margin: 2.5rem auto 0;
+}
+
+.picture {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 12%);
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 2rem;
+  padding: 3rem 0 1rem;
+}
+
+.feature p {
+  color: var(--ifm-color-emphasis-800);
+}
+
+.featurePicture {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.featureTitle {
+  font-size: 1.15rem;
+  margin-bottom: 0.4rem;
+}
+
+.paths {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  padding: 1rem 0 4rem;
+}
+
+.path {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 10px;
+  color: inherit;
+}
+
+.path:hover {
+  border-color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.path span {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.9rem;
+}
