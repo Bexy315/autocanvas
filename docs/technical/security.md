@@ -4,8 +4,9 @@ sidebar_position: 2
 
 # Security model
 
-This page describes what AutoCanvas protects and how. It grows with the server; parts marked
-*planned* are decided but not built yet. The decisions behind it are in the ADRs linked below.
+What AutoCanvas protects and how: for admins who decide whether and how to run it, and for
+contributors who change what touches it. Parts marked *planned* are decided but not built yet; the
+decisions behind the rest are in the ADRs linked below.
 
 ## Assets
 
@@ -131,7 +132,7 @@ generated key ([ADR-0020](../adr/0020-first-start-setup.md)).
 No use case returns a secret value, not even to admins, and the audit log records only names; the
 values are decrypted only to resolve them for runs. A restricted folder also cuts the inheritance
 of variables and secrets from the folders above it. `SecretRedactor` in Core replaces known secret
-values in text before it is stored (used for run logs in S2). The key is rotated offline with
+values in text before it is stored, as run logs are. The key is rotated offline with
 `admin rotate-master-key` ([Operations](operations.md#master-key)).
 
 ## GitHub App
@@ -189,5 +190,6 @@ queries and the list of actions are in [Audit log](audit.md).
 
 ## Reporting a vulnerability
 
-AutoCanvas is pre-alpha and not yet public. A disclosure process will be published with the first
-release.
+Please report vulnerabilities privately, not in a public issue: on GitHub, use
+**Security → Report a vulnerability** in the [repository](https://github.com/Bexy315/autocanvas).
+AutoCanvas is pre-alpha, so there are no supported releases to patch yet; fixes go to `main`.

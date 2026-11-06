@@ -156,9 +156,26 @@ the query, and groups whose name does; names that start with it come first, at m
 query needs two characters at least, and only names come back, never e-mail addresses. Listing all
 users and groups stays for admins.
 
+Admins manage users under **Administration** → **Users**: creating them with a first password,
+resetting passwords, making admins and deactivating.
+
+![The users of an instance](img/admin-users-light.png#gh-light-mode-only)
+![The users of an instance](img/admin-users-dark.png#gh-dark-mode-only)
+
 ## Groups
 
 A group has a unique name, an optional description and any number of members. Grant permissions on
 folders to groups rather than to individual users, so that people who join or leave a team only
 need to be added to or removed from its group. Deleting a group removes its memberships, not its
 members.
+
+**Administration** → **Groups** creates groups; choosing one manages its members.
+
+![Adding a member to a group](img/admin-group-members-light.png#gh-light-mode-only)
+![Adding a member to a group](img/admin-group-members-dark.png#gh-dark-mode-only)
+
+## See also
+
+- [Folders and permissions](folders.md): giving users and groups roles.
+- [Security](../technical/security.md): sessions, tokens and passwords.
+- [Audit log](../technical/audit.md): what is recorded about accounts.

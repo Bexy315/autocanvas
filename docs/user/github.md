@@ -161,3 +161,9 @@ affected.
 
 When the app is uninstalled from an account, or its installation is suspended, the account's
 repositories say so in `lastError`.
+
+## See also
+
+- **Next**: [Folders and permissions](folders.md): who may connect and change repositories.
+- [Repositories](repositories.md): the same without the app, with any Git server.
+- [Security](../technical/security.md#github-app): what the app may do.

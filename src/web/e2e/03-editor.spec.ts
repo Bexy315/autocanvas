@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signIn, snapshot } from './helpers';
+import { docsShot, signIn, snapshot } from './helpers';
 
 const start = `version: 1
 name: Deploy
@@ -54,6 +54,7 @@ test('a file is edited with checks while typing, completed, saved, and saved aga
   await expect(page.getByRole('list', { name: 'Problems in the file' })).toContainText('tset');
   await expect(page.locator('.cm-lintRange-error').first()).toBeVisible();
   await snapshot(page, 'editor-1-problem');
+  await docsShot(page, 'diagnostics-problems');
 
   // Completion offers the node types for a step's type.
   await replaceAll(page, `${start}      - type: h`);

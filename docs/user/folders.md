@@ -4,7 +4,7 @@ sidebar_position: 7
 
 # Folders and permissions
 
-Everything you build in AutoCanvas lives in folders: automations, and later their runs,
+Everything you build in AutoCanvas lives in folders: automations, and with them their runs,
 variables and secrets. Folders decide who may see and change what. You give people a **role** on
 a folder, and it applies to everything inside it.
 
@@ -106,3 +106,8 @@ curl -b cookies.txt -X PUT -H 'X-AutoCanvas-Request: 1' -H 'Content-Type: applic
 Every folder answer carries an `ETag`. Send it back as `If-Match` when you change the folder; if
 someone else changed it in between, you get `412` instead of overwriting their change (see
 [API conventions](../technical/api.md#concurrency)).
+
+## See also
+
+- **Next**: [Users and groups](accounts.md): the people roles are given to.
+- [Variables and secrets](variables-and-secrets.md): values for everything in a folder.

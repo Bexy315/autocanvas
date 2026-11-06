@@ -13,6 +13,13 @@ any text value — scripts, node inputs, environment variables, outputs — and 
   if: trigger.branch == 'main' && vars.DEPLOY == 'true'
 ```
 
+In the editor's side panel, a value that names a variable or a secret shows as a chip, and the
+`{}` button beside a value inserts the variables and secrets that reach the automation, and
+details of the run, without typing the syntax:
+
+![Inserting a secret into an environment variable from the menu](img/values-insert-light.png#gh-light-mode-only)
+![Inserting a secret into an environment variable from the menu](img/values-insert-dark.png#gh-dark-mode-only)
+
 ## What an expression can read
 
 | Context | Values |
@@ -87,3 +94,9 @@ each case's `when`.
 
 Functions (for example to check a prefix) will be added in later versions without changing the
 meaning of existing expressions.
+
+## See also
+
+- **Next**: [Variables and secrets](variables-and-secrets.md): the values `vars` and `secrets` read.
+- [Automation files](automations.md): where expressions may stand.
+- [Problems in automation files](diagnostics.md): what a wrong expression reports.

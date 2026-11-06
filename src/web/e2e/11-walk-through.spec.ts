@@ -193,6 +193,12 @@ test('an automation built on the canvas runs on a real runner, reports its tests
   await expect(smoke).toContainText('Welcome to nginx');
   await snapshot(page, 'walk-1-run');
 
+  // The runner that ran it, online, as admins see it.
+  await page.goto('/admin/runners');
+  await expect(page.getByText('Online').first()).toBeVisible();
+  await docsShot(page, 'admin-runners');
+  await page.goBack();
+
   // The failed test with its stack trace, and the coverage.
   const views = page.getByRole('navigation', { name: 'Views of the run' });
   await expect(views.getByRole('link', { name: /Tests 1 failed/ })).toBeVisible();

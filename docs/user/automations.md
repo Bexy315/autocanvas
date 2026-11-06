@@ -9,10 +9,11 @@ or build it on the canvas; both use the format described here, so they behave th
 
 :::note Specification
 
-This page describes format version 1. The server reads and validates automation files
-([Managed automations](managed-automations.md)); running them comes with the next milestone. The machine-readable form is the JSON Schema
-`schema/automation.v1.json`, published at
-<https://bexy315.github.io/autocanvas/schema/automation.v1.json>.
+This page describes format version 1, the one the server reads, checks and runs. The
+machine-readable form is the JSON Schema `schema/automation.v1.json`, published at
+<https://bexy315.github.io/autocanvas/schema/automation.v1.json>; editors such as VS Code use it for
+completion and checks. To learn the format by building an automation in the web UI first, start
+with [Your first automation](web-ui.md).
 
 :::
 
@@ -259,3 +260,9 @@ which keeps branches tidy on the canvas.
 
 Expressions are described in [Expressions](expressions.md); the messages AutoCanvas shows for
 mistakes in a file are listed in [Problems in automation files](diagnostics.md).
+
+## See also
+
+- **Next**: [Triggers](triggers.md): what starts a run.
+- [Expressions](expressions.md): values that are decided when the run starts.
+- [Node types](nodes.md): `http_request` and `docker_build` steps.

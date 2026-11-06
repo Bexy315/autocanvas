@@ -18,6 +18,12 @@ a message that says how to fix it:
 
 All problems in a file are reported at once, not only the first.
 
+In the editor, problems are listed under **Problems** while you type, marked at their line in the
+file and on the card of the job they are in; choosing one jumps to its place.
+
+![A problem listed below the editor, marked in the file and on its card](img/diagnostics-problems-light.png#gh-light-mode-only)
+![A problem listed below the editor, marked in the file and on its card](img/diagnostics-problems-dark.png#gh-dark-mode-only)
+
 ## Reading the file
 
 | Code | Meaning | What to do |
@@ -59,3 +65,8 @@ All problems in a file are reported at once, not only the first.
 
 Values are read by YAML 1.2 rules: `on`, `yes` and `no` are text, only `true` and `false` are
 booleans.
+
+## See also
+
+- [Automation files](automations.md): the format these problems are about.
+- [Expressions](expressions.md): what expressions may read where.

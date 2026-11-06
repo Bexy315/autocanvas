@@ -1,4 +1,5 @@
 ---
+sidebar_label: Web UI internals
 sidebar_position: 5.5
 ---
 

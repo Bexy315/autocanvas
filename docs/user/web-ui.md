@@ -1,145 +1,166 @@
 ---
-sidebar_position: 1.5
+title: Your first automation
+sidebar_label: Your first automation
 ---
 
-# A tour of the web UI
+# Your first automation
 
-The web UI comes with the server ([Installation](installation.md)): open its address in a browser
-and sign in. The first admin signs
-in with the password set at installation and chooses their own right away; everyone else gets an
-account from an admin ([Users and groups](accounts.md)).
+This tutorial takes one automation from nothing to a shared, tested result in the web UI. You
+build it on the canvas, save it, run it on a runner, read its tests and coverage, let a webhook
+start it, and share its folder with a team. It takes about fifteen minutes.
 
-This tour follows one automation from start to end: it is built on the canvas, saved, started on a
-runner, and its tests and coverage are read; then a webhook starts it and its folder is shared with
-a team. The pictures are taken by the same walk-through in the project's CI, on a real server with a
-runner.
+The pictures come from the same walk-through that runs in the project's CI on a real server with a
+runner, so what you see is what you get.
 
-## Folders and automations
+:::info Before you start
 
-**Automations** in the sidebar shows your folders on the left and the chosen folder on the right:
-its automations and folders, and the tabs **Configuration** (its variables and secrets) and
-**Sharing** (who has which role). The badge next to the name is your role here.
+- **A running server.** [Installation](installation.md) sets one up with a runner beside it.
+- **An account that may create things.** The first admin from the installation can. Anyone else
+  needs the Editor role on a folder ([Folders and permissions](folders.md)).
+- **A runner that is online.** The installation's bundled runner is one; Administration →
+  **Runners** shows it ([Runners](runners.md)).
+
+:::
+
+## 1. Create a folder
+
+Folders hold automations and decide who may do what with them.
+
+1. Choose **Automations** in the sidebar.
+2. Choose **New folder**, name it `Shop` and choose **Create folder**.
+
+The folder opens. Its tabs are **Contents**, **Repositories**, **Configuration** (variables and
+secrets) and **Sharing** (who has which role). The tree on the left shows the folder, with its
+automations once there are some; the badge next to the name is your role.
 
 ![A folder with one automation](img/tour-folder-light.png#gh-light-mode-only)
 ![A folder with one automation](img/tour-folder-dark.png#gh-dark-mode-only)
 
-**New automation** starts one from a small starter file, or from a file of your own. Each save
-needs a short message, like a commit; the message shows in the automation's **Versions**.
+## 2. Create an automation
+
+1. In the folder, choose **New automation**.
+2. Name it `checkout`, keep **Start from the starter file**, and give the first version a message,
+   such as `Started`. Every save has a message, like a commit; it shows in the automation's
+   **Versions**.
+3. Choose **Create automation**.
 
 ![Creating an automation](img/tour-new-automation-light.png#gh-light-mode-only)
 ![Creating an automation](img/tour-new-automation-dark.png#gh-dark-mode-only)
 
-More: [Folders and permissions](folders.md), [Automation files](automations.md).
+The automation's page opens with its overview. The starter file has one job, `hello`, that prints a
+greeting and writes a small test and coverage report.
 
-## Building on the canvas
+## 3. Change it on the canvas
 
-**Editor** opens the automation in the full window. The canvas and the YAML file show the same
-automation side by side, and a change on one side shows on the other at once: the file stays as you
-wrote it, with its comments and order. **Canvas**, **Split** and **YAML** choose what is shown.
+Choose the **Editor** tab. The canvas and the YAML file show the same automation side by side; a
+change on one side shows on the other at once, and the file keeps your comments and order.
+**Canvas**, **Split** and **YAML** at the top choose what is shown.
 
 ![The editor: canvas and file side by side](img/tour-editor-light.png#gh-light-mode-only)
 ![The editor: canvas and file side by side](img/tour-editor-dark.png#gh-dark-mode-only)
 
-- **Adding**: the panel at the canvas's left edge adds a job, a switch, a join, a `finally` job or a
-  node type; choose one or drag it onto the canvas.
-  - **Filter**: a filter narrows the list.
-  - **When space is short**: next to a card's settings or on a narrow canvas, the panel shrinks to
-    icons, whose tooltips name them.
-  - **Hiding**: it can be hidden, and the browser remembers that.
-- **Wiring**: drag from a card's outputs (green on success, red on failure, grey either way) to the
-  next card, which then waits for it.
-- **Settings**: choosing a card opens its settings on the right, in two tabs.
-  - **Job**: the job's own settings in sections (general, needs, runner labels and image,
-    environment, services, checkout, reports, limits, outputs). A folded section says what it
-    holds, and one with a problem opens by itself.
-  - **Steps**: the steps in order. Choosing one opens it, with a way back to the list and to its
-    neighbours.
-  - **Empty fields**: below a field it says what applies while it is empty, and an example where
-    one helps.
-  - **Variables and secrets**: a value that names one as a whole, such as
-    `${{ secrets.DEPLOY_TOKEN }}`, shows as a chip; choose it to edit the expression. The `{}`
-    button beside values inserts what reaches the automation: its folders' variables and secrets,
-    the variables in its file, and details of the run.
+Now name the first job and add a second one that runs after it:
 
-  The trigger card holds the automation's own settings, such as its schedules and whether a
-  webhook may start it.
-- **Keyboard**: Ctrl+Z and Ctrl+Y undo and redo, Delete removes the chosen card, Ctrl+S saves.
-  **Tidy up** lays the cards out again.
+1. Choose the `hello` card. Its settings open on the right; in the **Job** tab, set the **Id** to
+   `test`.
+2. Choose **Job** in the panel at the canvas's left edge (or drag it onto the canvas). A card
+   `job` appears.
+3. Drag from the green dot under `test` (its success output) to the new card. The new job now waits
+   for `test`.
+4. Choose the new card. In its **Job** tab, set the **Id** to `smoke`; in its **Steps** tab, choose
+   **Add step** → **Script** and write `echo "It works"`.
 
 ![A job's settings next to the canvas](img/tour-canvas-light.png#gh-light-mode-only)
 ![A job's settings next to the canvas](img/tour-canvas-dark.png#gh-dark-mode-only)
 
-Problems in the file are listed below the editor while you type, at the card or the line they are
-in. More: [Automation files](automations.md), [Node types](nodes.md).
+While you type, the server checks the file. Problems are listed under **Problems** at the bottom and
+marked at their card and line ([Problems in automation files](diagnostics.md)).
 
-## Starting and following a run
+:::tip The editor at a glance
 
-**Run** on the automation's **Runs** tab starts it by hand. The run page shows its jobs as on the
-canvas, each with its state, and the chosen job on the right: its attempts, its steps and the log,
-which follows live while the job runs. The log can be searched, wrapped, shown with times and
-downloaded.
+- **Adding**: the panel on the left offers jobs, switches, joins, `finally` jobs and node types,
+  with a filter. Next to a card's settings or on a narrow canvas it shrinks to icons.
+- **Settings**: a job's panel has two tabs. **Job** holds its sections (needs, runner labels and
+  image, environment, services, checkout, reports, limits, outputs), each saying what it holds
+  while folded. **Steps** lists the steps; choosing one opens it.
+- **Values**: below an empty field it says what applies instead. A variable or secret in a value
+  shows as a chip, and the `{}` button inserts the ones that reach the automation.
+- **Keyboard**: Ctrl+Z and Ctrl+Y undo and redo, Delete removes the chosen card, Ctrl+S saves,
+  Ctrl+F searches the file, Ctrl+Space or Ctrl+I suggests keys and values. **Tidy up** lays the cards
+  out again.
+
+:::
+
+## 4. Save a version
+
+Press **Ctrl+S** (or choose **Save**), write a message such as `Add a smoke test`, and press
+**Enter**. The automation is at version 2. The file must have no errors to be saved.
+
+## 5. Run it and follow the log
+
+1. Choose the automation's **Runs** tab and **Run**.
+2. The run page opens. It shows the jobs as on the canvas, each with its state, and the chosen job
+   on the right: its attempts, its steps and the log, which follows live while the job runs.
 
 ![A run with its live log](img/tour-run-log-light.png#gh-light-mode-only)
 ![A run with its live log](img/tour-run-log-dark.png#gh-dark-mode-only)
 
-**Runs** in the sidebar lists the recent runs of every automation you can see.
+The log can be searched, wrapped, shown with times and downloaded. **Runs** in the sidebar lists the
+recent runs of every automation you can see.
 
 ![The runs of an automation](img/tour-runs-light.png#gh-light-mode-only)
 ![The runs of an automation](img/tour-runs-dark.png#gh-dark-mode-only)
 
-More: [Runs](runs.md).
+## 6. Read the tests and coverage
 
-## Tests and coverage
+The `test` job collects a test report and a coverage report, so the run page has the tabs
+**Tests** and **Coverage**.
 
-When a job collects test or coverage reports, the run page gets the tabs **Tests** and
-**Coverage**. Failed tests come first, with their message and stack trace; the clock next to a test
-opens its history across runs, which also tells whether it looks flaky.
+- **Tests**: failed tests come first, with their message and stack trace. The clock next to a test
+  opens its history across runs, which also tells whether it looks flaky.
+- **Coverage**: the share of lines reached, per report, package and class, with the lines that were
+  not reached.
 
 ![The failed test of a run](img/tour-tests-light.png#gh-light-mode-only)
 ![The failed test of a run](img/tour-tests-dark.png#gh-dark-mode-only)
 
-**Coverage** shows the share of lines reached, per report, package and class, with the lines that
-were not reached.
-
 ![Coverage by class](img/tour-coverage-light.png#gh-light-mode-only)
 ![Coverage by class](img/tour-coverage-dark.png#gh-dark-mode-only)
 
-More: [Test and coverage reports](reports.md).
+## 7. Let a webhook start it
 
-## Triggers
+So far the automation runs only by hand. To let another system start it:
 
-The **Triggers** tab lists what starts the automation: by hand, schedules with their next time,
-other automations, and webhooks. **Create address** makes a webhook address with a signing secret;
-both are shown once, with example calls for curl and PowerShell.
+1. In the editor, choose the **Trigger** card and check **By a webhook**; save.
+2. On the **Triggers** tab, choose **Create address**.
+
+The address and its signing secret are shown once, with example calls for curl and PowerShell. Keep
+them; a call to that address starts a run.
 
 ![A new webhook address](img/tour-webhook-light.png#gh-light-mode-only)
 ![A new webhook address](img/tour-webhook-dark.png#gh-dark-mode-only)
 
-More: [Triggers](triggers.md), [Variables and secrets](variables-and-secrets.md).
+## 8. Share the folder
 
-## Repositories
-
-A folder's **Repositories** tab connects Git repositories, from GitHub through the GitHub App or by
-address, whose automation files become automations of the folder; it shows how each was last read,
-syncs it, and makes webhook addresses.
-
-![A folder's repositories](img/repositories-light.png#gh-light-mode-only)
-![A folder's repositories](img/repositories-dark.png#gh-dark-mode-only)
-
-More: [Repositories](repositories.md), [GitHub](github.md).
-
-## Sharing
-
-A folder's **Sharing** tab is for its owners: it gives people and groups a role on the folder and
-everything in it. **Share** finds them by name.
+The folder's **Sharing** tab is for its owners. **Share** finds people and groups by name and gives
+them a role on the folder and everything in it: Viewer, Operator (may start runs), Editor or Owner.
 
 ![A folder shared with a group](img/tour-sharing-light.png#gh-light-mode-only)
 ![A folder shared with a group](img/tour-sharing-dark.png#gh-dark-mode-only)
 
-More: [Folders and permissions](folders.md). Admins manage users, groups and runners under
-**Administration** ([Users and groups](accounts.md), [Runners](runners.md)).
+## What's next
 
-## Light and dark
+You have built, saved, run, triggered and shared an automation. From here:
 
-The user menu at the top right switches between light, dark and the system's choice; the browser
-remembers it. Your **Account** there changes your password and lists your sessions and API tokens.
+- **Keep automations in Git**: connect a repository to the folder, and its automation files become
+  automations that run on every push ([Repositories](repositories.md), [GitHub](github.md)).
+
+  ![A folder's repositories](img/repositories-light.png#gh-light-mode-only)
+  ![A folder's repositories](img/repositories-dark.png#gh-dark-mode-only)
+
+- **Configure without editing the file**: variables and secrets per folder
+  ([Variables and secrets](variables-and-secrets.md)).
+- **Start runs on a schedule or after another automation** ([Triggers](triggers.md)).
+- **Write the file by hand**: every key of the format ([Automation files](automations.md)).
+- **Light or dark**: the user menu at the top right switches; your **Account** there changes your
+  password and lists your sessions and API tokens.
