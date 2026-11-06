@@ -1,11 +1,15 @@
 # AutoCanvas
 
+> [!NOTE]
+> AutoCanvas is the standalone version of the automation engine in my homelab, which grew out of
+> experiments, and it has been written almost entirely by AI coding agents ("vibe coded"). Read and
+> test it with that in mind before you rely on it.
+
 Self-hosted automation and CI/CD engine for developers and technicians: pipelines as YAML in your
 repository or built visually on a canvas, executed by lightweight runners, with test reports as a
 first-class feature.
 
-> **Status: pre-alpha.** No release yet. The current milestone is
-> [S5 — Repositories and forges](docs/plans/s5.md).
+> **Status: pre-alpha.** No release yet; the milestone plans are in [docs/plans](docs/plans/).
 
 ## Quick start
 
