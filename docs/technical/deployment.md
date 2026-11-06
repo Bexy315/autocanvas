@@ -18,10 +18,8 @@ CI builds both images on every change and checks that the server names its commi
 every commit on `main` to the GitHub Container Registry:
 - `ghcr.io/bexy315/autocanvas-server` and `-runner`;
 - tagged `sha-<commit>` and `dev`, for `linux/amd64`;
-- private until the first release, so pulling them needs a sign-in
+- public, so pulling them needs no sign-in; they are not releases, which come with 0.1
   ([ADR-0023](../adr/0023-published-images-and-dev-instance.md)).
-
-Releases come with 0.1.
 
 ```sh
 docker run -d --name autocanvas -p 5080:5080 -p 5081:5081 -v autocanvas-data:/var/lib/autocanvas \
