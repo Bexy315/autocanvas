@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { automationSummary, folderSummary, folderView, page } from '../test/fixtures';
+import { automationSummary, automationView, folderSummary, folderView, page } from '../test/fixtures';
 import { fakeServer, info, json, me, noContent, problem, requests, type Handler } from '../test/fakeServer';
 import { renderApp } from '../test/renderApp';
 
@@ -199,7 +199,7 @@ describe('the folder tree', () => {
     });
     const { user } = renderApp('/folders/backend');
 
-    const tree = await screen.findByRole('tree', { name: 'Folders' });
+    const tree = await screen.findByRole('tree', { name: 'Folders and automations' });
     expect(await within(tree).findByRole('treeitem', { name: /Backend/, selected: true })).toBeInTheDocument();
     expect(within(tree).getByRole('treeitem', { name: /Team/ })).toHaveAttribute('aria-expanded', 'true');
 
@@ -217,7 +217,7 @@ describe('the folder tree', () => {
     });
     const { user } = renderApp('/');
 
-    const tree = await screen.findByRole('tree', { name: 'Folders' });
+    const tree = await screen.findByRole('tree', { name: 'Folders and automations' });
     const teamItem = await within(tree).findByRole('treeitem', { name: /Team/ });
     expect(teamItem).toHaveAttribute('tabindex', '0');
     teamItem.focus();
@@ -233,6 +233,23 @@ describe('the folder tree', () => {
     await user.keyboard('{End}{Home}{Enter}');
 
     expect(await screen.findByRole('heading', { name: 'Team', level: 1 })).toBeInTheDocument();
+  });
+
+  it('shows the automations of an open folder after its subfolders, and opens one when it is chosen', async () => {
+    server({
+      'GET /api/v1/automations/a1': () => json(automationView('a1', 'backend')),
+      'GET /api/v1/folders/backend': () =>
+        json(folderView('backend', 'Backend', { path: [{ id: 'team', name: 'Team' }] })),
+    });
+    const { user } = renderApp('/folders/backend');
+    const tree = await screen.findByRole('tree', { name: 'Folders and automations' });
+    const build = await within(tree).findByRole('treeitem', { name: 'Build the shop' });
+    expect(build).toHaveAttribute('aria-level', '3');
+    expect(build).not.toHaveAttribute('aria-expanded');
+
+    await user.click(within(build).getByRole('button', { name: /Build the shop/ }));
+    expect(await within(tree).findByRole('treeitem', { name: 'Build the shop', selected: true })).toBeInTheDocument();
+    expect(within(tree).getByRole('treeitem', { name: /Backend/ })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('can be hidden', async () => {

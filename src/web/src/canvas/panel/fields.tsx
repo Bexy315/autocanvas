@@ -6,15 +6,22 @@
 import { clsx } from 'clsx';
 import { ChevronRight, Plus, X } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
+import { ExpressionInput } from './expressions';
 import { usePanel } from './panelContext';
 
-const control =
-  'w-full rounded-control border bg-surface px-2 text-sm text-ink placeholder:text-muted read-only:bg-sunken disabled:opacity-60';
+/** How a field looks, without its width: fields side by side set their own. */
+const controlLook =
+  'rounded-control border bg-surface px-2 text-sm text-ink placeholder:text-muted read-only:bg-sunken disabled:opacity-60';
+const control = `w-full ${controlLook}`;
 
 interface FieldFrame {
   label: string;
   hint?: string | undefined;
   problems?: readonly string[] | undefined;
+  /** What applies while the field is empty, said below it: a grey placeholder would look like a value. */
+  empty?: string | undefined;
+  /** A value to write, shown below the field as code, for the same reason. */
+  example?: string | undefined;
 }
 
 /** A label above a control, with the hint and the problems below it. */
@@ -24,11 +31,16 @@ function Frame({
   label,
   hint,
   problems = noProblems,
+  empty,
+  example,
   children,
 }: FieldFrame & { children: (props: { id: string; describedBy?: string; invalid: boolean }) => ReactNode }) {
   const id = useId();
   const invalid = problems.length > 0;
-  const describedBy = [hint ? `${id}-hint` : null, invalid ? `${id}-problem` : null].filter(Boolean).join(' ');
+  const fallback = empty !== undefined || example !== undefined;
+  const describedBy = [hint ? `${id}-hint` : null, fallback ? `${id}-fallback` : null, invalid ? `${id}-problem` : null]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-xs font-medium text-ink">
@@ -38,6 +50,17 @@ function Frame({
       {hint && (
         <p id={`${id}-hint`} className="text-xs text-muted">
           {hint}
+        </p>
+      )}
+      {fallback && (
+        <p id={`${id}-fallback`} className="text-xs text-muted">
+          {empty !== undefined && <>When empty: {empty}</>}
+          {empty !== undefined && example !== undefined && ' · '}
+          {example !== undefined && (
+            <>
+              For example: <code className="font-mono text-ink">{example}</code>
+            </>
+          )}
         </p>
       )}
       {invalid && (
@@ -57,6 +80,7 @@ export function TextInput({
   onCommit,
   placeholder,
   mono = false,
+  expressions = false,
   ...frame
 }: FieldFrame & {
   value: string;
@@ -65,28 +89,44 @@ export function TextInput({
   onCommit?: () => void;
   placeholder?: string;
   mono?: boolean;
+  /** A value that may name variables and secrets: shown as a chip, with a menu to insert them. */
+  expressions?: boolean;
 }) {
   const { readOnly } = usePanel();
   return (
     <Frame {...frame}>
-      {({ id, describedBy, invalid }) => (
-        <input
-          id={id}
-          value={value}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          onChange={(event) => onValue(event.target.value)}
-          onBlur={onCommit}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              onCommit?.();
-            }
-          }}
-          className={clsx(control, 'h-8', border(invalid), mono && 'font-mono text-xs')}
-        />
-      )}
+      {({ id, describedBy, invalid }) =>
+        expressions ? (
+          <ExpressionInput
+            label={frame.label}
+            value={value}
+            onValue={onValue}
+            input={{
+              id,
+              'aria-invalid': invalid || undefined,
+              'aria-describedby': describedBy,
+              className: clsx(control, 'h-8', border(invalid), mono && 'font-mono text-xs'),
+            }}
+          />
+        ) : (
+          <input
+            id={id}
+            value={value}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
+            onChange={(event) => onValue(event.target.value)}
+            onBlur={onCommit}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                onCommit?.();
+              }
+            }}
+            className={clsx(control, 'h-8', border(invalid), mono && 'font-mono text-xs')}
+          />
+        )
+      }
     </Frame>
   );
 }
@@ -326,14 +366,16 @@ export function KeyValueList({
             defaultValue={key}
             readOnly={readOnly}
             onBlur={(event) => rename(key, event.target.value)}
-            className={clsx(control, 'h-8 w-2/5 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 w-1/3 shrink-0 border-line-strong font-mono text-xs')}
           />
-          <input
-            aria-label={`${valueLabel} of ${key}`}
+          <ExpressionInput
+            label={`${valueLabel} of ${key}`}
             value={String(value)}
-            readOnly={readOnly}
-            onChange={(event) => onEntries({ ...entries, [key]: event.target.value })}
-            className={clsx(control, 'h-8 flex-1 border-line-strong font-mono text-xs')}
+            onValue={(next) => onEntries({ ...entries, [key]: next })}
+            input={{
+              'aria-label': `${valueLabel} of ${key}`,
+              className: clsx(controlLook, 'h-8 w-full border-line-strong font-mono text-xs'),
+            }}
           />
           {!readOnly && (
             <RemoveButton
@@ -366,7 +408,7 @@ export function KeyValueList({
                 setAdding(false);
               }
             }}
-            className={clsx(control, 'h-8 w-2/5 border-line-strong font-mono text-xs')}
+            className={clsx(controlLook, 'h-8 w-1/3 shrink-0 border-line-strong font-mono text-xs')}
           />
         ) : (
           <AddButton label={`Add ${keyLabel.toLowerCase()}`} onAdd={() => setAdding(true)} />

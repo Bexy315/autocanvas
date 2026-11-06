@@ -27,10 +27,17 @@ through the HTTP API, and runs read them along the chain below.
 Variables are added, changed and deleted in a list. A secret is set in a dialog with a password
 field: its value is never shown, not even the one it replaces.
 
-**Where each value comes from**, on a folder's and an automation's Configuration tab, lists every
-name a run reads with the definition that wins and where it is (the instance, a folder, the
-automation). Unfold a name to see every definition from the instance down, those overridden
-struck through. Variable values need the Operator role; secret values are never shown.
+The **Configuration** tab of a folder and of an automation lists every variable and every secret a
+run there reads, each with a tag saying where it is defined:
+- **here**: defined at this place;
+- **in the file**: an automation's own `variables:`;
+- **folder …** (a link to that folder's configuration) or **instance**: reaching it from above.
+
+Those defined here can be changed and deleted there. Those from above offer **Override here**,
+which sets the same name at this place, so it wins for everything below. A name that overrides
+others says so; unfold it to see every definition from the instance down, those overridden struck
+through. Variable values need the Operator role; secret values are never shown. An automation's
+own variables are changed in the editor.
 
 ## Where values are defined
 

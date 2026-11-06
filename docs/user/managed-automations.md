@@ -122,9 +122,11 @@ written, to be changed in the YAML.
 The file is edited in a YAML editor. While you type, the server checks the file exactly
 as a save would, including node types and triggers; problems are underlined in the file and listed
 under **Problems** at the bottom of the window (which you can fold away) with their
-[code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space suggests
-the keys allowed where the cursor is, the node types for a step's `type`, a node type's inputs
-under `with`, and fixed values such as `concurrency: single`. **Save** (or Ctrl+S, also on the canvas)
+[code](diagnostics.md), and choosing one jumps to its place. Ctrl+Space (or Ctrl+I, where the
+system or the browser takes Ctrl+Space) suggests the keys allowed where the cursor is, the node types
+for a step's `type`, a node type's inputs under `with`, and fixed values such as
+`concurrency: single`. Ctrl+F searches and replaces in the file, also while the canvas has the focus.
+**Save** (or Ctrl+S, also on the canvas)
 asks for an optional message and says how much changed; Enter in that dialog stores the new version,
 Esc goes back without saving. So pressing Ctrl+S out of habit does not create a version each time.
 Saving needs a file without errors.

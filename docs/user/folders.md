@@ -65,8 +65,10 @@ exist, so nobody learns what exists in places they have no access to.
 
 ## In the web UI
 
-**Automations** in the sidebar shows the folders where you can start; the folder tree next to it
-opens subfolders as you expand them, and the arrow keys move through it. A folder's page lists its
+**Automations** in the sidebar shows the folders where you can start; the tree next to it opens
+subfolders as you expand them, and the arrow keys move through it. An open folder shows its
+automations after its subfolders (from a repository with a branch icon), and the page you are on,
+folder or automation, is highlighted and open. A folder's page lists its
 subfolders and automations. Depending on your role it offers **New folder**, **New automation**,
 and in its menu **Rename**, **Move** and **Delete**. Moving opens the same tree as a picker, in which
 only folders where you are an editor can be chosen.

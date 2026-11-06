@@ -23,7 +23,11 @@ type Open = 'rename' | 'move' | 'delete' | null;
 export function AutomationLayout() {
   const { id = '' } = useParams();
   const { context, failed, error } = useAutomationPage(id);
-  usePageInfo(context ? folderPageInfo(context.folder, context.automation.title) : null);
+  usePageInfo(
+    context
+      ? { ...folderPageInfo(context.folder, context.automation.title), automationId: context.automation.id }
+      : null,
+  );
 
   if (failed) {
     return (

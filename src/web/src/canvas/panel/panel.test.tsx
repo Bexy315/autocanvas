@@ -134,6 +134,11 @@ describe('the job panel', () => {
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
+    // Only General is open at first; the others say what they hold.
+    expect(within(panel).getByRole('button', { name: /^Runs on/ })).toHaveTextContent('linux · alpine:3.22');
+    expect(within(panel).getByRole('button', { name: /^Services/ })).toHaveTextContent('none');
+    expect(within(panel).getByRole('button', { name: /^Limits/ })).toHaveTextContent('60 min');
+    await user.click(within(panel).getByRole('button', { name: /^Runs on/ }));
     const image = within(panel).getByLabelText('Image');
     await user.clear(image);
     await user.type(image, 'node:24');
@@ -156,12 +161,18 @@ describe('the job panel', () => {
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
 
+    await user.click(within(panel).getByRole('tab', { name: /^Steps/ }));
     await user.click(within(panel).getByRole('button', { name: 'Add step' }));
     await user.click(within(panel).getByRole('button', { name: 'Script' }));
+    // The new step opens in the tab, with the way back and to its neighbours.
+    expect(within(panel).getByText('Step 2 of 2')).toBeInTheDocument();
     const script = within(panel).getByLabelText('Script');
     await user.clear(script);
     await user.type(script, 'npm ci{Enter}npm test');
     expect(text()).toContain('    - run: |-\n        npm ci\n        npm test\n');
+    await user.click(within(panel).getByRole('button', { name: 'Previous step' }));
+    expect(within(panel).getByText('Step 1 of 2')).toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: 'All steps' }));
 
     await user.click(within(panel).getByRole('button', { name: 'Move step 2 up' }));
     expect(text()).toMatch(/steps:\n {4}- run: \|-\n {8}npm ci\n {8}npm test\n {4}- run: make\n/);
@@ -177,7 +188,7 @@ describe('the job panel', () => {
     );
     expect(within(panel).getByText('status')).toBeInTheDocument();
 
-    await user.click(within(panel).getByRole('button', { name: /^More/ }));
+    await user.click(within(panel).getByRole('button', { name: /^Options/ }));
     await user.type(within(panel).getByLabelText('Id'), 'hook');
     await user.click(within(panel).getByLabelText('Continue when this step fails'));
     expect(text()).toContain('        method: POST\n      id: hook\n      continue_on_error: true\n');
@@ -187,6 +198,7 @@ describe('the job panel', () => {
     const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'build' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of build' });
+    await user.click(within(panel).getByRole('tab', { name: /^Steps/ }));
     await user.click(within(panel).getByRole('button', { name: 'Add step' }));
     await user.click(within(panel).getByRole('button', { name: 'kinds' }));
 
@@ -196,6 +208,9 @@ describe('the job panel', () => {
     await user.click(within(panel).getByRole('button', { name: 'Add name' }));
     await user.type(within(panel).getByLabelText('New name'), 'Accept{Enter}');
     await user.type(within(panel).getByLabelText('Value of Accept'), 'json');
+    // Name and value share the row: neither takes the whole width (the value was squeezed to nothing).
+    expect(within(panel).getByLabelText('Name of Accept')).not.toHaveClass('w-full');
+    expect(within(panel).getByLabelText('Value of Accept')).toHaveClass('min-w-0');
     expect(text()).toContain(
       '      with:\n        count: 4\n        flag: true\n        tags: [a]\n        headers:\n          Accept: json\n',
     );
@@ -204,6 +219,93 @@ describe('the job panel', () => {
     const count = within(panel).getByLabelText('count');
     fireEvent.change(count, { target: { value: '${{ vars.N }}' } });
     expect(text()).toContain('count: ${{ vars.N }}');
+  });
+
+  it('splits the job and its steps into tabs the arrow keys move between, and says what empty fields mean', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<Harness subject={{ id: 'build' }} />);
+    const panel = screen.getByRole('complementary', { name: 'Settings of build' });
+    const jobTab = within(panel).getByRole('tab', { name: 'Job' });
+    expect(jobTab).toHaveAttribute('aria-selected', 'true');
+    expect(within(panel).getByRole('tab', { name: /^Steps \(1\)/ })).toHaveAttribute('aria-selected', 'false');
+
+    // Empty fields say what applies instead of a grey placeholder that looks like a value.
+    expect(within(panel).getByLabelText('Name')).not.toHaveAttribute('placeholder');
+    expect(within(panel).getByLabelText('Name')).toHaveAccessibleDescription('When empty: the id, build');
+    expect(within(panel).getByLabelText('Run only if')).toHaveAccessibleDescription(
+      "When empty: always · For example: ${{ trigger.branch == 'main' }}",
+    );
+
+    jobTab.focus();
+    await user.keyboard('{ArrowRight}');
+    const stepsTab = within(panel).getByRole('tab', { name: /^Steps/ });
+    expect(stepsTab).toHaveFocus();
+    expect(stepsTab).toHaveAttribute('aria-selected', 'true');
+    const steps = within(panel).getByRole('list', { name: 'Steps of build' });
+    expect(within(steps).getByRole('button', { name: /make/ })).toHaveTextContent('script');
+    await user.click(within(steps).getByRole('button', { name: /make/ }));
+    expect(within(panel).getByRole('button', { name: /^Options/ })).toHaveTextContent(
+      'id, condition, environment, time limit',
+    );
+    await user.keyboard('{ArrowLeft}');
+    stepsTab.focus();
+    await user.keyboard('{ArrowLeft}');
+    expect(within(panel).getByRole('tab', { name: 'Job' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows a variable or secret a value names as a chip, and inserts them from a menu', async () => {
+    const user = userEvent.setup({ delay: null });
+    let written = file.replace(
+      '    image: alpine:3.22\n',
+      '    image: alpine:3.22\n    env:\n      TOKEN: ${{ secrets.DEPLOY_TOKEN }}\n      PLAIN: hello\n',
+    );
+    const apply = vi.fn<PanelEdits['apply']>((change) => {
+      if (change) {
+        written = change.text;
+      }
+    });
+    render(
+      <SidePanel
+        subject={{ id: 'build' }}
+        text={written}
+        graph={graphFromYaml(written).graph ?? { triggers: [], jobs: [], edges: [], positions: {} }}
+        nodeTypes={[]}
+        diagnostics={[]}
+        edits={{ current: () => written, apply, remove: vi.fn<(id: string) => void>() }}
+        references={{ variables: ['GREETING'], secrets: ['DEPLOY_TOKEN', 'API_KEY'] }}
+        onClose={vi.fn<() => void>()}
+      />,
+    );
+    const panel = screen.getByRole('complementary');
+    await user.click(within(panel).getByRole('button', { name: /^Environment/ }));
+
+    // The secret is a chip; choosing it edits the expression, leaving the field shows the chip again.
+    const chip = within(panel).getByRole('button', { name: /^Value of TOKEN: secret DEPLOY_TOKEN\./ });
+    expect(chip).toHaveAttribute('title', '${{ secrets.DEPLOY_TOKEN }}');
+    expect(within(panel).getByLabelText('Value of PLAIN')).toHaveValue('hello');
+    await user.click(chip);
+    expect(within(panel).getByLabelText('Value of TOKEN')).toHaveFocus();
+    expect(within(panel).getByLabelText('Value of TOKEN')).toHaveValue('${{ secrets.DEPLOY_TOKEN }}');
+    await user.tab();
+    expect(within(panel).getByRole('button', { name: /^Value of TOKEN: secret/ })).toBeInTheDocument();
+
+    // The menu offers the variables (the file's own too), the secrets and the run; a choice is inserted.
+    await user.click(within(panel).getByRole('button', { name: 'Insert a variable or secret into Value of PLAIN' }));
+    expect(within(panel).getByRole('list', { name: 'Secrets' })).toHaveTextContent(
+      'secrets.API_KEYsecrets.DEPLOY_TOKEN',
+    );
+    await user.type(within(panel).getByRole('searchbox', { name: 'Filter variables and secrets' }), 'greet');
+    expect(within(panel).queryByRole('list', { name: 'Secrets' })).not.toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: 'vars.GREETING' }));
+    expect(apply).toHaveBeenLastCalledWith(
+      expect.objectContaining({ text: expect.stringContaining('PLAIN: hello${{ vars.GREETING }}') }),
+    );
+
+    // Esc closes the menu, not the panel.
+    await user.click(within(panel).getByRole('button', { name: 'Insert a variable or secret into Value of PLAIN' }));
+    await user.keyboard('{Escape}');
+    expect(within(panel).queryByRole('list', { name: 'Variables' })).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary')).toBeInTheDocument();
   });
 
   it('renames the job, with what names it, and refuses ids that cannot be', async () => {
@@ -225,6 +327,8 @@ describe('the job panel', () => {
     const user = userEvent.setup({ delay: null });
     render(<Harness subject={{ id: 'deploy' }} />);
     const panel = screen.getByRole('complementary', { name: 'Settings of deploy' });
+    expect(within(panel).getByRole('button', { name: /^Needs/ })).toHaveTextContent('build');
+    await user.click(within(panel).getByRole('button', { name: /^Needs/ }));
     await user.selectOptions(within(panel).getByLabelText('Starts'), 'always');
     expect(text()).toContain('needs: [{job: build, on: always}]');
     await user.click(within(panel).getByRole('button', { name: 'Add a job to wait for' }));
@@ -327,7 +431,7 @@ describe('the job panel', () => {
     await user.click(within(panel).getByRole('button', { name: 'Add name' }));
     await user.keyboard('{Escape}');
     expect(onClose).not.toHaveBeenCalled();
-    await user.click(within(panel).getByLabelText('Image'));
+    await user.click(within(panel).getByLabelText('Name'));
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
     await user.click(within(panel).getByRole('button', { name: 'Widen the panel' }));

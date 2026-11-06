@@ -79,7 +79,7 @@ function InputField({
           onValue={set}
         />
       ) : (
-        <TextInput {...frame} value={value === undefined ? '' : String(value)} onValue={set} />
+        <TextInput {...frame} value={value === undefined ? '' : String(value)} onValue={set} expressions />
       );
     case 'WholeNumber':
       return (

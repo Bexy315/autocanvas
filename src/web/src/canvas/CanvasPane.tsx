@@ -8,6 +8,7 @@ import { ListView } from './ListView';
 import type { Graph } from './model';
 import type { NodeTypeView } from './operations';
 import type { PanelEdits } from './panel/panelContext';
+import type { References } from './panel/references';
 import { SidePanel, type PanelSubject } from './panel/SidePanel';
 
 export const canvasViewKey = 'autocanvas.editor.canvas';
@@ -20,6 +21,8 @@ export interface PanelProps {
   nodeTypes: readonly NodeTypeView[];
   diagnostics: readonly Diagnostic[];
   edits?: PanelEdits;
+  /** The variables and secrets that reach the automation, offered for inserting into values. */
+  references?: References;
 }
 
 /**
@@ -155,7 +158,7 @@ export function CanvasPane({
               onSelectJob={onSelectJob}
               fitKey={fitKey}
               {...(panel ? { onPick: pick } : {})}
-              {...(edits ? { edits, paletteNodeTypes } : {})}
+              {...(edits ? { edits, paletteNodeTypes, paletteCompact: Boolean(panel && panelOpen && subject) } : {})}
             />
           )}
         </div>
@@ -167,6 +170,7 @@ export function CanvasPane({
               text={panel.text}
               graph={graph}
               nodeTypes={panel.nodeTypes}
+              references={panel.references}
               diagnostics={panel.diagnostics}
               edits={panel.edits}
               onClose={closePanel}

@@ -6,6 +6,7 @@ import { triggerId, type Graph } from '../model';
 import type { NodeTypeView } from '../operations';
 import { readPanelFile } from '../panelModel';
 import { AutomationPanel } from './AutomationPanel';
+import { noReferences, type References } from './references';
 import { JobPanel } from './JobPanel';
 import { PanelContext, type PanelEdits } from './panelContext';
 
@@ -26,6 +27,7 @@ export function SidePanel({
   nodeTypes,
   diagnostics,
   edits,
+  references = noReferences,
   onClose,
   headingRef,
 }: {
@@ -35,12 +37,22 @@ export function SidePanel({
   nodeTypes: readonly NodeTypeView[];
   diagnostics: readonly Diagnostic[];
   edits?: PanelEdits | undefined;
+  /** The variables and secrets that reach the automation; the file's own `variables:` are added. */
+  references?: References | undefined;
   onClose: () => void;
   headingRef?: Ref<HTMLHeadingElement>;
 }) {
   const [wide, setWide] = useState(false);
   const file = useMemo(() => readPanelFile(text), [text]);
-  const settings = useMemo(() => ({ readOnly: edits === undefined, diagnostics }), [edits, diagnostics]);
+  const settings = useMemo(() => {
+    const own = file?.get(['variables']);
+    const variables = new Set([...references.variables, ...(own && typeof own === 'object' ? Object.keys(own) : [])]);
+    return {
+      readOnly: edits === undefined,
+      diagnostics,
+      references: { variables: [...variables].toSorted(), secrets: references.secrets.toSorted() },
+    };
+  }, [edits, diagnostics, file, references]);
   const id = 'id' in subject ? subject.id : null;
   const job = id === null ? undefined : graph.jobs.find((entry) => entry.id === id);
   const title =

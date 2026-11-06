@@ -40,13 +40,29 @@ wrote it, with its comments and order. **Canvas**, **Split** and **YAML** choose
 ![The editor: canvas and file side by side](img/tour-editor-light.png#gh-light-mode-only)
 ![The editor: canvas and file side by side](img/tour-editor-dark.png#gh-dark-mode-only)
 
-- **Adding**: the palette above the canvas adds a job, a switch, a join, a `finally` job or a node
-  type; choose one or drag it onto the canvas.
+- **Adding**: the panel at the canvas's left edge adds a job, a switch, a join, a `finally` job or a
+  node type; choose one or drag it onto the canvas.
+  - **Filter**: a filter narrows the list.
+  - **When space is short**: next to a card's settings or on a narrow canvas, the panel shrinks to
+    icons, whose tooltips name them.
+  - **Hiding**: it can be hidden, and the browser remembers that.
 - **Wiring**: drag from a card's outputs (green on success, red on failure, grey either way) to the
   next card, which then waits for it.
-- **Settings**: choosing a card opens its settings on the right: the job's image and runner labels,
-  its steps, services, reports, limits and outputs. The trigger card holds the automation's own
-  settings, such as its schedules and whether a webhook may start it.
+- **Settings**: choosing a card opens its settings on the right, in two tabs.
+  - **Job**: the job's own settings in sections (general, needs, runner labels and image,
+    environment, services, checkout, reports, limits, outputs). A folded section says what it
+    holds, and one with a problem opens by itself.
+  - **Steps**: the steps in order. Choosing one opens it, with a way back to the list and to its
+    neighbours.
+  - **Empty fields**: below a field it says what applies while it is empty, and an example where
+    one helps.
+  - **Variables and secrets**: a value that names one as a whole, such as
+    `${{ secrets.DEPLOY_TOKEN }}`, shows as a chip; choose it to edit the expression. The `{}`
+    button beside values inserts what reaches the automation: its folders' variables and secrets,
+    the variables in its file, and details of the run.
+
+  The trigger card holds the automation's own settings, such as its schedules and whether a
+  webhook may start it.
 - **Keyboard**: Ctrl+Z and Ctrl+Y undo and redo, Delete removes the chosen card, Ctrl+S saves.
   **Tidy up** lays the cards out again.
 

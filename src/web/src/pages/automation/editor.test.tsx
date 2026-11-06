@@ -246,6 +246,25 @@ describe('the editor', () => {
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
   });
 
+  it('searches the file on Ctrl+F also while the focus is outside it, but not in the canvas view', async () => {
+    server();
+    const { user } = renderApp('/automations/a1/edit');
+    const view = await editorView(label);
+
+    screen.getByRole('button', { name: 'Tidy up' }).focus();
+    await user.keyboard('{Control>}f{/Control}');
+    expect(view.dom.querySelector('.cm-search')).not.toBeNull();
+    // CodeMirror focuses the field itself; e2e/03 checks that in a browser.
+    expect(screen.getByRole('textbox', { name: 'Find' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: 'Canvas' }));
+    screen.getByRole('button', { name: 'Tidy up' }).focus();
+    const event = new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, bubbles: true, cancelable: true });
+    document.activeElement?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('only shows the file to viewers', async () => {
     server({ 'GET /api/v1/automations/a1': () => json(automationView('a1', 'team', { role: 'Viewer' })) });
     renderApp('/automations/a1/edit');
@@ -361,6 +380,7 @@ describe('the editor', () => {
     const panel = await screen.findByRole('complementary', { name: 'Settings of build' });
     expect(within(panel).getByRole('heading', { name: 'build' })).toHaveFocus();
 
+    await user.click(within(panel).getByRole('button', { name: /^Runs on/ }));
     await user.type(within(panel).getByLabelText('Image'), 'node:24');
     expect(view.state.doc.toString()).toContain('  build:\n    image: node:24\n    steps:\n');
     // The value typed shows in the file at once, and one undo takes all of it back.
@@ -371,12 +391,49 @@ describe('the editor', () => {
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
   });
 
+  it('offers the variables and secrets that reach the automation in the panel', async () => {
+    server({
+      'GET /api/v1/automations/a1/configuration': () =>
+        json({
+          variables: [
+            {
+              name: 'REGION',
+              definitions: [],
+              winner: { kind: 'Folder', folderId: 'team', folderName: 'Team', value: 'eu' },
+            },
+          ],
+          secrets: [
+            {
+              name: 'DEPLOY_TOKEN',
+              definitions: [],
+              winner: { kind: 'Folder', folderId: 'team', folderName: 'Team', value: null },
+            },
+          ],
+        }),
+    });
+    const { user } = renderApp('/automations/a1/edit');
+    await editorView(label);
+    const canvas = screen.getByRole('region', { name: 'Canvas' });
+    const card = canvas.querySelector<HTMLElement>('.react-flow__node[data-id="build"]');
+    if (!card) {
+      throw new Error('No card.');
+    }
+    fireEvent.keyDown(card, { key: 'Enter' });
+    const panel = await screen.findByRole('complementary', { name: 'Settings of build' });
+    await user.click(within(panel).getByRole('button', { name: /^Environment/ }));
+    await user.click(within(panel).getByRole('button', { name: 'Add name' }));
+    await user.type(within(panel).getByLabelText('New name'), 'TOKEN{Enter}');
+    await user.click(within(panel).getByRole('button', { name: 'Insert a variable or secret into Value of TOKEN' }));
+    expect(await within(panel).findByRole('button', { name: 'secrets.DEPLOY_TOKEN' })).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'vars.REGION' })).toBeInTheDocument();
+  });
+
   it('offers no palette to viewers', async () => {
     server({ 'GET /api/v1/automations/a1': () => json(automationView('a1', 'team', { role: 'Viewer' })) });
     renderApp('/automations/a1/edit');
     await editorView(label);
 
-    expect(screen.queryByRole('toolbar', { name: 'Add to the canvas' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Add to the canvas' })).not.toBeInTheDocument();
     expect(screen.getByText('You can read the canvas; changing it needs the Editor role.')).toBeInTheDocument();
   });
 });

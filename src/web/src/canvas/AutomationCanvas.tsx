@@ -66,6 +66,8 @@ export interface AutomationCanvasProps {
   edits?: CanvasEdits;
   /** The node types the palette offers. */
   paletteNodeTypes?: readonly NodeTypeView[];
+  /** The palette as icons only: the settings of a card take the room beside the canvas. */
+  paletteCompact?: boolean;
   /** Changes when the whole graph was laid out anew (Tidy up): the view is fitted to it again. */
   fitKey?: number;
 }
@@ -106,6 +108,7 @@ function Canvas({
   marks = noMarks,
   edits,
   paletteNodeTypes = noNodeTypes,
+  paletteCompact = false,
   fitKey = 0,
 }: AutomationCanvasProps) {
   const flow = useReactFlow();
@@ -270,14 +273,14 @@ function Canvas({
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {editable && <Palette nodeTypes={paletteNodeTypes} onAdd={addInMiddle} />}
+    <div className="@container/canvas flex h-full">
+      {editable && <Palette nodeTypes={paletteNodeTypes} onAdd={addInMiddle} compact={paletteCompact} />}
       {/* Undo and redo while the canvas has the focus; the cards inside are what is focused, so
           the container itself is not a tab stop. */}
       {/* oxlint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         ref={host}
-        className={clsx('automation-canvas relative min-h-0 flex-1', stale && 'is-stale')}
+        className={clsx('automation-canvas relative min-h-0 min-w-0 flex-1', stale && 'is-stale')}
         onKeyDown={keys}
         onDragOver={(event) => {
           if (editable && event.dataTransfer.types.includes(paletteMime)) {

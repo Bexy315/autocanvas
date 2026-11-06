@@ -101,16 +101,16 @@ test('an automation built on the canvas runs on a real runner, reports its tests
   await expect(card(page, 'hello')).toBeVisible();
   await card(page, 'hello').click();
   let settings = panel(page, 'hello');
-  await settings.getByRole('button', { name: 'Job settings' }).click();
   await settings.getByLabel('Id', { exact: true }).fill('test');
   await settings.getByLabel('Id', { exact: true }).press('Enter');
   settings = panel(page, 'test');
   await expect(settings).toBeVisible();
+  await settings.getByRole('tab', { name: /^Steps/ }).click();
   await settings.getByRole('button', { name: 'Add step' }).click();
-  await settings.getByRole('button', { name: 'Script' }).click();
+  await settings.getByRole('button', { name: 'Script', exact: true }).click();
   await settings.getByLabel('Script').fill(testScript);
   await expect(file(page)).toContainText('cat > TEST-shop.xml');
-  await settings.getByRole('button', { name: 'Job settings' }).click();
+  await settings.getByRole('tab', { name: 'Job' }).click();
   await open(settings, 'Reports');
   await settings.getByRole('button', { name: 'Add a report' }).click();
   await settings.getByRole('button', { name: 'Add a report' }).click();
@@ -127,7 +127,6 @@ test('an automation built on the canvas runs on a real runner, reports its tests
   await expect(card(page, 'job')).toBeVisible();
   await card(page, 'job').click();
   settings = panel(page, 'job');
-  await settings.getByRole('button', { name: 'Job settings' }).click();
   await settings.getByLabel('Id', { exact: true }).fill('smoke');
   await settings.getByLabel('Id', { exact: true }).press('Enter');
   settings = panel(page, 'smoke');
@@ -138,13 +137,17 @@ test('an automation built on the canvas runs on a real runner, reports its tests
   const web = settings.getByRole('group', { name: 'web' });
   await web.getByLabel('From').selectOption('image');
   await web.getByLabel('Image').fill('nginx:1.29-alpine');
+  await settings.getByRole('tab', { name: /^Steps/ }).click();
   await settings.getByRole('button', { name: 'Add step' }).click();
-  await settings.getByRole('button', { name: 'Script' }).click();
+  await settings.getByRole('button', { name: 'Script', exact: true }).click();
   await settings.getByLabel('Script').fill('wget -qO- http://web/ | grep -o "Welcome to nginx"');
+  await settings.getByRole('button', { name: 'All steps' }).click();
   await settings.getByRole('button', { name: 'Add step' }).click();
-  await settings.getByRole('button', { name: 'http_request' }).click();
+  await settings.getByRole('button', { name: 'http_request', exact: true }).click();
   // Node steps run on the runner itself, so it asks the server whether it is ready.
-  await settings.getByLabel('url (required)').fill('http://127.0.0.1:5090/health/ready');
+  await settings
+    .getByRole('textbox', { name: 'url (required)', exact: true })
+    .fill('http://127.0.0.1:5090/health/ready');
   await expect(file(page)).toContainText('image: nginx:1.29-alpine');
   await settings.press('Escape');
   // Laid out first: the new card was placed next to the first one.
