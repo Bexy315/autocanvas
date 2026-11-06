@@ -12,8 +12,8 @@ happens in the browser.
 
 Until 0.1 the install script builds the images from a checkout of the repository, which takes a few
 minutes the first time. Images of every commit on `main` are published too
-([Using the published images](#using-the-published-images)), but they are private while the
-repository is.
+([Using the published images](#using-the-published-images)), but they stay private until the
+first release.
 
 :::
 
@@ -135,7 +135,7 @@ Everything the script does can be done by hand, for example to adapt the package
 4. `docker compose up -d`, then `docker compose logs server` for the setup address.
 
 Behind a reverse proxy, set `AUTOCANVAS_TRUSTED_PROXIES` in `.env` to the proxy's address
-([Operations](../technical/operations.md#reverse-proxies-and-https)).
+([Operations](../technical/deployment.md#reverse-proxies-and-https)).
 
 ## Using the published images
 
@@ -155,5 +155,5 @@ AUTOCANVAS_RUNNER_IMAGE=ghcr.io/bexy315/autocanvas-runner:sha-<commit>
 ```
 
 To update, change the tags (or keep `dev`) and run `docker compose pull` and `docker compose up -d`.
-While the repository is private, so are the images: sign in first with
-`docker login ghcr.io`, using a GitHub token with the `read:packages` scope.
+Until the first release the images are private: sign in first with `docker login ghcr.io`, using a
+GitHub token with the `read:packages` scope.

@@ -4,64 +4,13 @@ sidebar_position: 5
 
 # Operations
 
-How to configure and observe the AutoCanvas server. This page grows with the server.
+Looking after a running server: its database and backups, the master key that protects secrets,
+the first setup, the maintenance commands, runners and connected repositories, health checks and
+logs.
 
-## Configuration
-
-The server reads its settings from these sources; a later source wins over an earlier one:
-
-1. `appsettings.json` next to the server
-2. `appsettings.{Environment}.json` (environment from `ASPNETCORE_ENVIRONMENT`, default
-   `Production`)
-3. environment variables starting with `AUTOCANVAS_`
-4. command-line arguments (`--Server:PublicUrl=https://…`)
-
-Environment variables follow the .NET convention: `AUTOCANVAS_` followed by the setting's path with
-`__` (two underscores) between the parts. `Server:PublicUrl` becomes `AUTOCANVAS_Server__PublicUrl`.
-
-A few frequently used settings also have a short name. If both forms are set, the long form wins.
-
-| Short name | Setting | Meaning |
-|---|---|---|
-| `AUTOCANVAS_URLS` | `urls` | Addresses the HTTP API listens on, e.g. `http://+:8080` |
-| `AUTOCANVAS_RUNNER_URLS` | `Runners:Urls` | Addresses runners connect to, e.g. `http://+:5081` (see [Runners](#runners)) |
-| `AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME` | `Bootstrap:AdminUserName` | First admin, created on start while there is no account |
-| `AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD` | `Bootstrap:AdminPassword` | That admin's initial password; must be changed at the first sign-in |
-| `AUTOCANVAS_MASTER_KEY` | `Secrets:MasterKey` | The master key that encrypts secrets (see [Master key](#master-key)) |
-| `AUTOCANVAS_MASTER_KEY_FILE` | `Secrets:MasterKeyFile` | A file holding the master key instead, e.g. a container secret |
-| `AUTOCANVAS_TRUSTED_PROXIES` | `Server:TrustedProxies` | Reverse proxies whose forwarded headers are believed (see [Reverse proxies and HTTPS](#reverse-proxies-and-https)) |
-| `AUTOCANVAS_SETUP_RUNNER_TOKEN_FILE` | `Setup:RunnerTokenFile` | Where the setup hands a registration token to the bundled runner (see [Setting up a fresh installation](#setting-up-a-fresh-installation)) |
-
-Settings are checked when the server starts. An invalid value stops it with a message that names the
-setting and what is expected, instead of failing later on first use.
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `Server:PublicUrl` | none | Absolute `http`/`https` URL users reach the server at, if it differs from what the server sees behind a reverse proxy. Set here, it wins over the address set in the web UI (see [Instance settings](#instance-settings)) |
-| `Runners:PublicUrl` | none | Absolute `http`/`https` URL runners reach the runner endpoint at, shown in the commands to register one; wins over the web UI's |
-| `Setup:Enabled` | `true` | Whether a server without accounts opens the setup; `false` leaves the first admin to `admin create` and the bootstrap settings |
-| `Setup:RunnerTokenFile` | none | A file the setup writes a registration token to, for a runner that reads it from a shared volume |
-| `Repositories:CacheDirectory` | `repositories` in the data directory | Where the server keeps a shallow copy of each connected repository (see [Repositories and forges](#repositories-and-forges)) |
-| `Repositories:GitTimeout` | `00:01:00` | How long one git call of the server may take, 5 seconds to 10 minutes |
-| `Server:TrustedProxies` | none | Reverse proxies whose `X-Forwarded-For` and `X-Forwarded-Proto` are believed: addresses or networks (`10.0.0.0/8`), separated by commas (see [Reverse proxies and HTTPS](#reverse-proxies-and-https)) |
-| `Server:DataDirectory` | `data` | Where the server keeps its files, such as the default SQLite database; relative to the server's directory |
-| `Database:Provider` | `Sqlite` | `Sqlite` or `Postgres` (see [Database](#database)) |
-| `Database:ConnectionString` | SQLite file `autocanvas.db` in the data directory | Required for PostgreSQL |
-| `Database:MigrateOnStart` | `true` | Bring the database schema up to date when the server starts |
-| `Authentication:SessionIdleTimeout` | `7.00:00:00` | A session ends after this long without requests |
-| `Authentication:SessionLifetime` | `30.00:00:00` | A session ends this long after the sign-in, however active |
-| `Bootstrap:AdminUserName`, `Bootstrap:AdminPassword` | none | Create this admin on start while there is no account at all; set both or neither (see [Users and groups](../user/accounts.md#the-first-admin)) |
-| `Runners:Urls` | `http://localhost:5081` | Addresses of the runner endpoint, HTTP/2 only; separate several with `;` (see [Runners](#runners)) |
-| `Runners:HeartbeatInterval` | `00:00:20` | How often runners send a heartbeat; at least one second and at most half of `Queue:LeaseDuration` |
-| `Logs:MaxBytesPerJob` | `67108864` (64 MiB) | Log text one job attempt may store, 1 MiB to 1 GiB; later lines are dropped (see [Runs](../user/runs.md#logs)) |
-| `Reports:MaxBytesPerFile` | `52428800` (50 MiB) | Largest report file a runner may upload, 1 MiB to 1 GiB (see [Reports](../user/reports.md#limits)) |
-| `Reports:MaxFilesPerJob` | `100` | Report files one job attempt may upload, 1 to 1000 |
-| `Webhooks:PerMinute` | `30` | Calls one webhook address takes per minute, 1 to 10,000; more are answered with 429 (see [Triggers](../user/triggers.md#webhooks)) |
-| `Runs:RetentionDays` | `90` | Delete finished runs older than this many days, with their logs and reports, once a day; `0` keeps them forever (see [Runs](../user/runs.md#how-long-runs-are-kept)) |
-| `Runs:KeepPerAutomation` | `20` | The newest runs of each automation, kept however old they are; 0 to 1000 |
-| `Queue:LeaseDuration` | `00:01:00` | How long a runner holds a job after its last heartbeat (10 seconds to 1 hour); then an offered job goes back to the queue and a running one fails as if the runner were gone |
-| `Audit:RetentionDays` | `365` | Delete audit entries older than this many days, once a day; `0` keeps them forever (see [Audit log](audit.md#retention)) |
-| `Secrets:MasterKey` or `Secrets:MasterKeyFile` | `keys/master.key` in the data directory, generated on the first start | The master key, or a file holding it; at most one of them (see [Master key](#master-key)) |
+- The settings themselves are in [Configuration](configuration.md).
+- Container images, the compose package and reverse proxies are in [Deployment](deployment.md).
+- A test instance that deploys itself is in [A dev instance of your own](dev-instance.md).
 
 ## Database
 
@@ -174,13 +123,6 @@ Setup mode does not start when the bootstrap settings create the first admin, an
 as any account exists, for example one created with `admin create`. `Setup:Enabled=false` turns it
 off.
 
-## Instance settings
-
-The public address and the runner address can be set in the web UI (**Administration** →
-**Instance**) and through `GET`/`PUT /api/v1/instance`; they are kept in the database. When `Server:PublicUrl` or
-`Runners:PublicUrl` is set in the configuration, that value wins and the web UI shows it as locked.
-The public address decides, with the request, whether the session cookie is marked `Secure`.
-
 ## Commands
 
 The server executable also runs maintenance commands. They use the same settings as the server and
@@ -283,184 +225,6 @@ repositories' current state as new pushes since the backup and start their runs 
 - **GitHub**: **Administration → Forges** shows whether GitHub answers (installations) and the events
   address GitHub must reach; uninstalled or suspended installations mark their repositories. Reports
   GitHub refuses are logged as *Repositories:* warnings with GitHub's message.
-
-## Reverse proxies and HTTPS
-
-The session cookie is marked `Secure` when the server sees an HTTPS request or when the public
-address starts with `https://`. Behind a proxy that ends TLS, set the public address to the public
-HTTPS address (**Administration** → **Instance**, or `Server:PublicUrl`).
-
-**Trusted proxies**: set `Server:TrustedProxies` (`AUTOCANVAS_TRUSTED_PROXIES`) to the proxy's
-address or network, such as `172.16.0.0/12` for a proxy in a Docker network. The server then believes
-the `X-Forwarded-For` and `X-Forwarded-Proto` headers that come from there: sign-in and setup limits
-count per client, the audit log and the session list show the client's address, and a request the
-proxy took over HTTPS counts as HTTPS. The proxy must set those headers and overwrite any a client
-sent. Without trusted proxies the headers are ignored, and all requests through a proxy count as
-one address.
-
-Webhook calls (`POST /api/v1/hooks/…`) come from other systems; a proxy in front of the API must
-let request bodies of up to 1 MiB through for them, and should not log request paths, which hold
-the webhook tokens.
-
-Following a log live (`…/log/stream`) is a long-lived HTTP response of Server-Sent Events; a proxy
-in front of the API must not buffer it (nginx: the server sends `X-Accel-Buffering: no`; others:
-turn response buffering off for that path) and must allow it to stay open — the server sends a
-comment every 15 seconds while nothing happens.
-
-A proxy in front of the runner endpoint must forward gRPC: HTTP/2 to the server, with trailers, and
-without buffering or timing out long-lived streams. With nginx this is `grpc_pass`, with Caddy
-`reverse_proxy` with `transport http { versions h2c }`, with Traefik a service using `h2c`.
-
-## Web UI
-
-The server serves the web UI on the same address as the HTTP API, from its web root (`wwwroot` next
-to the server; the container image contains it). There is nothing to configure: open the server's
-address in a browser. Behind a reverse proxy, forward every path to the server, not only `/api`,
-and keep the headers the server sets (`Content-Security-Policy`, `Cache-Control`); see
-[Web UI](web-ui.md) for what is cached how. A server built without the UI answers the UI's paths
-with `404` and works otherwise as usual.
-
-## Container image
-
-`src/AutoCanvas.Server/Dockerfile` builds the server with its web UI (from the repository root:
-`docker build -f src/AutoCanvas.Server/Dockerfile -t autocanvas-server .`). It listens on 5080 (web
-UI and API) and 5081 (runners), keeps its data in the volume `/var/lib/autocanvas` and runs as a
-non-root user.
-
-The build argument `SOURCE_REVISION` (a commit) goes into the server's version, which
-`GET /api/v1/info` and the web UI's footer show. The build context has no `.git` to read it from.
-The runner's Dockerfile takes the same argument.
-
-CI builds both images on every change and checks that the server names its commit
-(`deploy/test/image-version.sh`). The *Images* workflow (`.github/workflows/images.yml`) publishes
-every commit on `main` to the GitHub Container Registry:
-- `ghcr.io/bexy315/autocanvas-server` and `-runner`;
-- tagged `sha-<commit>` and `dev`, for `linux/amd64`;
-- private while the repository is ([ADR-0023](../adr/0023-published-images-and-dev-instance.md)).
-
-Releases come with 0.1.
-
-```sh
-docker run -d --name autocanvas -p 5080:5080 -p 5081:5081 -v autocanvas-data:/var/lib/autocanvas \
-  -e AUTOCANVAS_MASTER_KEY=… -e AUTOCANVAS_BOOTSTRAP_ADMIN_USERNAME=admin \
-  -e AUTOCANVAS_BOOTSTRAP_ADMIN_PASSWORD='a first password' autocanvas-server
-```
-
-Without the master key and the bootstrap settings, the server generates a key into
-`/var/lib/autocanvas/keys` (a volume of its own in the compose package) and opens the setup.
-
-## Compose package
-
-`deploy/compose/` holds the package that `deploy/install.sh` and `deploy/install.ps1` install
-([Installation](../user/installation.md)):
-
-- **`compose.yaml`**: the server (ports 5080 and 5081; volumes for the data, the generated master key
-  and the handoff to the runner) and the bundled runner. The runner gets the Docker socket and the
-  socket's group (`AUTOCANVAS_DOCKER_GID`), registers itself with the token the setup writes to the
-  shared `handoff` volume, and announces `linux` and `docker`. Its data lives in a volume; job
-  containers mount their workspaces from that volume's path on the Docker host
-  (`AUTOCANVAS_RUNNER_HOST_DATA`, from `docker volume inspect`), which works the same with Docker
-  Engine and Docker Desktop.
-- **`compose.postgres.yaml`**: adds PostgreSQL 17 and points the server at it; chosen through
-  `COMPOSE_FILE` in `.env`.
-- **`.env.example`**: every variable with a comment.
-
-The install script writes `.env` only once (mode 600), so running it again updates the images and
-keeps the settings. CI installs the package with the script, sets it up through the API and runs the
-example automation on the bundled runner, with SQLite and with PostgreSQL
-(`deploy/test/compose-smoke.sh`).
-
-### Backing up the package
-
-The state lives in volumes named after the compose project (`COMPOSE_PROJECT_NAME` in `.env`,
-`autocanvas` by default). From the instance's directory:
-
-```sh
-# The master key, once and separately from everything else:
-docker run --rm -v autocanvas_keys:/from:ro -v "$PWD":/to alpine:3.22 cp /from/master.key /to/master.key
-
-# SQLite: stop the server for a consistent copy of the data volume.
-docker compose stop server
-docker run --rm -v autocanvas_data:/from:ro -v "$PWD":/to alpine:3.22 tar -czf /to/data.tar.gz -C /from .
-docker compose start server
-
-# PostgreSQL: a dump while it runs.
-docker compose exec -T postgres pg_dump -U autocanvas autocanvas > autocanvas.sql
-```
-
-To restore, create the instance with the install script, stop it, put the files back into the
-volumes the same way (or `psql` the dump into the `postgres` service), and start it. The runner's
-volume needs no backup: a runner can be registered again.
-
-### Updating the package
-
-Run the install script again with the same directory. It builds the images from the current checkout
-and `docker compose up -d` recreates the containers whose image changed. With the published images,
-change their tags in `.env`, then run `docker compose pull` and `docker compose up -d`
-([Installation](../user/installation.md#using-the-published-images)). Either way, schema migrations
-run when the server starts (`Database:MigrateOnStart`). Running jobs end when the runner restarts
-and are retried by their run's rules.
-
-### A proxy in front
-
-To serve AutoCanvas under a name with HTTPS, put a reverse proxy in front of port 5080, for example
-Caddy in the same compose project (`compose.override.yaml` next to `compose.yaml`):
-
-```yaml
-services:
-  caddy:
-    image: caddy:2.10-alpine
-    restart: unless-stopped
-    ports: ["443:443", "80:80"]
-    command: caddy reverse-proxy --from autocanvas.example.org --to server:5080
-```
-
-Then set the public address to `https://autocanvas.example.org` under **Administration** →
-**Instance**, and `AUTOCANVAS_TRUSTED_PROXIES` in `.env` to the compose network (for example
-`172.16.0.0/12`) so the server sees the clients' addresses. Runners on other machines keep using port
-5081, or a gRPC route of the proxy ([Reverse proxies and HTTPS](#reverse-proxies-and-https)).
-
-## A dev instance of your own
-
-A throwaway instance for manual tests:
-- it runs the newest `main` of your repository or fork;
-- it resets itself every night to a seed of test users, folders and runs;
-- it is reachable through Cloudflare Access only.
-
-[ADR-0023](../adr/0023-published-images-and-dev-instance.md) explains the choices. Everything is in
-the repository's `deploy/dev` (its README describes each file) and `.github/workflows/dev.yml`;
-nothing in them names a domain or a host.
-
-To set one up:
-1. **Images**: the *Images* workflow publishes `main` to GHCR under the repository's owner
-   ([Container image](#container-image)).
-2. **Host**: a fresh Ubuntu 24.04 VPS, with an SSH key pair made for deploying. Run
-   `deploy/dev/bootstrap.sh` on it as root.
-   - It sets up Docker, ufw (SSH, and HTTPS from Cloudflare only), SSH with keys only and the user
-     `deploy`.
-   - That user's key may only run `deploy/dev/remote.sh`.
-3. **Cloudflare**:
-   - the domain proxied, SSL/TLS *Full (strict)*;
-   - an origin certificate for the bootstrap;
-   - an Access application for the domain, with the webhook paths (`/api/v1/hooks/*`,
-     `/api/v1/forges/github/events`) as public overrides, so forges can still call them.
-4. **GitHub**: the variable `DEV_URL` and the secrets `DEV_SSH_HOST`, `DEV_SSH_KEY`,
-   `DEV_SSH_KNOWN_HOSTS` and `DEV_SEED_PASSWORD`.
-5. **Run it**: Actions → *Dev instance* → *Run workflow* → *deploy*. The first deploy finds a fresh
-   instance and seeds it.
-
-From then on:
-- every merge whose images are published is deployed, with the data kept, so migrations run on a
-  filled database;
-- at 02:00 UTC the instance is reset;
-- *Run workflow* deploys or resets on demand.
-
-By hand, the deploy key's commands are `deploy <commit>`, `reset` and `status`, with the
-credentials on standard input (`deploy/dev/README.md`, *Deploying*).
-
-The seed's users are `admin`, `viewer`, `operator` and `editor`, all with `DEV_SEED_PASSWORD`. What
-each may do is in the README's table. Nothing on the instance outlives a night: the reset removes the
-data, the master key and the runner's workspaces.
 
 ## Health endpoints
 
