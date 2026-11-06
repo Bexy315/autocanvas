@@ -162,3 +162,9 @@ A group has a unique name, an optional description and any number of members. Gr
 folders to groups rather than to individual users, so that people who join or leave a team only
 need to be added to or removed from its group. Deleting a group removes its memberships, not its
 members.
+
+## See also
+
+- [Folders and permissions](folders.md): giving users and groups roles.
+- [Security](../technical/security.md): sessions, tokens and passwords.
+- [Audit log](../technical/audit.md): what is recorded about accounts.

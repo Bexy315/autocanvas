@@ -59,3 +59,8 @@ All problems in a file are reported at once, not only the first.
 
 Values are read by YAML 1.2 rules: `on`, `yes` and `no` are text, only `true` and `false` are
 booleans.
+
+## See also
+
+- [Automation files](automations.md): the format these problems are about.
+- [Expressions](expressions.md): what expressions may read where.

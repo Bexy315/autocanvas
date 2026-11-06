@@ -187,3 +187,9 @@ it. `nextPollAt` on the repository says when it is asked next.
 `DELETE /api/v1/repositories/<id>` removes the repository from the folder and deletes its
 automations; their runs stay. Nothing in the repository changes. A folder with connected
 repositories cannot be deleted until they are disconnected.
+
+## See also
+
+- **Next**: [GitHub](github.md): pull requests, commit statuses and comments.
+- [Triggers](triggers.md): `push` and `pull_request`.
+- [Operations](../technical/operations.md#repositories-and-forges): what the server needs to reach repositories.

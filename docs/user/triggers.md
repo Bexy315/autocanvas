@@ -155,3 +155,9 @@ curl -X POST "https://autocanvas.example.org/api/v1/hooks/$TOKEN" \
   version has no `webhook: true` (deliberately the same); `409` while a `concurrency: single`
   automation is running; `413` for a body over 1 MiB; `429` beyond `Webhooks:PerMinute` calls a
   minute to one address (30 by default).
+
+## See also
+
+- **Next**: [Expressions](expressions.md): reading what started a run.
+- [Repositories](repositories.md): pushes and pull requests.
+- [Runs](runs.md): following and cancelling what a trigger started.

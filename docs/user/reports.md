@@ -218,3 +218,8 @@ A job uploads at most `Reports:MaxFilesPerJob` files (100 by default), each at m
 
 A file that is not a report of its declared format — not XML, or a different root element — is
 reported on the run with the reason; it does not fail the job.
+
+## See also
+
+- **Next**: [Repositories](repositories.md): runs for every push, results on pull requests.
+- [Runs](runs.md): the run page around the reports.

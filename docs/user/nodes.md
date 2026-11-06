@@ -89,3 +89,8 @@ proves that it builds and gives its digest; with `push: true` it goes to a regis
 The runner keeps BuildKit's cache in a Docker volume of its own, so later builds on the same
 runner reuse unchanged layers. Credentials are handed to BuildKit for the one build and deleted
 afterwards.
+
+## See also
+
+- [Automation files](automations.md#steps): steps around node types.
+- [Expressions](expressions.md): reading a step's outputs.

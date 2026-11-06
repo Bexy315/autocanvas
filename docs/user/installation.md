@@ -157,3 +157,9 @@ AUTOCANVAS_RUNNER_IMAGE=ghcr.io/bexy315/autocanvas-runner:sha-<commit>
 To update, change the tags (or keep `dev`) and run `docker compose pull` and `docker compose up -d`.
 Until the first release the images are private: sign in first with `docker login ghcr.io`, using a
 GitHub token with the `read:packages` scope.
+
+## See also
+
+- **Next**: [Your first automation](web-ui.md): build, run and share one in the web UI.
+- [Configuration](../technical/configuration.md): every setting of the server.
+- [Deployment](../technical/deployment.md): the images, the compose package and a proxy with HTTPS.

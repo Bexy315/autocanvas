@@ -87,3 +87,9 @@ each case's `when`.
 
 Functions (for example to check a prefix) will be added in later versions without changing the
 meaning of existing expressions.
+
+## See also
+
+- **Next**: [Variables and secrets](variables-and-secrets.md): the values `vars` and `secrets` read.
+- [Automation files](automations.md): where expressions may stand.
+- [Problems in automation files](diagnostics.md): what a wrong expression reports.

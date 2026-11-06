@@ -181,3 +181,9 @@ A refused file looks like this — here a job needs `tset` instead of `test`:
   ]
 }
 ```
+
+## See also
+
+- **Next**: [Automation files](automations.md): every key of the format.
+- [Triggers](triggers.md): what starts a run.
+- [Runs](runs.md): what happens when it runs.

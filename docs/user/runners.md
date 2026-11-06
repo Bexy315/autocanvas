@@ -197,3 +197,9 @@ connection, it keeps working and reconnects; jobs it still holds then continue. 
 longer than the lease (one minute by default), its jobs are given up: an offered job goes to another
 runner, a running one fails and is retried if its `retry` allows. When the server itself stops,
 connected runners are told to reconnect a few seconds later.
+
+## See also
+
+- [Deployment](../technical/deployment.md): the bundled runner of the compose package.
+- [Operations](../technical/operations.md#runners): the runner endpoint of the server.
+- [Runner protocol](../protocol/runner-v1.md): writing a runner of your own.

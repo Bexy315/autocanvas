@@ -147,3 +147,9 @@ An explanation looks like this (values shown to Operators):
   ]
 }
 ```
+
+## See also
+
+- **Next**: [Runs](runs.md): what a run reads, and how secrets are masked in its log.
+- [Folders and permissions](folders.md): where values are defined and who may change them.
+- [Security](../technical/security.md): how secrets are stored.
