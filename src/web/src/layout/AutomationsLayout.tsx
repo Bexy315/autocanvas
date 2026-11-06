@@ -27,7 +27,7 @@ export function AutomationsLayout() {
         className={clsx('flex shrink-0 flex-col border-r border-line bg-surface', collapsed ? 'w-10' : 'w-60')}
       >
         <div className="flex h-10 items-center justify-between gap-2 border-b border-line px-2">
-          {!collapsed && <span className="px-1 text-xs font-medium text-muted">Folders</span>}
+          {!collapsed && <span className="px-1 text-xs font-medium text-muted">Folders and automations</span>}
           <button
             type="button"
             onClick={toggle}
@@ -46,10 +46,13 @@ export function AutomationsLayout() {
         {!collapsed && (
           <div className="min-h-0 flex-1 overflow-auto px-1.5">
             <FolderTree
-              label="Folders"
-              selectedId={info?.folderId}
-              expandedIds={info?.folderPath}
+              label="Folders and automations"
+              // On an automation's page the automation is highlighted, inside its folder.
+              selectedId={info?.automationId ?? info?.folderId}
+              // The page's folder is open too, showing what is in it.
+              expandedIds={info?.folderId ? [...(info.folderPath ?? []), info.folderId] : info?.folderPath}
               onChoose={(folder) => void navigate(`/folders/${folder.id}`)}
+              onChooseAutomation={(id) => void navigate(`/automations/${id}`)}
             />
           </div>
         )}

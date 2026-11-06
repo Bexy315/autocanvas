@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
-import { ChevronRight, Folder, Lock } from 'lucide-react';
+import { ChevronRight, Folder, GitBranch, Lock, Workflow } from 'lucide-react';
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
-import { useChildren, useStartFolders } from '../api/folders';
+import { useChildren, useFolderAutomations, useStartFolders } from '../api/folders';
 import type { FolderRole } from '../lib/roles';
 import { Spinner } from '../ui/Spinner';
 
@@ -24,6 +24,11 @@ export interface FolderTreeProps {
   onChoose: (folder: TreeFolder) => void;
   /** Whether a folder can be chosen; the others are shown but disabled (e.g. without the Editor role). */
   canChoose?: (folder: TreeFolder) => boolean;
+  /**
+   * Shows each open folder's automations after its subfolders, and what choosing one does. Without
+   * it the tree holds folders only, as where a folder is picked.
+   */
+  onChooseAutomation?: ((id: string) => void) | undefined;
 }
 
 /**
@@ -40,6 +45,7 @@ export function FolderTree({
   expandedIds = noIds,
   onChoose,
   canChoose = anyFolder,
+  onChooseAutomation,
 }: FolderTreeProps) {
   const roots = useStartFolders();
   // What the user opened or closed; other folders are open when they are on the path to the
@@ -134,6 +140,7 @@ export function FolderTree({
           onToggle={toggle}
           onChoose={onChoose}
           canChoose={canChoose}
+          onChooseAutomation={onChooseAutomation}
           onFocusItem={setFocusedId}
         />
       ))}
@@ -150,6 +157,7 @@ interface NodeProps {
   onToggle: (id: string, open?: boolean) => void;
   onChoose: (folder: TreeFolder) => void;
   canChoose: (folder: TreeFolder) => boolean;
+  onChooseAutomation: ((id: string) => void) | undefined;
   onFocusItem: (id: string) => void;
 }
 
@@ -162,6 +170,7 @@ function TreeNode({
   onToggle,
   onChoose,
   canChoose,
+  onChooseAutomation,
   onFocusItem,
 }: NodeProps) {
   const open = isOpen(folder.id);
@@ -169,8 +178,15 @@ function TreeNode({
   const nameId = useId();
   const children = useChildren(folder.id, open);
   const subfolders = children.data?.pages.flatMap((page) => page.items) ?? [];
+  const withAutomations = onChooseAutomation !== undefined;
+  const automationPages = useFolderAutomations(folder.id, open && withAutomations);
+  const automations = withAutomations ? (automationPages.data?.pages.flatMap((page) => page.items) ?? []) : [];
   // Before loading, every folder may have children; once loaded, an empty one shows no arrow.
-  const leaf = open && children.isSuccess && subfolders.length === 0;
+  const leaf =
+    open &&
+    children.isSuccess &&
+    subfolders.length === 0 &&
+    (!withAutomations || (automationPages.isSuccess && automations.length === 0));
   const choosable = canChoose(folder);
   const selected = folder.id === selectedId;
 
@@ -238,7 +254,7 @@ function TreeNode({
           {folder.isRestricted && <Lock aria-label="Restricted" size={12} className="shrink-0 text-muted" />}
         </button>
       </div>
-      {open && subfolders.length > 0 && (
+      {open && (subfolders.length > 0 || automations.length > 0) && (
         // The ARIA tree pattern wants role="group" on the list of a treeitem's children.
         // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
         <ul role="group">
@@ -253,6 +269,7 @@ function TreeNode({
               onToggle={onToggle}
               onChoose={onChoose}
               canChoose={canChoose}
+              onChooseAutomation={onChooseAutomation}
               onFocusItem={onFocusItem}
             />
           ))}
@@ -267,8 +284,100 @@ function TreeNode({
               </button>
             </li>
           )}
+          {onChooseAutomation &&
+            automations.map((automation) => (
+              <AutomationItem
+                key={automation.id}
+                id={automation.id}
+                title={automation.title}
+                fromRepository={automation.repository !== null && automation.repository !== undefined}
+                depth={depth + 1}
+                selected={automation.id === selectedId}
+                tabStop={tabStop}
+                onChoose={onChooseAutomation}
+                onFocusItem={onFocusItem}
+              />
+            ))}
+          {withAutomations && automationPages.hasNextPage && (
+            <li role="none" style={{ paddingLeft: `${(depth + 1) * 14 + 28}px` }}>
+              <button
+                type="button"
+                onClick={() => void automationPages.fetchNextPage()}
+                className="h-7 text-xs text-accent hover:underline"
+              >
+                Show more automations
+              </button>
+            </li>
+          )}
         </ul>
       )}
+    </li>
+  );
+}
+
+/** An automation in its folder: a leaf of the tree, with the icon of where it lives. */
+function AutomationItem({
+  id,
+  title,
+  fromRepository,
+  depth,
+  selected,
+  tabStop,
+  onChoose,
+  onFocusItem,
+}: {
+  id: string;
+  title: string;
+  fromRepository: boolean;
+  depth: number;
+  selected: boolean;
+  tabStop: string | undefined;
+  onChoose: (id: string) => void;
+  onFocusItem: (id: string) => void;
+}) {
+  const nameId = useId();
+  const Icon = fromRepository ? GitBranch : Workflow;
+  return (
+    <li
+      role="treeitem"
+      data-id={id}
+      aria-labelledby={nameId}
+      aria-level={depth + 1}
+      aria-selected={selected}
+      tabIndex={tabStop === id ? 0 : -1}
+      onFocus={(event) => {
+        if (event.target === event.currentTarget) {
+          onFocusItem(id);
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onChoose(id);
+        }
+      }}
+      className="outline-none [&:focus-visible>div]:outline-2 [&:focus-visible>div]:outline-focus"
+    >
+      <div
+        className={clsx(
+          'flex h-7 items-center gap-1 rounded-control pr-2 text-sm',
+          selected ? 'bg-accent-soft font-medium text-accent' : 'text-ink hover:bg-sunken',
+        )}
+        // Where a folder's arrow is, an automation has none: its icon lines up with the folders' icons.
+        style={{ paddingLeft: `${depth * 14 + 4 + 24}px` }}
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => onChoose(id)}
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+        >
+          <Icon aria-hidden="true" size={14} className={clsx('shrink-0', !selected && 'text-muted')} />
+          <span id={nameId} className="truncate">
+            {title}
+          </span>
+        </button>
+      </div>
     </li>
   );
 }

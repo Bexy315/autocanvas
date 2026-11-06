@@ -48,9 +48,10 @@ export function useChildren(id: string, enabled = true) {
   });
 }
 
-export function useFolderAutomations(id: string) {
+export function useFolderAutomations(id: string, enabled = true) {
   return useInfiniteQuery({
     queryKey: folderKeys.automations(id),
+    enabled,
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       unwrap(

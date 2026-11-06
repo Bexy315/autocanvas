@@ -25,10 +25,8 @@ test('folders and automations are created, compared, renamed, moved and deleted'
   await page.getByRole('textbox', { name: 'Name' }).fill('Backend');
   await page.getByRole('button', { name: 'Create folder' }).click();
   await expect(page.getByRole('heading', { name: 'Backend', level: 1 })).toBeVisible();
-  await expect(page.getByRole('tree', { name: 'Folders' }).getByRole('treeitem', { name: 'Backend' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  );
+  const tree = page.getByRole('tree', { name: 'Folders and automations' });
+  await expect(tree.getByRole('treeitem', { name: 'Backend' })).toHaveAttribute('aria-selected', 'true');
   await snapshot(page, 'folders-1-empty-folder');
 
   // An automation from the starter file: the server accepts it as it is.
@@ -40,6 +38,8 @@ test('folders and automations are created, compared, renamed, moved and deleted'
   await expect(page.getByRole('heading', { name: 'build', level: 1 })).toBeVisible();
   await expect(page.getByText('By hand', { exact: true })).toBeVisible();
   const id = new URL(page.url()).pathname.split('/').at(-1) ?? '';
+  // The tree shows it in its folder, chosen.
+  await expect(tree.getByRole('treeitem', { name: 'build' })).toHaveAttribute('aria-selected', 'true');
 
   // A file with a mistake is refused with the problem, its place and its code.
   await page.getByRole('link', { name: 'Backend' }).click();

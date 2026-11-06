@@ -14,6 +14,8 @@ export interface PageInfo {
   folderId?: string;
   /** The folders above it that the user may open, from the top: expanded in the tree. */
   folderPath?: string[];
+  /** The automation the page is about, highlighted in the tree inside its folder. */
+  automationId?: string;
 }
 
 export const PageInfoContext = createContext<{ info: PageInfo | null; setInfo: (info: PageInfo | null) => void }>({
