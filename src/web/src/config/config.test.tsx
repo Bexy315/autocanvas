@@ -176,31 +176,38 @@ describe('the triggers of an automation', () => {
 });
 
 describe('the configuration of an automation', () => {
-  it('shows its secrets, the variables of its file, and where every value comes from', async () => {
+  it('lists its variables and secrets with where each is defined, and what it overrides', async () => {
     server();
     const { user } = renderApp('/automations/a1/configuration');
-    const secrets = await screen.findByRole('region', { name: 'Secrets' });
-    expect(await within(secrets).findByText('TOKEN')).toBeInTheDocument();
-    const file = screen.getByRole('region', { name: 'Variables in the file' });
-    expect(await within(file).findByText('eu-west')).toBeInTheDocument();
-
-    const explained = await screen.findByRole('list', { name: 'Variables and where they come from' });
-    expect(within(explained).getByText('from')).toBeInTheDocument();
-    expect(within(explained).getByRole('link', { name: 'folder Team' })).toHaveAttribute(
+    const variables = await screen.findByRole('list', { name: 'Variables' });
+    // One list: the file's variable and the one from the folder, which overrides the instance's.
+    const region = within(variables).getByText('REGION').closest('li');
+    const channel = within(variables).getByText('CHANNEL').closest('li');
+    if (!region || !channel) {
+      throw new Error('Missing rows.');
+    }
+    expect(within(region).getByText('eu-west')).toBeInTheDocument();
+    expect(within(region).getByText('in the file')).toBeInTheDocument();
+    expect(within(channel).getByText('stable')).toBeInTheDocument();
+    expect(within(channel).getByRole('link', { name: 'folder Team' })).toHaveAttribute(
       'href',
       '/folders/team/configuration',
     );
-    await user.click(within(explained).getByRole('button', { name: 'Every definition of CHANNEL' }));
+    await user.click(within(channel).getByRole('button', { name: 'Every definition of CHANNEL' }));
+    expect(within(channel).getByRole('button', { name: 'Every definition of CHANNEL' })).toHaveTextContent(
+      'overrides instance',
+    );
     const chain = screen.getByRole('list', { name: 'Definitions of CHANNEL, from the instance down' });
     expect(within(chain).getByText('beta')).toHaveClass('font-mono');
-    expect(
-      within(screen.getByRole('list', { name: 'Secrets and where they come from' })).getByText('this automation'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Change in the editor' })).toHaveAttribute('href', '/automations/a1/edit');
+    // The file's variables change in the editor, not here.
+    expect(within(variables).queryByRole('button', { name: /^Change / })).not.toBeInTheDocument();
 
-    await user.type(screen.getByRole('searchbox', { name: 'Find a name' }), 'reg');
-    expect(
-      within(screen.getByRole('list', { name: 'Variables and where they come from' })).queryByText('CHANNEL'),
-    ).not.toBeInTheDocument();
+    const secrets = screen.getByRole('list', { name: 'Secrets' });
+    const token = within(secrets).getByText('TOKEN').closest('li');
+    expect(token && within(token).getByText('here')).toBeInTheDocument();
+    expect(within(secrets).getByRole('button', { name: 'Replace TOKEN' })).toBeInTheDocument();
+    expect(screen.queryByText('Where each value comes from')).not.toBeInTheDocument();
   });
 
   it('sets a secret without ever showing its value', async () => {
@@ -237,6 +244,17 @@ describe('the configuration of a folder', () => {
     const variables = await screen.findByRole('region', { name: 'Variables' });
     expect(await within(variables).findByText('stable')).toBeInTheDocument();
     expect(within(variables).getByText('Hidden: values need the Operator role')).toBeInTheDocument();
+    // What the folder sets is tagged "here"; what comes from above can be overridden here.
+    const channel = within(variables).getByText('CHANNEL').closest('li');
+    expect(channel && within(channel).getByText('here')).toBeInTheDocument();
+    const region = within(variables).getByText('REGION').closest('li');
+    if (!region) {
+      throw new Error('No REGION row.');
+    }
+    await user.click(within(region).getByRole('button', { name: 'Override REGION here' }));
+    const override = await screen.findByRole('dialog', { name: 'Override the variable REGION here' });
+    expect(within(override).queryByLabelText('Name')).not.toBeInTheDocument();
+    await user.click(within(override).getByRole('button', { name: 'Cancel' }));
 
     await user.click(within(variables).getByRole('button', { name: 'Change CHANNEL' }));
     const change = await screen.findByRole('dialog', { name: 'Change the variable CHANNEL' });

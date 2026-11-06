@@ -94,13 +94,15 @@ test('triggers show when they fire, a webhook is created and called, and variabl
   await editing.getByRole('button', { name: 'Add variable' }).click();
   await expect(page.getByRole('region', { name: 'Variables' }).getByText('beta')).toBeVisible();
 
-  // Where each value a run reads comes from.
+  // What a run reads, in one list per kind: each value with where it is defined.
   await page.goto(`/automations/${id}/configuration`);
-  const explained = page.getByRole('list', { name: 'Variables and where they come from' });
-  await expect(explained.getByText('stable')).toBeVisible();
-  await expect(explained.getByText('from folder Config, overriding 1')).toBeVisible();
-  await expect(explained.getByText("from the automation's file")).toBeVisible();
-  await explained.getByRole('button', { name: 'Every definition of CHANNEL' }).click();
+  const variables = page.getByRole('list', { name: 'Variables' });
+  const channel = variables.getByRole('listitem').filter({ hasText: 'CHANNEL' });
+  await expect(channel.getByText('stable')).toBeVisible();
+  await expect(channel.getByRole('link', { name: 'folder Config' })).toBeVisible();
+  await expect(variables.getByRole('listitem').filter({ hasText: 'REGION' }).getByText('in the file')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Secrets' }).getByRole('link', { name: 'folder Config' })).toBeVisible();
+  await channel.getByRole('button', { name: 'Every definition of CHANNEL' }).click();
   await expect(page.getByRole('list', { name: 'Definitions of CHANNEL, from the instance down' })).toContainText(
     'beta',
   );

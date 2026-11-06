@@ -22,6 +22,7 @@ export function ValueDialog({
   kind,
   name: existing,
   initialValue = '',
+  overrides,
   busy,
   error,
   onSave,
@@ -32,6 +33,8 @@ export function ValueDialog({
   /** The name of the one being changed; null for a new one. */
   name: string | null;
   initialValue?: string;
+  /** Where the one this overrides is defined ("folder Team"): a new definition here, of that name. */
+  overrides?: string | undefined;
   busy: boolean;
   error: unknown;
   onSave: (name: string, value: string) => void;
@@ -51,22 +54,26 @@ export function ValueDialog({
       onSave(name.trim(), value);
     }
   };
-  const title = existing
-    ? kind === 'secret'
-      ? `Replace the secret ${existing}`
-      : `Change the variable ${existing}`
-    : kind === 'secret'
-      ? 'Add a secret'
-      : 'Add a variable';
+  const title = overrides
+    ? `Override the ${kind} ${existing ?? ''} here`
+    : existing
+      ? kind === 'secret'
+        ? `Replace the secret ${existing}`
+        : `Change the variable ${existing}`
+      : kind === 'secret'
+        ? 'Add a secret'
+        : 'Add a variable';
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
       title={title}
-      {...(kind === 'secret'
-        ? { description: 'The value is stored encrypted. Nobody can read it back, not even here.' }
-        : {})}
+      {...(overrides
+        ? { description: `Set here, it wins over the one from ${overrides} for everything below.` }
+        : kind === 'secret'
+          ? { description: 'The value is stored encrypted. Nobody can read it back, not even here.' }
+          : {})}
     >
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         {other && <ErrorAlert error={error} />}
@@ -92,7 +99,7 @@ export function ValueDialog({
         <DialogActions>
           <Button onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button type="submit" variant="primary" busy={busy} disabled={!namePattern.test(name.trim())}>
-            {existing ? 'Save' : kind === 'secret' ? 'Add secret' : 'Add variable'}
+            {overrides ? 'Override' : existing ? 'Save' : kind === 'secret' ? 'Add secret' : 'Add variable'}
           </Button>
         </DialogActions>
       </form>
