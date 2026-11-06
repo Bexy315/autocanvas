@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { signIn, snapshot } from './helpers';
+import { docsShot, signIn, snapshot } from './helpers';
 
 const file = `version: 1
 name: Deploy
@@ -107,4 +107,5 @@ test('triggers show when they fire, a webhook is created and called, and variabl
     'beta',
   );
   await snapshot(page, 'configuration-1-automation');
+  await docsShot(page, 'configuration-automation');
 });

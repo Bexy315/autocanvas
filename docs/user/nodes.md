@@ -48,6 +48,12 @@ response.
 A request that gets no answer in time, or cannot be sent at all, fails the step; the log says why.
 Secrets used in the inputs are masked in the log and in the outputs.
 
+On the canvas, a step of a node type shows its inputs as a form, with what each one does and what
+applies while it is empty:
+
+![An http_request step's inputs in the side panel](img/nodes-http-request-light.png#gh-light-mode-only)
+![An http_request step's inputs in the side panel](img/nodes-http-request-dark.png#gh-dark-mode-only)
+
 ## `docker_build`
 
 Builds a container image from a Dockerfile in the workspace with rootless

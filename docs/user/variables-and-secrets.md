@@ -39,6 +39,9 @@ others says so; unfold it to see every definition from the instance down, those 
 through. Variable values need the Operator role; secret values are never shown. An automation's
 own variables are changed in the editor.
 
+![An automation's variables and secrets, each with where it is defined](img/configuration-automation-light.png#gh-light-mode-only)
+![An automation's variables and secrets, each with where it is defined](img/configuration-automation-dark.png#gh-dark-mode-only)
+
 ## Where values are defined
 
 | Place | Variables | Secrets |

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { signIn, snapshot } from './helpers';
+import { docsShot, signIn, snapshot } from './helpers';
 
 const csrf = { 'X-AutoCanvas-Request': '1' };
 const file = `version: 1
@@ -45,6 +45,7 @@ test('an admin adds a person, shares a folder with them, and they see it; runner
   await shown.getByLabel('I have passed the password on').check();
   await shown.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('list', { name: 'Users' })).toContainText('Vic Viewer');
+  await docsShot(page, 'admin-users');
 
   // A group, with vic in it.
   await page.goto('/admin/groups');
@@ -56,6 +57,7 @@ test('an admin adds a person, shares a folder with them, and they see it; runner
   await members.getByLabel('Add a person').fill(userName);
   await members.getByRole('button', { name: new RegExp(`^${userName}`) }).click();
   await expect(members.getByRole('list', { name: 'Members' })).toContainText(userName);
+  await docsShot(page, 'admin-group-members');
   await members.getByRole('button', { name: 'Close' }).first().click();
 
   // The folder shared with the group, as Viewer.

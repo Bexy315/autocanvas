@@ -143,6 +143,9 @@ its menu. **Register a runner** makes a registration token: it is shown once, wi
 command for Docker and for .NET, using the server's runner address (which you can adjust). Open
 registration tokens are listed below the runners and can be deleted.
 
+![A runner that is online, and the registration tokens](img/admin-runners-light.png#gh-light-mode-only)
+![A runner that is online, and the registration tokens](img/admin-runners-dark.png#gh-dark-mode-only)
+
 ## Registering a runner
 
 1. Create a registration token:

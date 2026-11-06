@@ -15,7 +15,20 @@ const cli = fileURLToPath(new URL('../node_modules/@playwright/test/cli.js', imp
 rmSync(shots, { recursive: true, force: true });
 execFileSync(
   process.execPath,
-  [cli, 'test', '01-smoke', '11-walk-through', '12-setup', '13-forges', '14-repositories', '16-github'],
+  [
+    cli,
+    'test',
+    '01-smoke',
+    '03-editor',
+    '06-canvas-panel',
+    '09-triggers-configuration',
+    '10-sharing-admin',
+    '11-walk-through',
+    '12-setup',
+    '13-forges',
+    '14-repositories',
+    '16-github',
+  ],
   {
     cwd: root,
     stdio: 'inherit',

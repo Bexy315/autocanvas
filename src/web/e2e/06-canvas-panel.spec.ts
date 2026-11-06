@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { signIn, snapshot } from './helpers';
+import { docsShot, signIn, snapshot } from './helpers';
 
 const start = `# Built in the panel
 version: 1
@@ -65,6 +65,7 @@ test('a job, its steps and the triggers are set up in the side panel, keeping th
   await build.getByRole('textbox', { name: 'url (required)', exact: true }).fill('https://example.com/hook');
   await expect(file(page)).toContainText('url: https://example.com/hook');
   await snapshot(page, 'panel-1-step');
+  await docsShot(page, 'nodes-http-request');
 
   // The second step goes first; then the job gets another id, and what names it follows.
   await build.getByRole('button', { name: 'All steps' }).click();
@@ -90,6 +91,7 @@ test('a job, its steps and the triggers are set up in the side panel, keeping th
   await expect(compile.getByRole('button', { name: /^Value of TOKEN: secret DEPLOY_TOKEN/ })).toBeVisible();
   await compile.getByRole('button', { name: 'Insert a variable or secret into Value of TOKEN' }).click();
   await snapshot(page, 'panel-2-expressions');
+  await docsShot(page, 'values-insert');
   await page.keyboard.press('Escape');
 
   // A job from the palette waits for another, chosen with the keyboard in its panel.
