@@ -236,7 +236,7 @@ describe('repository automations', () => {
 
   it('show where they come from and offer no rename, move or delete', async () => {
     withAutomation();
-    renderApp('/automations/a1');
+    const { user } = renderApp('/automations/a1');
 
     const card = await screen.findByRole('region', { name: 'From repository' });
     expect(within(card).getByRole('link', { name: '.autocanvas/automations/build.yml' })).toHaveAttribute(
@@ -245,7 +245,8 @@ describe('repository automations', () => {
     );
     expect(within(card).getByRole('link', { name: commit.slice(0, 7) })).toHaveAttribute('href', source.commitUrl);
     expect(screen.getByText('From shop')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Automation actions' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Automation actions' }));
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Download']);
   });
 
   it('are proposed as a pull request from the editor', async () => {

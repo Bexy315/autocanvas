@@ -61,13 +61,16 @@ function AutomationPage({ context }: { context: AutomationContext }) {
     setOpen(next ? name : null);
   };
 
-  const actions: Action[] = editor
-    ? [
-        { label: 'Rename', Icon: Pencil, onSelect: () => setOpen('rename') },
-        { label: 'Move', Icon: FolderInput, onSelect: () => setOpen('move') },
-        { label: 'Delete', Icon: Trash2, onSelect: () => setOpen('delete'), danger: true },
-      ]
-    : [];
+  const actions: Action[] = [
+    { label: 'Download', Icon: Download, href: downloadUrl(automation.id) },
+    ...(editor
+      ? [
+          { label: 'Rename', Icon: Pencil, onSelect: () => setOpen('rename') },
+          { label: 'Move', Icon: FolderInput, onSelect: () => setOpen('move') },
+          { label: 'Delete', Icon: Trash2, onSelect: () => setOpen('delete'), danger: true },
+        ]
+      : []),
+  ];
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 p-6">
@@ -87,14 +90,6 @@ function AutomationPage({ context }: { context: AutomationContext }) {
                 Run
               </Button>
             )}
-            <a
-              href={downloadUrl(automation.id)}
-              download
-              className="inline-flex h-8 items-center gap-1.5 rounded-control border border-line-strong bg-surface px-3 text-sm font-medium hover:bg-sunken"
-            >
-              <Download aria-hidden="true" size={16} />
-              Download
-            </a>
             <ActionsMenu label="Automation actions" actions={actions} />
           </>
         }

@@ -122,7 +122,9 @@ describe("an automation's overview", () => {
     await user.click(screen.getByRole('button', { name: 'File' }));
     expect(screen.getByRole('region', { name: 'File of Build' })).toHaveTextContent('- run: make');
     expect(localStorage.getItem('autocanvas.overview.view')).toBe('file');
-    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute('href', '/api/v1/automations/a1/yaml');
+    await user.click(screen.getByRole('button', { name: 'Automation actions' }));
+    expect(screen.getByRole('menuitem', { name: 'Download' })).toHaveAttribute('href', '/api/v1/automations/a1/yaml');
+    await user.keyboard('{Escape}');
     const crumbs = screen.getByRole('navigation', { name: 'Breadcrumbs' });
     expect(within(crumbs).getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/folders/team');
   });
@@ -148,10 +150,12 @@ describe("an automation's overview", () => {
 
   it('offers no changes to viewers', async () => {
     server({ 'GET /api/v1/automations/a1': () => json(automationView('a1', 'team', { role: 'Viewer' })) });
-    renderApp('/automations/a1');
+    const { user } = renderApp('/automations/a1');
 
     expect(await screen.findByRole('heading', { name: 'Build', level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Automation actions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Run' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Automation actions' }));
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Download']);
   });
 });
 
