@@ -1,14 +1,12 @@
 import { clsx } from 'clsx';
-import { Ban, CircleCheck, CircleDashed, CircleSlash, CircleX, Clock, LoaderCircle, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
 import { Link } from 'react-router';
 import { useRunReports, type ReportSummary } from '../api/reports';
-import { useRunJob, type JobStep } from '../api/runs';
+import { useRunJob } from '../api/runs';
 import { duration } from '../lib/time';
 import { ErrorAlert } from '../ui/Alert';
 import { Badge, type BadgeTone } from '../ui/Badge';
 import { Loading } from '../ui/Spinner';
-import { LogView, type StepJump } from './log/LogView';
+import { LogView } from './log/LogView';
 import { coverageText, latestReports, testTotalsText } from './reports/reportModel';
 import { useAttemptLog } from './log/useAttemptLog';
 import { useNow } from './useNow';
@@ -22,20 +20,9 @@ const jobTones: Record<string, BadgeTone> = {
   Skipped: 'neutral',
 };
 
-const stepIcons: Record<JobStep['status'], { Icon: typeof CircleCheck; className: string }> = {
-  Sent: { Icon: CircleDashed, className: 'text-muted' },
-  Running: { Icon: LoaderCircle, className: 'animate-spin text-accent' },
-  Succeeded: { Icon: CircleCheck, className: 'text-ok' },
-  Failed: { Icon: CircleX, className: 'text-danger' },
-  Cancelled: { Icon: Ban, className: 'text-muted' },
-  TimedOut: { Icon: Clock, className: 'text-danger' },
-  Errored: { Icon: TriangleAlert, className: 'text-danger' },
-  Skipped: { Icon: CircleSlash, className: 'text-muted' },
-};
-
 /**
- * A job of a run: its status and outputs, its attempts (the last one shown first), the steps of the
- * attempt shown, and its log.
+ * A job of a run: its status, runner, reports and outputs in one block, its attempts (the last one
+ * shown first), and the attempt's log, which lists its steps.
  */
 export function JobDetail({
   runId,
@@ -50,7 +37,6 @@ export function JobDetail({
   onAttempt: (number: number) => void;
 }) {
   const job = useRunJob(runId, jobKey);
-  const [jump, setJump] = useState<StepJump | null>(null);
   const attempts = job.data?.attempts ?? [];
   const attempt = attempts.find((candidate) => Number(candidate.number) === attemptNumber) ?? attempts.at(-1) ?? null;
   const log = useAttemptLog(runId, attempt);
@@ -68,16 +54,21 @@ export function JobDetail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-col gap-1.5 border-b border-line bg-surface px-4 py-3">
+      <header className="flex flex-col gap-1.5 border-b border-line bg-surface px-4 py-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-base font-semibold">{detail.name}</h2>
           <Badge tone={jobTones[detail.status] ?? 'neutral'}>{detail.status}</Badge>
-          {detail.startedAt && (
-            <span className="text-xs text-muted">{duration(detail.startedAt, detail.finishedAt, now)}</span>
-          )}
+          <span className="text-xs text-muted">
+            {[
+              detail.startedAt ? duration(detail.startedAt, detail.finishedAt, now) : null,
+              attempt ? (attempt.runnerName ? `on ${attempt.runnerName}` : 'waiting for a runner') : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
+          <JobReports reports={reports.data?.reports ?? []} jobKey={jobKey} />
         </div>
         {detail.reason && <p className="text-sm text-muted">{detail.reason}</p>}
-        <JobReports reports={reports.data?.reports ?? []} jobKey={jobKey} />
         {outputs.length > 0 && (
           <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             {outputs.map(([name, value]) => (
@@ -117,47 +108,14 @@ export function JobDetail({
         </p>
       ) : (
         <>
-          <div className="border-b border-line bg-surface px-4 py-2 text-xs text-muted">
-            {attempt.runnerName ? `On ${attempt.runnerName}` : 'Waiting for a runner'}
-            {attempt.startedAt && ` · ${duration(attempt.startedAt, attempt.finishedAt, now)}`}
-          </div>
           {attempt.error && (
             <p className="border-b border-line bg-danger-soft px-4 py-2 text-sm text-danger">{attempt.error}</p>
-          )}
-          {attempt.steps.length > 0 && (
-            <ol aria-label="Steps" className="max-h-48 shrink-0 overflow-y-auto border-b border-line bg-surface py-1">
-              {attempt.steps.map((step) => {
-                const { Icon, className } = stepIcons[step.status];
-                const index = Number(step.index);
-                return (
-                  <li key={index}>
-                    <button
-                      type="button"
-                      onClick={() => setJump({ stepIndex: index, nonce: (jump?.nonce ?? 0) + 1 })}
-                      className="flex w-full items-center gap-2 px-4 py-1 text-left text-sm hover:bg-sunken"
-                    >
-                      <Icon aria-hidden="true" size={14} className={clsx('shrink-0', className)} />
-                      <span className="w-5 shrink-0 text-right text-xs text-muted">{index + 1}</span>
-                      <span className="min-w-0 flex-1 truncate">{step.name}</span>
-                      <span className="shrink-0 text-xs text-muted">
-                        {step.status === 'Running' || step.status === 'Sent' ? step.status.toLowerCase() : step.status}
-                        {step.exitCode !== null && step.exitCode !== undefined && step.status === 'Failed'
-                          ? ` (exit ${step.exitCode})`
-                          : ''}
-                        {step.startedAt && ` · ${duration(step.startedAt, step.finishedAt, now)}`}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
           )}
           <LogView
             key={attempt.id}
             log={log}
             steps={attempt.steps}
             label={`${detail.name}, attempt ${attempt.number}`}
-            jump={jump}
           />
         </>
       )}
@@ -177,7 +135,7 @@ function JobReports({ reports, jobKey }: { reports: readonly ReportSummary[]; jo
     tests.reduce((total, entry) => total + Number(entry[key]), 0);
   const failed = sum('failed');
   return (
-    <p className="flex flex-wrap gap-x-3 text-xs">
+    <span className="flex flex-wrap gap-x-3 text-xs">
       {tests.length > 0 && (
         <Link to="?view=tests" className={failed > 0 ? 'text-danger hover:underline' : 'text-muted hover:underline'}>
           {testTotalsText({
@@ -194,6 +152,6 @@ function JobReports({ reports, jobKey }: { reports: readonly ReportSummary[]; jo
           Coverage: {coverageText(coverage)}
         </Link>
       )}
-    </p>
+    </span>
   );
 }

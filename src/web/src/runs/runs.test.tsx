@@ -377,12 +377,18 @@ const liveLog = (lines: string[], status: AttemptLog['status'] = 'live'): Attemp
 });
 
 const viewSteps = [
-  { index: 0, name: 'Install' },
-  { index: 1, name: 'Test' },
+  {
+    index: 0,
+    name: 'Install',
+    status: 'Succeeded',
+    startedAt: '2026-11-02T10:00:00Z',
+    finishedAt: '2026-11-02T10:00:02Z',
+  },
+  { index: 1, name: 'Test', status: 'Failed', exitCode: 1, startedAt: '2026-11-02T10:00:02Z', finishedAt: null },
 ] as unknown as JobAttempt['steps'];
 
 describe('the log view', () => {
-  it('searches, folds steps away, wraps, shows times and links lines', () => {
+  it('opens failed steps, opens and closes steps, searches, wraps, shows times and links lines', () => {
     render(
       <LogView
         log={liveLog(['npm ci', 'done', 'jest', 'FAIL checkout', 'PASS cart'])}
@@ -391,7 +397,22 @@ describe('the log view', () => {
       />,
     );
     const lines = screen.getByRole('log', { name: 'Lines of build' });
+    // The failed step is open; the one that went well is closed, with how long it took.
     expect(within(lines).getByText('FAIL checkout')).toBeInTheDocument();
+    expect(within(lines).getByRole('button', { name: /^2\. Test, Failed \(exit 1\), / })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    const install = within(lines).getByRole('button', { name: /^1\. Install, Succeeded, 2/ });
+    expect(install).toHaveAttribute('aria-expanded', 'false');
+    expect(within(lines).queryByText('npm ci')).not.toBeInTheDocument();
+
+    // A match in a closed step opens it.
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search the log' }), { target: { value: 'npm' } });
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Enter' });
+    expect(within(lines).getByText('npm ci')).toBeInTheDocument();
+    fireEvent.click(install);
+    expect(within(lines).queryByText('npm ci')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search the log' }), { target: { value: 'checkout' } });
     expect(screen.getByText('1 of 1')).toBeInTheDocument();
@@ -402,8 +423,8 @@ describe('the log view', () => {
     fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' });
 
     fireEvent.click(within(lines).getByRole('button', { name: /^1\. Install/ }));
-    expect(within(lines).queryByText('npm ci')).not.toBeInTheDocument();
-    expect(within(lines).getByRole('button', { name: /^1\. Install/ })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(lines).getByText('npm ci')).toBeInTheDocument();
+    expect(within(lines).getByRole('button', { name: /^1\. Install/ })).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Wrap long lines' }));
     expect(screen.getByRole('button', { name: 'Wrap long lines' })).toHaveAttribute('aria-pressed', 'true');
