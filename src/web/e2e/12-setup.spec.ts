@@ -102,11 +102,12 @@ test('a fresh installation is set up with the token from the log, then its addre
 
   if (withRunner) {
     // The first run: the example on the bundled runner, with its log, tests and coverage.
-    await page.goto(`${page.url()}/runs`);
-    await page.getByRole('button', { name: 'Run', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Run', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Run #1' })).toBeVisible();
     await expect(page.getByText('Succeeded', { exact: true }).first()).toBeVisible({ timeout: 120_000 });
-    await expect(page.getByRole('log', { name: 'Lines of hello, attempt 1' })).toContainText('Hello from AutoCanvas');
+    const log = page.getByRole('log', { name: 'Lines of hello, attempt 1' });
+    await log.getByRole('button', { name: /^1\. Greet/ }).click();
+    await expect(log).toContainText('Hello from AutoCanvas');
     const views = page.getByRole('navigation', { name: 'Views of the run' });
     await expect(views.getByRole('link', { name: /Coverage 80 %/ })).toBeVisible();
     await docsShot(page, 'install-6-first-run');

@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in AutoCanvas does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. Questions and ideas fit better in [Discussions](https://github.com/Bexy315/autocanvas/discussions), and security problems are reported privately ([Security](https://github.com/Bexy315/autocanvas/security/advisories/new)), never here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest way to see it again. An automation file that shows it helps most.
+      placeholder: |
+        1. Open …
+        2. Choose …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at the bottom of the web UI's sidebar, e.g. `1.0.0 (b607fc5)`.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How it runs
+      options:
+        - The install script (compose package)
+        - The published images (GHCR)
+        - Built from a checkout
+        - Something else (say below)
+    validations:
+      required: true
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database
+      options:
+        - SQLite
+        - PostgreSQL
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: For problems in the web UI.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The server's or runner's log around the time (`docker compose logs server runner`). Remove secrets first.
+      render: text

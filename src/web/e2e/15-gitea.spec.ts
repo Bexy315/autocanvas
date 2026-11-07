@@ -115,8 +115,11 @@ test('a private Gitea repository is connected, a push through its webhook runs t
 
     await page.goto(`/runs/${run?.id ?? ''}`);
     await expect(page.getByText(pushed.slice(0, 7))).toBeVisible();
-    // Its only job is open, with the log of the step that read the pushed file.
-    await expect(page.getByText('pushed through Gitea')).toBeVisible();
+    // Its only job is open; the step that read the pushed file went well, so its row opens its log.
+    const log = page.getByRole('log', { name: /^Lines of / });
+    await expect(log.getByRole('button', { name: /^Preparing/ })).toBeVisible();
+    await log.getByRole('button', { name: /^1\. / }).click();
+    await expect(log.getByText('pushed through Gitea')).toBeVisible();
     await snapshot(page, '15-gitea-run');
   } finally {
     await runner?.stop();

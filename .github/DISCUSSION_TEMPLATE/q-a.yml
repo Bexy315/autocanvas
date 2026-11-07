@@ -1,0 +1,20 @@
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What you want to do, what you tried, and where you got stuck.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at the bottom of the web UI's sidebar, if it matters.
+  - type: textarea
+    id: file
+    attributes:
+      label: Automation file
+      description: The part of the file it is about, if any. Remove secrets first.
+      render: yaml

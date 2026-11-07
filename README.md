@@ -23,6 +23,12 @@ deploy/install.ps1           # Windows, PowerShell 7
 Then open `/setup` on the machine's address and enter the token the script printed. See
 [Installation](docs/user/installation.md).
 
+## Questions, ideas and bugs
+
+- **Questions and ideas**: [Discussions](https://github.com/Bexy315/autocanvas/discussions).
+- **Bugs and concrete feature requests**: [Issues](https://github.com/Bexy315/autocanvas/issues/new/choose).
+- **Security vulnerabilities**: privately, as described in [SECURITY.md](SECURITY.md).
+
 ## License
 
 [MIT](LICENSE)

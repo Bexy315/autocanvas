@@ -1,5 +1,6 @@
 /**
- * A job attempt's log: grouped by step, colored as the terminal would, searchable, and followed
+ * A job attempt's log: a row for each step with its status and duration, which opens to the step's
+ * lines (a step that runs or failed is open), colored as the terminal would, searchable, and followed
  * while it grows. Only the lines in view are drawn (`@tanstack/react-virtual`), so a log of a
  * hundred thousand lines scrolls as smoothly as a short one; search therefore works on the data,
  * not on what is drawn.
@@ -10,20 +11,28 @@ import { ArrowDown, ChevronDown, ChevronRight, ChevronUp, Clock, Download, Searc
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import { readSetting, writeSetting } from '../../app/storage';
 import type { JobStep } from '../../api/runs';
+import { duration } from '../../lib/time';
+import { useNow } from '../useNow';
 import { parseAnsi, type AnsiStyle } from './ansi';
-import { groupLines, logRows, logText, numberLines, searchLines, type LogRow, type NumberedLine } from './logModel';
+import {
+  groupLines,
+  logRows,
+  logText,
+  numberLines,
+  openByDefault,
+  searchLines,
+  type LogGroup,
+  type LogRow,
+  type NumberedLine,
+} from './logModel';
+import { stepIcons, stepStatusText } from './stepStatus';
 import type { AttemptLog } from './useAttemptLog';
 
 export const wrapKey = 'autocanvas.log.wrap';
 export const timesKey = 'autocanvas.log.times';
 
 const rowHeight = 20;
-
-/** A request to show a step's lines, from the list of steps; `nonce` repeats the same request. */
-export interface StepJump {
-  stepIndex: number;
-  nonce: number;
-}
+const stepRowHeight = 32;
 
 /**
  * Black and white text on a colored background stay black and white, as in a terminal; on the
@@ -78,16 +87,16 @@ export function LogView({
   log,
   steps,
   label,
-  jump,
 }: {
   log: AttemptLog;
   steps: readonly JobStep[];
   /** What the log is of, for the region's name and the downloaded file. */
   label: string;
-  jump?: StepJump | null;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const now = useNow(log.status === 'live');
+  // Groups opened or closed by hand; the others follow their step (openByDefault).
+  const [toggled, setToggled] = useState<ReadonlyMap<string, boolean>>(new Map());
   const [wrap, setWrap] = useState(() => readSetting(wrapKey) === 'on');
   const [times, setTimes] = useState(() => readSetting(timesKey) === 'on');
   const [query, setQuery] = useState('');
@@ -101,15 +110,21 @@ export function LogView({
 
   const lines = useMemo(() => numberLines(log.chunks), [log.chunks]);
   const groups = useMemo(() => groupLines(lines, steps), [lines, steps]);
-  const rows = useMemo(() => logRows(groups, collapsed), [groups, collapsed]);
+  const rows = useMemo(
+    () => logRows(groups, (group) => toggled.get(group.key) ?? openByDefault(group, groups)),
+    [groups, toggled],
+  );
   const matches = useMemo(() => searchLines(lines, query), [lines, query]);
   const matched = useMemo(() => new Set(matches), [matches]);
   const focusLine = matches[current] ?? null;
 
+  // The virtualizer keeps its own state and is read anew on every render, as its documentation asks;
+  // the compiler then leaves this component unmemoized, which is what it needs.
+  // oxlint-disable-next-line react/incompatible-library -- see above
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scroller.current,
-    estimateSize: () => rowHeight,
+    estimateSize: (index) => (rows[index]?.kind === 'group' ? stepRowHeight : rowHeight),
     overscan: 30,
     // jsdom measures nothing; in a browser the real size replaces this at once.
     initialRect: { width: 800, height: 480 },
@@ -120,11 +135,10 @@ export function LogView({
   /** Shows a line, opening its step first if it is folded away. */
   const reveal = (number: number) => {
     const line = lines[number - 1];
-    const key = line ? groups.find((group) => group.lines.includes(line))?.key : undefined;
-    if (key && collapsed.has(key)) {
-      const next = new Set(collapsed);
-      next.delete(key);
-      setCollapsed(next);
+    const group = line ? groups.find((candidate) => candidate.lines.includes(line)) : undefined;
+    const heading = rows.find((candidate) => candidate.kind === 'group' && candidate.group === group);
+    if (group && heading?.kind === 'group' && !heading.open) {
+      setToggled(new Map(toggled).set(group.key, true));
       return;
     }
     const index = rowOfLine(number);
@@ -152,19 +166,6 @@ export function LogView({
     }
   }, [linked, lines.length, rows, virtualizer]);
 
-  // A step chosen in the list of steps.
-  useEffect(() => {
-    if (!jump) {
-      return;
-    }
-    const index = rows.findIndex((row) => row.kind === 'group' && row.group.stepIndex === jump.stepIndex);
-    if (index !== -1) {
-      virtualizer.scrollToIndex(index, { align: 'start' });
-    }
-    // Only a new request moves the view, not every new line.
-    // oxlint-disable-next-line react/exhaustive-deps -- see above
-  }, [jump]);
-
   const step = (delta: number) => {
     if (matches.length === 0) {
       return;
@@ -177,14 +178,8 @@ export function LogView({
     }
   };
 
-  const toggle = (key: string) => {
-    const next = new Set(collapsed);
-    if (next.has(key)) {
-      next.delete(key);
-    } else {
-      next.add(key);
-    }
-    setCollapsed(next);
+  const toggle = (group: LogGroup, open: boolean) => {
+    setToggled(new Map(toggled).set(group.key, !open));
   };
 
   const download = () => {
@@ -290,7 +285,11 @@ export function LogView({
           }}
           className="h-full overflow-auto bg-sunken font-mono text-xs leading-5"
         >
-          {status && <p className="px-3 py-2 font-sans text-sm text-muted">{status}</p>}
+          {/* With step rows there, a note above them would push them down once the lines arrive (under a
+              click, too); the rows say what is missing instead. A failure to read is still said. */}
+          {status && (rows.length === 0 || log.status === 'failed') && (
+            <p className="px-3 py-2 font-sans text-sm text-muted">{status}</p>
+          )}
           <div style={{ height: virtualizer.getTotalSize() }} className="relative w-full">
             {virtualizer.getVirtualItems().map((item) => {
               const row = rows[item.index];
@@ -306,6 +305,7 @@ export function LogView({
                     row={row}
                     wrap={wrap}
                     times={times}
+                    now={now}
                     matched={row.kind === 'line' && matched.has(row.line.number)}
                     current={row.kind === 'line' && (row.line.number === focusLine || row.line.number === linked)}
                     onToggle={toggle}
@@ -341,6 +341,7 @@ function Row({
   row,
   wrap,
   times,
+  now,
   matched,
   current,
   onToggle,
@@ -349,26 +350,25 @@ function Row({
   row: LogRow;
   wrap: boolean;
   times: boolean;
+  now: Date;
   matched: boolean;
   current: boolean;
-  onToggle: (key: string) => void;
+  onToggle: (group: LogGroup, open: boolean) => void;
   onLink: (number: number) => void;
 }) {
   if (row.kind === 'group') {
-    const { group, collapsed } = row;
+    return <StepRow group={row.group} open={row.open} now={now} onToggle={onToggle} />;
+  }
+  if (row.kind === 'empty') {
+    const status = row.group.step?.status;
     return (
-      <button
-        type="button"
-        aria-expanded={!collapsed}
-        onClick={() => onToggle(group.key)}
-        className="flex w-full items-center gap-1.5 border-y border-line bg-surface px-2 text-left font-sans text-xs font-semibold hover:bg-canvas"
-      >
-        {collapsed ? <ChevronRight aria-hidden="true" size={12} /> : <ChevronDown aria-hidden="true" size={12} />}
-        <span className="truncate">{group.title}</span>
-        <span className="font-normal text-muted">
-          {group.lines.length === 1 ? '1 line' : `${group.lines.length} lines`}
-        </span>
-      </button>
+      <p className="py-1 pl-12 font-sans text-muted italic">
+        {status === 'Skipped'
+          ? (row.group.step?.reason ?? 'Skipped.')
+          : status === 'Sent' || status === 'Running'
+            ? 'No output yet.'
+            : 'No output.'}
+      </p>
     );
   }
   const { line } = row;
@@ -394,6 +394,52 @@ function Row({
         <LineText line={line} />
       </span>
     </div>
+  );
+}
+
+/** A step's row: it opens and closes the step's lines and says how the step went and how long it took. */
+function StepRow({
+  group,
+  open,
+  now,
+  onToggle,
+}: {
+  group: LogGroup;
+  open: boolean;
+  now: Date;
+  onToggle: (group: LogGroup, open: boolean) => void;
+}) {
+  const { step } = group;
+  const status = step ? stepIcons[step.status] : null;
+  const Chevron = open ? ChevronDown : ChevronRight;
+  const told = step && step.status !== 'Succeeded' ? stepStatusText(step) : null;
+  const took = step?.startedAt ? duration(step.startedAt, step.finishedAt, now) : null;
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-label={[group.title, step ? stepStatusText(step) : null, took].filter(Boolean).join(', ')}
+      onClick={() => onToggle(group, open)}
+      className={clsx(
+        'flex h-8 w-full items-center gap-2 border-b border-line px-2 text-left font-sans text-sm hover:bg-surface',
+        open && 'bg-surface',
+      )}
+    >
+      <Chevron aria-hidden="true" size={14} className="shrink-0 text-muted" />
+      {status ? (
+        <status.Icon aria-hidden="true" size={15} className={clsx('shrink-0', status.className)} />
+      ) : (
+        <span aria-hidden="true" className="w-[15px] shrink-0" />
+      )}
+      <span className={clsx('min-w-0 flex-1 truncate', step ? 'font-medium' : 'text-muted')}>{group.title}</span>
+      <span className="shrink-0 text-xs text-muted">
+        {step
+          ? [told, took].filter(Boolean).join(' · ')
+          : group.lines.length === 1
+            ? '1 line'
+            : `${group.lines.length} lines`}
+      </span>
+    </button>
   );
 }
 

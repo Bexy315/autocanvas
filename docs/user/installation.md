@@ -11,9 +11,8 @@ happens in the browser.
 :::note Before the first release
 
 Until 0.1 the install script builds the images from a checkout of the repository, which takes a few
-minutes the first time. Images of every commit on `main` are published too
-([Using the published images](#using-the-published-images)), but they stay private until the
-first release.
+minutes the first time. Public images of every commit on `main` work too
+([Using the published images](#using-the-published-images)); they are not releases.
 
 :::
 
@@ -155,8 +154,7 @@ AUTOCANVAS_RUNNER_IMAGE=ghcr.io/bexy315/autocanvas-runner:sha-<commit>
 ```
 
 To update, change the tags (or keep `dev`) and run `docker compose pull` and `docker compose up -d`.
-Until the first release the images are private: sign in first with `docker login ghcr.io`, using a
-GitHub token with the `read:packages` scope.
+The images are public, so pulling them needs no sign-in.
 
 ## See also
 

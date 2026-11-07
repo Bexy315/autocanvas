@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JobAttempt, LogChunk, RunJobDetail, RunSummary, RunView } from '../api/runs';
 import { automationView, folderView, page, twoJobs } from '../test/fixtures';
@@ -156,8 +156,10 @@ describe('the runs of an automation', () => {
     });
     const { user } = renderApp('/automations/a1/runs');
     await screen.findByRole('heading', { name: 'No runs yet' });
-    await user.click(screen.getAllByRole('button', { name: 'Run' })[0] ?? document.body);
+    // Run sits in the page's header, also on the other tabs.
+    await user.click(screen.getByRole('button', { name: 'Run' }));
     expect(await screen.findByText('It is running already, and it runs one at a time')).toBeInTheDocument();
+    cleanup();
 
     server({
       'GET /api/v1/automations/a1/runs': () => json(page([])),
@@ -165,6 +167,7 @@ describe('the runs of an automation', () => {
     });
     renderApp('/automations/a1/runs');
     expect(await screen.findByText(/not started by hand/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Run' })).not.toBeInTheDocument();
   });
 });
 
@@ -374,12 +377,18 @@ const liveLog = (lines: string[], status: AttemptLog['status'] = 'live'): Attemp
 });
 
 const viewSteps = [
-  { index: 0, name: 'Install' },
-  { index: 1, name: 'Test' },
+  {
+    index: 0,
+    name: 'Install',
+    status: 'Succeeded',
+    startedAt: '2026-11-02T10:00:00Z',
+    finishedAt: '2026-11-02T10:00:02Z',
+  },
+  { index: 1, name: 'Test', status: 'Failed', exitCode: 1, startedAt: '2026-11-02T10:00:02Z', finishedAt: null },
 ] as unknown as JobAttempt['steps'];
 
 describe('the log view', () => {
-  it('searches, folds steps away, wraps, shows times and links lines', () => {
+  it('opens failed steps, opens and closes steps, searches, wraps, shows times and links lines', () => {
     render(
       <LogView
         log={liveLog(['npm ci', 'done', 'jest', 'FAIL checkout', 'PASS cart'])}
@@ -388,7 +397,22 @@ describe('the log view', () => {
       />,
     );
     const lines = screen.getByRole('log', { name: 'Lines of build' });
+    // The failed step is open; the one that went well is closed, with how long it took.
     expect(within(lines).getByText('FAIL checkout')).toBeInTheDocument();
+    expect(within(lines).getByRole('button', { name: /^2\. Test, Failed \(exit 1\), / })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    const install = within(lines).getByRole('button', { name: /^1\. Install, Succeeded, 2/ });
+    expect(install).toHaveAttribute('aria-expanded', 'false');
+    expect(within(lines).queryByText('npm ci')).not.toBeInTheDocument();
+
+    // A match in a closed step opens it.
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search the log' }), { target: { value: 'npm' } });
+    fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Enter' });
+    expect(within(lines).getByText('npm ci')).toBeInTheDocument();
+    fireEvent.click(install);
+    expect(within(lines).queryByText('npm ci')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search the log' }), { target: { value: 'checkout' } });
     expect(screen.getByText('1 of 1')).toBeInTheDocument();
@@ -399,8 +423,8 @@ describe('the log view', () => {
     fireEvent.keyDown(screen.getByRole('searchbox'), { key: 'Escape' });
 
     fireEvent.click(within(lines).getByRole('button', { name: /^1\. Install/ }));
-    expect(within(lines).queryByText('npm ci')).not.toBeInTheDocument();
-    expect(within(lines).getByRole('button', { name: /^1\. Install/ })).toHaveAttribute('aria-expanded', 'false');
+    expect(within(lines).getByText('npm ci')).toBeInTheDocument();
+    expect(within(lines).getByRole('button', { name: /^1\. Install/ })).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Wrap long lines' }));
     expect(screen.getByRole('button', { name: 'Wrap long lines' })).toHaveAttribute('aria-pressed', 'true');

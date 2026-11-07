@@ -47,7 +47,8 @@ automations once there are some; the badge next to the name is your role.
 ![Creating an automation](img/tour-new-automation-light.png#gh-light-mode-only)
 ![Creating an automation](img/tour-new-automation-dark.png#gh-dark-mode-only)
 
-The automation's page opens with its overview. The starter file has one job, `hello`, that prints a
+The automation's page opens with its overview: what starts it, its latest runs, and the automation
+as a canvas (or, with **File**, its file). The starter file has one job, `hello`, that prints a
 greeting and writes a small test and coverage report.
 
 ## 3. Change it on the canvas
@@ -98,9 +99,10 @@ Press **Ctrl+S** (or choose **Save**), write a message such as `Add a smoke test
 
 ## 5. Run it and follow the log
 
-1. Choose the automation's **Runs** tab and **Run**.
+1. Choose **Run** in the automation's header.
 2. The run page opens. It shows the jobs as on the canvas, each with its state, and the chosen job
-   on the right: its attempts, its steps and the log, which follows live while the job runs.
+   on the right: a row for each of its steps, which opens to the step's log. The log follows live
+   while the job runs; a step that runs or failed is open.
 
 ![A run with its live log](img/tour-run-log-light.png#gh-light-mode-only)
 ![A run with its live log](img/tour-run-log-dark.png#gh-dark-mode-only)

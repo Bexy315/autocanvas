@@ -216,8 +216,13 @@ API (`api/runs.ts`):
   - *Reconnecting*: the browser reconnects with `Last-Event-ID`. When it gives up, the log follows
     again from the last chunk known after three seconds. Chunks are kept by sequence, so one that
     arrives twice counts once (`logModel.ts`).
-  - *Drawing*: lines are drawn with `@tanstack/react-virtual`, only those in view. Search,
-    line links and the download work on the data, not on what is drawn.
+  - *Steps*: `groupLines` makes a group for each step of the attempt (also one without lines yet)
+    and for the runner's lines before and after them. A group is open by default while its step
+    runs or after it failed (`openByDefault`); one opened or closed by hand keeps that. The steps
+    have no list of their own: their rows in the log are the list.
+  - *Drawing*: rows are drawn with `@tanstack/react-virtual`, only those in view. Search,
+    line links and the download work on the data, not on what is drawn; a match in a closed step
+    opens it.
   - *Colors*: `ansi.ts` turns SGR escape sequences into styled text segments: the 16 colors with
     the theme's `--log-N` tokens (AA in light and dark), 256 colors and RGB as they are. Every other
     sequence is removed, and a line redrawn with `\r` shows its last state. It never produces

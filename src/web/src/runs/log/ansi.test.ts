@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { JobStep, LogChunk } from '../../api/runs';
 import { applyCodes, parseAnsi, plainText } from './ansi';
-import { groupLines, lastSequence, logRows, logText, mergeChunks, numberLines, searchLines } from './logModel';
+import {
+  groupLines,
+  lastSequence,
+  logRows,
+  logText,
+  mergeChunks,
+  numberLines,
+  openByDefault,
+  searchLines,
+  type LogGroup,
+} from './logModel';
 
 const esc = '\u001B';
 
@@ -69,9 +79,11 @@ const chunk = (sequence: number, stepIndex: number | null, ...texts: string[]): 
 });
 
 const steps = [
-  { index: 0, name: 'Install' },
-  { index: 1, name: 'Test' },
+  { index: 0, name: 'Install', status: 'Succeeded' },
+  { index: 1, name: 'Test', status: 'Failed' },
 ] as unknown as JobStep[];
+
+const titles = (groups: readonly LogGroup[]) => groups.map((group) => group.title);
 
 describe('the log model', () => {
   it('keeps each chunk once, in order, and numbers the lines', () => {
@@ -88,23 +100,50 @@ describe('the log model', () => {
     expect(lastSequence(new Map())).toBeNull();
   });
 
-  it('groups lines by step, names the runner before and after, and folds groups away', () => {
+  it('groups lines by step, names the runner before and after, and shows open groups only', () => {
     const lines = numberLines(
       mergeChunks(new Map(), [chunk(1, null, 'pull'), chunk(2, 0, 'i'), chunk(3, 1, 't'), chunk(4, null, 'clean')]),
     );
     const groups = groupLines(lines, steps);
     expect(groups.map((group) => group.title)).toEqual(['Preparing', '1. Install', '2. Test', 'Cleaning up']);
-    const rows = logRows(groups, new Set(['step-0']));
-    expect(rows.map((row) => (row.kind === 'group' ? `[${row.group.title}]` : row.line.text))).toEqual([
-      '[Preparing]',
-      'pull',
-      '[1. Install]',
-      '[2. Test]',
-      't',
-      '[Cleaning up]',
-      'clean',
+    const rows = logRows(groups, (group) => group.key !== 'step-0');
+    expect(
+      rows.map((row) => (row.kind === 'group' ? `[${row.group.title}]` : row.kind === 'line' ? row.line.text : '-')),
+    ).toEqual(['[Preparing]', 'pull', '[1. Install]', '[2. Test]', 't', '[Cleaning up]', 'clean']);
+    expect(groupLines(numberLines(mergeChunks(new Map(), [chunk(1, 5, 'x')])), [])[0]?.title).toBe('6. Step 6');
+  });
+
+  it('lists the steps that wrote nothing yet in their place, and says so when they are open', () => {
+    const three = [...steps, { index: 2, name: 'Deploy', status: 'Skipped', reason: 'Test failed' }] as JobStep[];
+    const pull = numberLines(mergeChunks(new Map(), [chunk(1, null, 'pull')]));
+    expect(titles(groupLines(pull, three))).toEqual(['Preparing', '1. Install', '2. Test', '3. Deploy']);
+
+    const ran = numberLines(
+      mergeChunks(new Map(), [chunk(1, null, 'pull'), chunk(2, 0, 'i'), chunk(3, null, 'clean')]),
+    );
+    const groups = groupLines(ran, three);
+    expect(titles(groups)).toEqual(['Preparing', '1. Install', '2. Test', '3. Deploy', 'Cleaning up']);
+    expect(logRows(groups, (group) => group.stepIndex === 2).map((row) => row.kind)).toEqual([
+      'group',
+      'group',
+      'group',
+      'group',
+      'empty',
+      'group',
     ]);
-    expect(groupLines(numberLines(mergeChunks(new Map(), [chunk(1, 5, 'x')])), steps)[0]?.title).toBe('6. Step 6');
+  });
+
+  it('opens the steps that run or failed, and the runner while no step ran', () => {
+    const lines = numberLines(mergeChunks(new Map(), [chunk(1, null, 'pull'), chunk(2, 0, 'i'), chunk(3, 1, 't')]));
+    const groups = groupLines(lines, steps);
+    expect(groups.map((group) => openByDefault(group, groups))).toEqual([false, false, true]);
+
+    const waiting = [{ index: 0, name: 'Install', status: 'Sent' }] as unknown as JobStep[];
+    const before = groupLines(numberLines(mergeChunks(new Map(), [chunk(1, null, 'pull')])), waiting);
+    expect(before.map((group) => openByDefault(group, before))).toEqual([true, false]);
+
+    const unknown = groupLines(numberLines(mergeChunks(new Map(), [chunk(1, 4, 'x')])), []);
+    expect(unknown.map((group) => openByDefault(group, unknown))).toEqual([true]);
   });
 
   it('finds lines ignoring case and colors, and writes the log as text', () => {

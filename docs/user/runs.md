@@ -20,17 +20,17 @@ wait for one.
 ## In the web UI
 
 **Runs** in the sidebar lists the newest runs of every automation you may see, filtered by state if
-you like; the start page shows the latest five. An automation's **Runs** tab lists its own, with
-**Run** to start one by hand.
+you like; the start page shows the latest five. An automation's **Runs** tab lists its own;
+**Run** in the automation's header starts one by hand.
 
 A run's page fills the window:
 
 - **On the left, the run as a graph**: the file it ran, with each job's status on its card (waiting,
   running for how long, succeeded or failed in how long, skipped and why).
 - **On the right, the job you choose**:
-  - its status, outputs (secret ones are shown as *hidden*) and attempts, the last one first;
-  - the steps of the attempt with their status, exit code and duration;
-  - below them, its **log**.
+  - its status, duration, runner, test and coverage results, outputs (secret ones are shown as
+    *hidden*) and attempts, the last one first;
+  - below them, its **log**, with a row for each step.
 - **Actions**: **Cancel** stops the run while it runs, and **Run again** starts a new one; both need
   the Operator role.
 
@@ -39,13 +39,14 @@ A run's page fills the window:
 
 The page follows a run while it runs. The log arrives live:
 
-- **Steps**: lines are grouped by the step that wrote them; choose a step in the list, or its
-  heading in the log, to jump there or fold it away.
+- **Steps**: each step is a row with its status, exit code and duration, which opens to the lines
+  it wrote. A step that runs or failed is open, the others are closed; choose a row to open or close
+  it. The runner's own lines are in **Preparing** before the steps and **Cleaning up** after them.
 - **Colors**: they appear as the program wrote them.
 - **Following**: the log stays at its end while it grows. Scroll up to read, and **Jump to the end**
   follows again.
 - **Search** (Enter and Shift+Enter move between matches) works on the whole log, also on lines out
-  of view.
+  of view; a match in a closed step opens it.
 - **Lines**: they can wrap or show their time.
 - **Links**: a line number links to that line (`#L120`).
 - **Download** saves the log as text.

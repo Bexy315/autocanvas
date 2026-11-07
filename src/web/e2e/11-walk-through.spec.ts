@@ -178,18 +178,26 @@ test('an automation built on the canvas runs on a real runner, reports its tests
   await page.getByRole('dialog', { name: 'Save version 2' }).getByRole('textbox', { name: 'Message' }).fill('Tests');
   await page.keyboard.press('Enter');
   await expect(page.getByText('Saved version 2')).toBeVisible();
-  await page.goto(`/automations/${automationId}/runs`);
-  await page.getByRole('button', { name: 'Run', exact: true }).first().click();
+  await page.goto(`/automations/${automationId}`);
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Run #1' })).toBeVisible();
 
   // The log is followed while the job runs.
   const log = page.getByRole('log', { name: 'Lines of test, attempt 1' });
+  // The running step is open; once it went well it closes, and its row opens it again.
   await expect(log).toContainText('Testing cart', { timeout: 120_000 });
-  await expect(log).toContainText('Tests done', { timeout: 30_000 });
+  await expect(log.getByRole('button', { name: /^2\. Step 2, Succeeded/ })).toHaveAttribute('aria-expanded', 'false', {
+    timeout: 60_000,
+  });
+  await log.getByRole('button', { name: /^2\. Step 2/ }).click();
+  await expect(log).toContainText('Tests done');
   await docsShot(page, 'tour-run-log');
   await expect(page.getByText('Succeeded', { exact: true }).first()).toBeVisible({ timeout: 120_000 });
   await card(page, 'smoke').click();
+  // Steps that went well are closed once the job is done; the row opens the step's lines.
   const smoke = page.getByRole('log', { name: 'Lines of smoke, attempt 1' });
+  await expect(smoke.getByRole('button', { name: /^Preparing/ })).toBeVisible();
+  await smoke.getByRole('button', { name: /^2\. / }).click();
   await expect(smoke).toContainText('Welcome to nginx');
   await snapshot(page, 'walk-1-run');
 

@@ -73,10 +73,11 @@ test('a Git repository is connected in a folder, followed, given a webhook, run 
     await page.getByRole('link', { name: /Build the shop/ }).click();
     const from = page.getByRole('region', { name: 'From repository' });
     await expect(from.getByText('.autocanvas/automations/build.yml')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Automation actions' })).toHaveCount(0);
     await docsShot(page, 'repository-automation');
-    await page.goto(`${page.url()}/runs`);
-    await page.getByRole('button', { name: 'Run', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Automation actions' }).click();
+    await expect(page.getByRole('menuitem')).toHaveText(['Download']);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Run', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Run #1' })).toBeVisible();
     await expect(page.getByText(/ on main/)).toBeVisible();
     await snapshot(page, '14-repositories-run');

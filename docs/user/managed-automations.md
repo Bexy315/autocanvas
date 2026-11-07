@@ -67,11 +67,14 @@ has problems, they are listed with their line, column and [code](diagnostics.md)
 and choose it again.
 
 An automation's page shows what starts it (by hand, webhook, schedules with their next time, or
-another automation), its latest runs, warnings worth a look, and its file, which **Download** saves
-as YAML. **Versions** lists every version with its message, author and time; a version shows what
-changed from the one before, with unchanged lines collapsed and canvas positions (`x-editor`) left
-out, or its full file. **Restore** saves an old version's file as the newest version. The menu
-next to **Download** renames, moves and deletes the automation; it is there for editors only.
+another automation), its latest runs, warnings worth a look, and the automation itself: as a canvas
+to look at, or as its file (**Canvas** and **File** switch; changes happen in the editor).
+**Run** in the page's header starts it by hand, on every tab, for people with the Operator role
+when its triggers allow it. **Versions** lists every version with its message, author and time; a
+version shows what changed from the one before, with unchanged lines collapsed and canvas positions
+(`x-editor`) left out, or its full file. **Restore** saves an old version's file as the newest
+version. The menu next to **Run** downloads the file as YAML, and for editors renames, moves and
+deletes the automation.
 
 **Editor** opens the automation's editor, which fills the whole window: the app's sidebar and the
 folder tree make room for it, and the arrow next to the automation's name leads back. It shows the

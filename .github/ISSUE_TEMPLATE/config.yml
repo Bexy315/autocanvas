@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/Bexy315/autocanvas/discussions/categories/q-a
+    about: Ask how to do something, or why something behaves as it does.
+  - name: Ideas and feedback
+    url: https://github.com/Bexy315/autocanvas/discussions/categories/ideas
+    about: Talk about an idea before it becomes a feature request.
+  - name: Report a security vulnerability
+    url: https://github.com/Bexy315/autocanvas/security/advisories/new
+    about: Privately, never as a public issue (see SECURITY.md).
+  - name: Documentation
+    url: https://bexy315.github.io/autocanvas/
+    about: Installation, the automation format, the API and how to run AutoCanvas.

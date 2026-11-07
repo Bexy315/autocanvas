@@ -1,7 +1,11 @@
-import type { ReactNode } from 'react';
+import { clsx } from 'clsx';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useRecentRuns, useTriggers, type AutomationTriggers, type AutomationView } from '../../api/automations';
 import type { Diagnostic } from '../../api/problem';
+import { readSetting, writeSetting } from '../../app/storage';
+import { AutomationCanvas } from '../../canvas/AutomationCanvas';
+import { graphFromYaml } from '../../canvas/model';
 import { hasRole } from '../../lib/roles';
 import { ErrorAlert } from '../../ui/Alert';
 import { RunStateBadge } from '../../ui/Badge';
@@ -21,7 +25,9 @@ const triggerNames: Record<string, string> = {
   PullRequest: 'Pull request',
 };
 
-/** What an automation is: what starts it, how its last runs went, and its file. */
+export const overviewViewKey = 'autocanvas.overview.view';
+
+/** What an automation is: what starts it, how its last runs went, and its jobs or file. */
 export function OverviewTab() {
   const { automation } = useAutomationContext();
   const warnings = automation.warnings as Diagnostic[];
@@ -40,19 +46,66 @@ export function OverviewTab() {
         <Triggers id={automation.id} />
         <RecentRuns id={automation.id} />
       </div>
-      <Section
-        title="File"
-        actions={
+      <AutomationSection automation={automation} />
+    </div>
+  );
+}
+
+/** The automation as a canvas to look at, or its file to read; changing either happens in the editor. */
+function AutomationSection({ automation }: { automation: AutomationView }) {
+  const [asFile, setAsFile] = useState(() => readSetting(overviewViewKey) === 'file');
+  const graph = useMemo(() => graphFromYaml(automation.yaml).graph ?? null, [automation.yaml]);
+  const choose = (file: boolean) => {
+    writeSetting(overviewViewKey, file ? 'file' : 'canvas');
+    setAsFile(file);
+  };
+
+  return (
+    <Section
+      title="Automation"
+      actions={
+        <div className="flex items-center gap-3">
+          <fieldset className="flex rounded-control border border-line p-0.5">
+            <legend className="sr-only">Show the automation as</legend>
+            {[
+              { file: false, label: 'Canvas' },
+              { file: true, label: 'File' },
+            ].map(({ file, label }) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={asFile === file}
+                onClick={() => choose(file)}
+                className={clsx(
+                  'h-6 rounded px-2 text-xs',
+                  asFile === file ? 'bg-accent-soft font-medium text-accent' : 'text-muted hover:text-ink',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </fieldset>
           <Link to={`/automations/${automation.id}/edit`} className="text-sm font-medium text-accent hover:underline">
             {hasRole(automation.myRole, 'Editor') && (automation.repository?.proposesChanges ?? true)
               ? 'Edit'
               : 'Open in editor'}
           </Link>
-        }
-      >
+        </div>
+      }
+    >
+      {asFile ? (
         <YamlView text={automation.yaml} label={`File of ${automation.title}`} />
-      </Section>
-    </div>
+      ) : graph ? (
+        <section aria-label={`Canvas of ${automation.title}`} className="h-96">
+          <AutomationCanvas graph={graph} />
+        </section>
+      ) : (
+        <p className="px-4 py-3 text-sm text-muted">
+          The file cannot be read as a canvas right now; choose File to read it, or open the editor to see what is
+          wrong.
+        </p>
+      )}
+    </Section>
   );
 }
 

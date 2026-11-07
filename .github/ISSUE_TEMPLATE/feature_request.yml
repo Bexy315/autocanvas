@@ -1,0 +1,27 @@
+name: Feature request
+description: Something AutoCanvas should do, or do differently.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a first idea you would like to talk about, [Discussions → Ideas](https://github.com/Bexy315/autocanvas/discussions/new?category=ideas) is a good start. An issue is for a concrete proposal.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The task or problem behind the request, and how you work around it today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+      description: How it could work, in the web UI, the automation file or the API.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways you considered, and how other tools do it.
