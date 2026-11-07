@@ -1,0 +1,8 @@
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What AutoCanvas could do, and what it would make easier for you.
+    validations:
+      required: true

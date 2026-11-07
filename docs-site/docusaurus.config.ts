@@ -118,6 +118,7 @@ const config: Config = {
           items: [
             { label: 'GitHub', href: 'https://github.com/Bexy315/autocanvas' },
             { label: 'Issues', href: 'https://github.com/Bexy315/autocanvas/issues' },
+            { label: 'Discussions', href: 'https://github.com/Bexy315/autocanvas/discussions' },
             { label: 'Decisions', to: '/adr' },
             { label: 'License (MIT)', href: 'https://github.com/Bexy315/autocanvas/blob/main/LICENSE' },
           ],
