@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JobAttempt, LogChunk, RunJobDetail, RunSummary, RunView } from '../api/runs';
 import { automationView, folderView, page, twoJobs } from '../test/fixtures';
@@ -156,8 +156,10 @@ describe('the runs of an automation', () => {
     });
     const { user } = renderApp('/automations/a1/runs');
     await screen.findByRole('heading', { name: 'No runs yet' });
-    await user.click(screen.getAllByRole('button', { name: 'Run' })[0] ?? document.body);
+    // Run sits in the page's header, also on the other tabs.
+    await user.click(screen.getByRole('button', { name: 'Run' }));
     expect(await screen.findByText('It is running already, and it runs one at a time')).toBeInTheDocument();
+    cleanup();
 
     server({
       'GET /api/v1/automations/a1/runs': () => json(page([])),
@@ -165,6 +167,7 @@ describe('the runs of an automation', () => {
     });
     renderApp('/automations/a1/runs');
     expect(await screen.findByText(/not started by hand/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Run' })).not.toBeInTheDocument();
   });
 });
 

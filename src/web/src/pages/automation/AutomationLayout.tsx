@@ -1,4 +1,4 @@
-import { Download, FolderInput, Pencil, Trash2 } from 'lucide-react';
+import { Download, FolderInput, Pencil, Play, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 import { downloadUrl, useDeleteAutomation, useMoveAutomation } from '../../api/automations';
@@ -10,12 +10,14 @@ import { hasRole } from '../../lib/roles';
 import { ErrorAlert } from '../../ui/Alert';
 import { ActionsMenu, type Action } from '../../ui/ActionsMenu';
 import { Badge } from '../../ui/Badge';
+import { Button } from '../../ui/Button';
 import { PageHeader } from '../../ui/PageHeader';
 import { Loading } from '../../ui/Spinner';
 import { TabLinks } from '../../ui/Tabs';
 import { folderPageInfo } from '../folderPageInfo';
 import type { AutomationContext } from './context';
 import { useAutomationPage } from './useAutomationPage';
+import { useStartByHand } from './useStartByHand';
 
 type Open = 'rename' | 'move' | 'delete' | null;
 
@@ -48,6 +50,7 @@ function AutomationPage({ context }: { context: AutomationContext }) {
   const navigate = useNavigate();
   const move = useMoveAutomation(automation.id);
   const remove = useDeleteAutomation(automation.id);
+  const run = useStartByHand(automation);
   // A repository automation is renamed, moved and deleted in its repository, not here.
   const editor = hasRole(automation.myRole, 'Editor') && !automation.repository;
   const dialog = (name: Open) => (next: boolean) => {
@@ -78,6 +81,12 @@ function AutomationPage({ context }: { context: AutomationContext }) {
         }
         actions={
           <>
+            {run.canStart && (
+              <Button variant="primary" busy={run.busy} onClick={run.start}>
+                <Play aria-hidden="true" size={14} />
+                Run
+              </Button>
+            )}
             <a
               href={downloadUrl(automation.id)}
               download
@@ -93,6 +102,7 @@ function AutomationPage({ context }: { context: AutomationContext }) {
         {automation.name !== automation.title && <code className="font-mono text-xs">{automation.name}</code>}
         {automation.description && <p className="mt-1 text-ink">{automation.description}</p>}
       </PageHeader>
+      {run.error && <ErrorAlert error={run.error} title={run.errorTitle} />}
 
       <TabLinks
         label="Automation"
