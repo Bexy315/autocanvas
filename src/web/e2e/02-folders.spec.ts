@@ -36,7 +36,7 @@ test('folders and automations are created, compared, renamed, moved and deleted'
   await snapshot(page, 'folders-2-new-automation');
   await page.getByRole('button', { name: 'Create automation' }).click();
   await expect(page.getByRole('heading', { name: 'build', level: 1 })).toBeVisible();
-  await expect(page.getByText('By hand', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Started by' }).getByText('By hand', { exact: true })).toBeVisible();
   const id = new URL(page.url()).pathname.split('/').at(-1) ?? '';
   // The tree shows it in its folder, chosen.
   await expect(tree.getByRole('treeitem', { name: 'build' })).toHaveAttribute('aria-selected', 'true');
