@@ -285,7 +285,11 @@ export function LogView({
           }}
           className="h-full overflow-auto bg-sunken font-mono text-xs leading-5"
         >
-          {status && <p className="px-3 py-2 font-sans text-sm text-muted">{status}</p>}
+          {/* With step rows there, a note above them would push them down once the lines arrive (under a
+              click, too); the rows say what is missing instead. A failure to read is still said. */}
+          {status && (rows.length === 0 || log.status === 'failed') && (
+            <p className="px-3 py-2 font-sans text-sm text-muted">{status}</p>
+          )}
           <div style={{ height: virtualizer.getTotalSize() }} className="relative w-full">
             {virtualizer.getVirtualItems().map((item) => {
               const row = rows[item.index];
