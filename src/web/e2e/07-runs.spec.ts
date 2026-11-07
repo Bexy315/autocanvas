@@ -130,10 +130,10 @@ test('a run is started by hand, followed, found in the lists and cancelled', asy
   expect(created.ok()).toBeTruthy();
   const id = ((await created.json()) as { id: string }).id;
 
-  // Started from the automation's Runs tab, the run opens: its first job waits for a runner.
+  // Started with Run in the automation's header, the run opens: its first job waits for a runner.
   await page.goto(`/automations/${id}/runs`);
   await expect(page.getByRole('heading', { name: 'No runs yet' })).toBeVisible();
-  await page.getByRole('button', { name: 'Run', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Run #1' })).toBeVisible();
   await expect(page.getByText('Running', { exact: true }).first()).toBeVisible();
   await expect(
@@ -142,7 +142,7 @@ test('a run is started by hand, followed, found in the lists and cancelled', asy
       .getByText(/^Running for/)
       .first(),
   ).toBeVisible();
-  await expect(page.getByText('Waiting for a runner')).toBeVisible();
+  await expect(page.getByText(/waiting for a runner/)).toBeVisible();
   await snapshot(page, 'runs-1-running');
 
   // The lists show it.
@@ -157,7 +157,7 @@ test('a run is started by hand, followed, found in the lists and cancelled', asy
   await expect(page.getByText('Cancelled', { exact: true }).first()).toBeVisible();
   const runId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
 
-  // A job's steps and log (served by the test, as no runner takes part): colors, steps, search.
+  // A job's steps and log (served by the test, as no runner takes part): the failed step open, colors, search.
   await serveFinishedBuild(page, runId);
   await page.reload();
   const log = page.getByRole('log', { name: 'Lines of build, attempt 1' });
@@ -166,7 +166,7 @@ test('a run is started by hand, followed, found in the lists and cancelled', asy
   await page.getByRole('searchbox', { name: 'Search the log' }).fill('received');
   await expect(page.getByText('1 of 1')).toBeVisible();
   await snapshot(page, 'runs-3-log');
-  await page.getByRole('button', { name: 'Test' }).first().click();
-  await page.getByRole('button', { name: /^2\. Test/ }).click();
+  await expect(log.getByRole('button', { name: /^1\. Install, Succeeded/ })).toHaveAttribute('aria-expanded', 'false');
+  await log.getByRole('button', { name: /^2\. Test, Failed \(exit 1\)/ }).click();
   await expect(log).not.toContainText('src/checkout.test.ts');
 });
